@@ -22,13 +22,17 @@ const Tools: React.FC = () => {
         <RiskGuard />
       </div>
 
-      {/* New: Distance from hit price calculator */}
+      {/* New: Option Picker (contract structure checker) */}
+      <OptionPickerTool />
+
+      {/* Distance from hit price calculator */}
       <DistanceFromHitCalculator />
     </div>
   );
 };
 
 export default Tools;
+
 
 
 /* ========= Option Risk Card (converted to React, light theme) ========= */
@@ -871,6 +875,488 @@ const Signal97ProfitCalculator: React.FC = () => {
       <div className="text-[8px] text-slate-500">
         If potential from entry is tiny, risk/reward is poor. If it&apos;s
         still meaningful (e.g. 4–6%+), the move hasn&apos;t fully run away.
+      </div>
+    </div>
+  );
+};
+
+const OptionPickerTool: React.FC = () => {
+  const [underlying, setUnderlying] = useState("28.28");
+  const [today, setToday] = useState<string>(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`; // YYYY-MM-DD
+  });
+
+  // One row = one contract you’re comparing
+  type Row = {
+    label: string;           // nickname you give it
+    expiration: string;      // expiry date
+    strike: string;          // strike price
+    ask: string;             // ask / premium
+    delta: string;
+    theta: string;
+    breakeven: string;       // optional (otherwise we use strike + ask)
+    chanceOfProfit: string;  // optional %
+  };
+
+  const [rows, setRows] = useState<Row[]>([
+    {
+      label: "Contract A",
+      expiration: "",
+      strike: "",
+      ask: "",
+      delta: "",
+      theta: "",
+      breakeven: "",
+      chanceOfProfit: "",
+    },
+    {
+      label: "Contract B",
+      expiration: "",
+      strike: "",
+      ask: "",
+      delta: "",
+      theta: "",
+      breakeven: "",
+      chanceOfProfit: "",
+    },
+    {
+      label: "Contract C",
+      expiration: "",
+      strike: "",
+      ask: "",
+      delta: "",
+      theta: "",
+      breakeven: "",
+      chanceOfProfit: "",
+    },
+  ]);
+
+  const uPrice = parseNumber(underlying);
+  const todayDate = new Date(today);
+
+  type ScoredRow = Row & {
+    daysToExpiry: number | null;
+    pctToBreakeven: number | null; // % move needed to hit breakeven
+    moneynessPct: number | null;   // strike vs current stock price
+    score: number | null;
+    verdict: string;
+  };
+
+  const scored: ScoredRow[] = rows.map((r) => {
+    const strike = parseNumber(r.strike);
+    const ask = parseNumber(r.ask);
+    const delta = parseNumber(r.delta);
+    const theta = parseNumber(r.theta);
+
+    // breakeven = strike + ask unless user typed something else
+    const be =
+      r.breakeven.trim() !== ""
+        ? parseNumber(r.breakeven)
+        : strike > 0 && ask > 0
+        ? strike + ask
+        : NaN;
+
+    let dte: number | null = null;
+    if (r.expiration) {
+      const e = new Date(r.expiration);
+      dte = Math.round(
+        (e.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+
+    // If key info is missing, don’t score it yet
+    if (!uPrice || !strike || !ask || dte === null || Number.isNaN(be)) {
+      return {
+        ...r,
+        daysToExpiry: dte,
+        pctToBreakeven: null,
+        moneynessPct: null,
+        score: null,
+        verdict: "Fill in the blanks so I can rate this contract.",
+      };
+    }
+
+    // How far is breakeven from the current stock price?
+    // Positive = you still need that % move.
+    // Negative = you’re already past breakeven.
+    const pctToBe = (be - uPrice) / uPrice; // fraction
+
+    // Strike vs stock: positive = strike is above stock (out-of-the-money),
+    // negative = strike is below stock (in-the-money).
+    const moneyness = (strike - uPrice) / uPrice; // fraction
+
+    let score = 0;
+
+    const cop =
+      r.chanceOfProfit.trim() !== "" ? parseNumber(r.chanceOfProfit) : NaN;
+    const copNorm =
+      !Number.isNaN(cop) && cop > 1 ? cop / 100 : !Number.isNaN(cop) ? cop : NaN;
+
+    // 1) Days to expiry (DTE)
+    if (dte < 0) {
+      score -= 100; // expired
+    } else if (dte < 3) {
+      score -= 5; // ultra short, theta killer
+    } else if (dte >= 7 && dte <= 45) {
+      score += 4; // sweet spot
+    } else {
+      score += 1; // okay but not perfect
+    }
+
+    // 2) Delta: how much it moves with the stock
+    if (delta >= 0.5 && delta <= 0.7) {
+      score += 4; // nice balance
+    } else if (
+      (delta >= 0.4 && delta < 0.5) ||
+      (delta > 0.7 && delta <= 0.8)
+    ) {
+      score += 2;
+    } else if (delta < 0.25) {
+      score -= 6; // lotto-ish
+    } else {
+      score -= 2;
+    }
+
+    // 3) Strike vs stock (%)
+    if (moneyness >= -0.05 && moneyness <= 0.02) {
+      score += 3; // near the money
+    } else if (moneyness >= -0.1 && moneyness <= 0.05) {
+      score += 1;
+    } else if (moneyness > 0.05) {
+      score -= 3; // far out of the money
+    } else {
+      score -= 1;
+    }
+
+    // 4) % move needed to breakeven
+    if (pctToBe <= 0.02) {
+      // needs 0–2% move (or already past breakeven)
+      score += 3;
+    } else if (pctToBe <= 0.05) {
+      score += 1;
+    } else {
+      score -= 2;
+    }
+
+    // 5) Theta: how fast time eats the option
+    if (theta > -0.05) {
+      score += 2; // gentle time decay
+    } else if (theta < -0.1) {
+      score -= 2; // strong decay
+    }
+
+    // 6) Chance of profit (optional)
+    if (!Number.isNaN(copNorm)) {
+      if (copNorm >= 0.45) {
+        score += 2;
+      } else if (copNorm < 0.2) {
+        score -= 2;
+      }
+    }
+
+    // Simple language verdict
+    let verdict = "";
+    if (score <= -5) {
+      verdict =
+        "Very risky. Feels more like a lottery ticket than a compounding tool.";
+    } else if (score < 5) {
+      verdict = "Mixed. Could work, but use small size and be careful.";
+    } else if (score < 10) {
+      verdict = "Pretty solid shape for a normal 4–5% move.";
+    } else {
+      verdict = "One of the cleanest choices in this group.";
+    }
+
+    return {
+      ...r,
+      daysToExpiry: dte,
+      pctToBreakeven: pctToBe * 100,
+      moneynessPct: moneyness * 100,
+      score,
+      verdict,
+    };
+  });
+
+  // Sort best → worst (higher score first)
+  const sorted = [...scored].sort((a, b) => {
+    if (a.score === null && b.score === null) return 0;
+    if (a.score === null) return 1;
+    if (b.score === null) return -1;
+    return b.score - a.score;
+  });
+
+  const fmtBreakEven = (v: number | null) => {
+    if (v === null || !Number.isFinite(v)) return "—";
+    if (v < 0) return "Already past breakeven";
+    return v.toFixed(2) + "%";
+  };
+
+  const fmtStrikeVsStock = (v: number | null) => {
+    if (v === null || !Number.isFinite(v)) return "—";
+    const abs = Math.abs(v).toFixed(2) + "%";
+    if (v > 0) return `${abs} above stock (OTM)`;
+    if (v < 0) return `${abs} below stock (ITM)`;
+    return "At the stock price";
+  };
+
+  const updateRow = (idx: number, field: keyof Row, value: string) => {
+    setRows((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], [field]: value };
+      return copy;
+    });
+  };
+
+  return (
+    <div className="rounded-3xl bg-white shadow-sm border border-slate-100 p-5 space-y-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">
+            Signal 97 · Option Picker
+          </div>
+          <p className="text-[10px] text-slate-500">
+            Paste 2–3 contracts for the same stock and I&apos;ll show which one
+            has the friendliest structure for a 4–5% move and compounding.
+          </p>
+        </div>
+      </div>
+
+      {/* Stock price + date */}
+      <div className="grid grid-cols-2 gap-3 text-[10px]">
+        <label className="flex flex-col gap-1">
+          <span className="text-[9px] text-slate-500">
+            Stock price now ($)
+          </span>
+          <input
+            value={underlying}
+            onChange={(e) => setUnderlying(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[9px] text-slate-500">Today&apos;s date</span>
+          <input
+            type="date"
+            value={today}
+            onChange={(e) => setToday(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          />
+        </label>
+      </div>
+
+      {/* Input table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse text-[9px]">
+          <thead>
+            <tr className="bg-slate-50 text-slate-600">
+              <th className="border border-slate-200 px-2 py-1 text-left">
+                Nickname
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-left">
+                Expiry date
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Strike ($)
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Ask / premium ($)
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Delta
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Theta
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Breakeven ($) (optional)
+              </th>
+              <th className="border border-slate-200 px-2 py-1 text-right">
+                Chance of profit % (optional)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={idx} className="odd:bg-white even:bg-slate-50/60">
+                <td className="border border-slate-200 px-2 py-1">
+                  <input
+                    value={r.label}
+                    onChange={(e) => updateRow(idx, "label", e.target.value)}
+                    className="w-full rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1">
+                  <input
+                    type="date"
+                    value={r.expiration}
+                    onChange={(e) =>
+                      updateRow(idx, "expiration", e.target.value)
+                    }
+                    className="w-full rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.strike}
+                    onChange={(e) => updateRow(idx, "strike", e.target.value)}
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.ask}
+                    onChange={(e) => updateRow(idx, "ask", e.target.value)}
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.delta}
+                    onChange={(e) => updateRow(idx, "delta", e.target.value)}
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.theta}
+                    onChange={(e) => updateRow(idx, "theta", e.target.value)}
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.breakeven}
+                    onChange={(e) =>
+                      updateRow(idx, "breakeven", e.target.value)
+                    }
+                    placeholder="leave blank = strike+ask"
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+                <td className="border border-slate-200 px-2 py-1 text-right">
+                  <input
+                    value={r.chanceOfProfit}
+                    onChange={(e) =>
+                      updateRow(idx, "chanceOfProfit", e.target.value)
+                    }
+                    placeholder="e.g. 37.5"
+                    className="w-full text-right rounded border border-slate-200 px-1 py-0.5"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Output table */}
+      <div className="text-[10px] text-slate-500">
+        Below, contracts are sorted from best → worst based on:
+        days left, how far the strike is from the stock, % move needed to get
+        back your premium, time decay, and (if you fill it) chance of profit.
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse text-[9px]">
+          <thead>
+            <tr className="bg-slate-900 text-slate-100">
+              <th className="border border-slate-800 px-2 py-1 text-left">
+                Rank
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-left">
+                Nickname
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-right">
+                Score
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-right">
+                Days left
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-right">
+                % move needed to breakeven
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-right">
+                Strike vs stock %
+              </th>
+              <th className="border border-slate-800 px-2 py-1 text-left">
+                Quick comment
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, idx) => (
+              <tr key={idx} className="odd:bg-slate-900 even:bg-slate-900/80">
+                <td className="border border-slate-800 px-2 py-1 text-slate-100">
+                  {r.score === null ? "—" : idx + 1}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-slate-100">
+                  {r.label || `Contract ${idx + 1}`}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-right text-slate-100">
+                  {r.score === null
+                    ? "—"
+                    : (r.score >= 0 ? "+" : "") + r.score.toFixed(1)}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-right text-slate-100">
+                  {r.daysToExpiry ?? "—"}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-right text-slate-100">
+                  {fmtBreakEven(r.pctToBreakeven)}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-right text-slate-100">
+                  {fmtStrikeVsStock(r.moneynessPct)}
+                </td>
+                <td className="border border-slate-800 px-2 py-1 text-slate-100">
+                  {r.verdict}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Plain-English legend */}
+      <div className="text-[9px] text-slate-500 space-y-1 bg-slate-50 rounded-xl p-2 mt-1">
+        <div>
+          <strong>Rank</strong> – 1 is the friendliest contract for your style
+          based on the math above.
+        </div>
+        <div>
+          <strong>Score</strong> – higher = better shape for a 4–5% swing.
+          Negative scores = more lottery-like.
+        </div>
+        <div>
+          <strong>Days left</strong> – how many days until expiry. Very low
+          days = time decay hits harder.
+        </div>
+        <div>
+          <strong>% move needed to breakeven</strong> – roughly how far the
+          stock must move from today&apos;s price to get back what you paid.
+          If it shows “Already past breakeven”, that means today&apos;s price is
+          already above your breakeven (for calls) or below it (for puts).
+        </div>
+        <div>
+          <strong>Strike vs stock %</strong> – how far the strike is from the
+          stock price right now:
+          <br />
+          • “below stock (ITM)” = safer, but more expensive.
+          <br />
+          • “above stock (OTM)” = cheaper, but needs more movement.
+        </div>
+        <div>
+          <strong>Quick comment</strong> – a plain-English note on whether this
+          looks like a clean compounding contract or more of a gamble.
+        </div>
+      </div>
+
+      <div className="text-[9px] text-slate-500">
+        Use this as a structure check. Even the top-ranked contract still needs
+        your own thesis and Signal 97 direction.
       </div>
     </div>
   );
