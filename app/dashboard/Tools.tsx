@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import DistanceFromHitCalculator from "./DistanceFromHitCalculator";
+
 
 const Tools: React.FC = () => {
   return (
@@ -19,11 +21,15 @@ const Tools: React.FC = () => {
         <OptionRiskCard />
         <RiskGuard />
       </div>
+
+      {/* New: Distance from hit price calculator */}
+      <DistanceFromHitCalculator />
     </div>
   );
 };
 
 export default Tools;
+
 
 /* ========= Option Risk Card (converted to React, light theme) ========= */
 
