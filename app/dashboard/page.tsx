@@ -3,12 +3,12 @@
 import { useState } from "react";
 import CommandCenter from "./CommandCenter";
 import LiveWatchlist from "./LiveWatchlist";
-import SignalAlerts from "./SignalAlerts";
 import ProbabilityLab from "./ProbabilityLab";
 import ActiveTrades from "./ActiveTrades";
 import Performance from "./Performance";
 import Tools from "./Tools";
 import Settings from "./Settings";
+import LiveAlertsPanel from "./LiveAlertsPanel";
 
 
 const TABS = [
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       <section className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {activeTab === "Command Center" && <CommandCenter />}
         {activeTab === "Live Watchlist" && <LiveWatchlist />}
-        {activeTab === "Signal 97 Alerts" && <SignalAlerts />}
+        {activeTab === "Signal 97 Alerts" && <LiveAlertsPanel />}
         {activeTab === "Probability Lab" && <ProbabilityLab />}
         {activeTab === "Active Trades" && <ActiveTrades />}
         {activeTab === "P&L / Performance" && <Performance />}
