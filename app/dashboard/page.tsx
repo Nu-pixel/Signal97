@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CommandCenter from "./CommandCenter";
@@ -26,6 +26,15 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 export default function DashboardPage() {
+  // ✅ Wrap the component that uses useSearchParams in Suspense
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -118,6 +127,26 @@ export default function DashboardPage() {
         {activeTab === "Tools" && <Tools />}
         {activeTab === "Settings" && <Settings />}
       </section>
+    </main>
+  );
+}
+
+/** Simple placeholder while search params hydrate */
+function DashboardSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#f8fafc]">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="h-6 w-56 bg-slate-100 rounded mb-3" />
+          <div className="h-3 w-72 bg-slate-100 rounded mb-6" />
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="h-24 bg-slate-100 rounded-2xl" />
+            <div className="h-24 bg-slate-100 rounded-2xl" />
+            <div className="h-24 bg-slate-100 rounded-2xl" />
+            <div className="h-24 bg-slate-100 rounded-2xl" />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
