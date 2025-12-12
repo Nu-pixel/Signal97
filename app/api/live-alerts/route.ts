@@ -1,31 +1,26 @@
 import { NextResponse } from "next/server";
 
-// VM public IP (no SSH tunnel needed now)
-const API_BASE = "http://136.114.207.90:8000";
+const API_BASE = process.env.S97_VM_API_BASE || "http://136.114.207.90:8000";
 
 export async function GET() {
-  console.log("Using API_BASE =", API_BASE);
-
   try {
     const res = await fetch(`${API_BASE}/alerts/live?limit=100`, {
       cache: "no-store",
     });
 
+    const text = await res.text();
     if (!res.ok) {
-      const text = await res.text();
-      console.error("VM API error:", res.status, text);
       return NextResponse.json(
-        { alerts: [], error: `VM API error: ${res.status} ${text}` },
+        { alerts: [], ok: false, error: `VM API error: ${res.status} ${text}` },
         { status: 502 }
       );
     }
 
-    const data = await res.json();
+    const data = text ? JSON.parse(text) : { alerts: [] };
     return NextResponse.json(data);
-  } catch (e) {
-    console.error("Error calling VM API:", e);
+  } catch (e: any) {
     return NextResponse.json(
-      { alerts: [], error: "Cannot reach VM API" },
+      { alerts: [], ok: false, error: `Cannot reach VM API (${e?.message ?? "unknown"})` },
       { status: 502 }
     );
   }

@@ -5,7 +5,7 @@ import React from "react";
 const ProbabilityLab: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Top card (whole page in screenshot is one large card) */}
+      {/* Top card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 px-8 py-7 space-y-6">
         {/* Heading */}
         <div>
@@ -13,8 +13,8 @@ const ProbabilityLab: React.FC = () => {
             Probability Lab
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Historical context for how similar alerts behaved. No formulas,
-            just typical ranges. Hypothetical only — not guarantees.
+            Historical context for how similar alerts behaved. No formulas, just
+            typical ranges. Hypothetical only — not guarantees.
           </p>
         </div>
 
@@ -55,9 +55,7 @@ const ProbabilityLab: React.FC = () => {
                 SCALP Alerts
               </span>
             </div>
-            <div className="text-[11px] text-amber-900/90">
-              Typical window
-            </div>
+            <div className="text-[11px] text-amber-900/90">Typical window</div>
             <div className="mt-1 text-4xl font-semibold text-amber-900 leading-tight">
               0–3 days
             </div>
@@ -105,7 +103,7 @@ const ProbabilityLab: React.FC = () => {
         </div>
       </div>
 
-      {/* Understanding the data (separate section, like screenshot) */}
+      {/* Understanding the data */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 px-8 py-6 text-xs text-slate-700 space-y-2">
         <h2 className="text-base font-semibold text-slate-900 mb-1">
           Understanding the data
@@ -115,12 +113,12 @@ const ProbabilityLab: React.FC = () => {
           performed historically. This gives you context for decision-making.
         </p>
         <p>
-          <span className="font-semibold">What we measure:</span> Price
-          movement within specified timeframes, typical ranges, and how often
-          targets were reached.
+          <span className="font-semibold">What we measure:</span> Price movement
+          within specified timeframes, typical ranges, and how often targets
+          were reached.
         </p>
         <p>
-          <span className="font-semibold">What we don't show:</span> Exact
+          <span className="font-semibold">What we don&apos;t show:</span> Exact
           formulas, proprietary scoring, or guarantees. The underlying model
           stays internal to protect its integrity.
         </p>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import CommandCenter from "./CommandCenter";
 import LiveWatchlist from "./LiveWatchlist";
 import ProbabilityLab from "./ProbabilityLab";
@@ -9,7 +11,6 @@ import Performance from "./Performance";
 import Tools from "./Tools";
 import Settings from "./Settings";
 import LiveAlertsPanel from "./LiveAlertsPanel";
-
 
 const TABS = [
   "Command Center",
@@ -25,10 +26,16 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ✅ ONLY demo when URL explicitly has ?demo=1
+  const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
+
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
 
   const handleLogout = () => {
-    window.location.href = "/";
+    router.push("/");
   };
 
   return (
@@ -40,17 +47,33 @@ export default function DashboardPage() {
             <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-semibold">
               97
             </div>
+
             <div>
-              <div className="font-semibold text-slate-900">
-                Signal 97 · Demo workspace
+              <div className="font-semibold text-slate-900 flex items-center gap-2">
+                Signal 97 · Workspace
+                <span
+                  className={
+                    "px-2 py-0.5 rounded-full text-[10px] font-semibold " +
+                    (isDemo
+                      ? "bg-orange-100 text-orange-700"
+                      : "bg-emerald-100 text-emerald-700")
+                  }
+                >
+                  {isDemo ? "DEMO" : "LIVE"}
+                </span>
               </div>
-              <div className="text-[10px] text-orange-500 font-medium">
-                Sample data only
+
+              <div className="text-[10px] text-slate-500 font-medium">
+                {isDemo
+                  ? "Showing sample UI data (demo mode)."
+                  : "Showing live-connected pages (when wired)."}
               </div>
             </div>
           </div>
+
           <div className="flex items-center gap-4 text-xs text-slate-500">
             <span>demo@signal97.com</span>
+
             <button
               onClick={handleLogout}
               className="px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
@@ -65,14 +88,14 @@ export default function DashboardPage() {
       <div className="w-full bg-white shadow-sm/40">
         <div className="max-w-6xl mx-auto px-6 flex gap-3 overflow-x-auto py-3 text-sm">
           {TABS.map((tab) => {
-            const isActive = tab === activeTab;
+            const isActiveTab = tab === activeTab;
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={
                   "px-4 py-2 rounded-full whitespace-nowrap transition-all " +
-                  (isActive
+                  (isActiveTab
                     ? "bg-slate-900 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50")
                 }

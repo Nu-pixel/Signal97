@@ -62,10 +62,7 @@ const Settings: React.FC = () => {
 
           <Divider />
 
-          <SimpleSelect
-            label="Max alerts per day"
-            value="Unlimited"
-          />
+          <SimpleSelect label="Max alerts per day" value="Unlimited" />
         </SettingsBlock>
 
         {/* General Preferences */}
@@ -74,10 +71,7 @@ const Settings: React.FC = () => {
           iconDot="bg-purple-500"
           title="General Preferences"
         >
-          <SimpleSelect
-            label="Timezone"
-            value="Eastern (EST)"
-          />
+          <SimpleSelect label="Timezone" value="Eastern (EST)" />
         </SettingsBlock>
       </div>
     </div>
@@ -102,9 +96,7 @@ function SettingsBlock({
   return (
     <section className="bg-slate-50 rounded-2xl px-4 py-4 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-        <div
-          className={`w-6 h-6 rounded-full ${iconBg} flex items-center justify-center`}
-        >
+        <div className={`w-6 h-6 rounded-full ${iconBg} flex items-center justify-center`}>
           <span className={`w-2 h-2 rounded-full ${iconDot}`} />
         </div>
         <span>{title}</span>
@@ -132,11 +124,7 @@ function SettingsRow({
       } border border-slate-100`}
     >
       <div className="flex flex-col">
-        <div
-          className={`text-xs font-medium ${
-            dim ? "text-slate-400" : "text-slate-900"
-          }`}
-        >
+        <div className={`text-xs font-medium ${dim ? "text-slate-400" : "text-slate-900"}`}>
           {title}
         </div>
         <div className="text-[9px] text-slate-500">{description}</div>
@@ -175,10 +163,9 @@ function Pill({
     orange: "bg-orange-500 text-white",
     slate: "bg-slate-500 text-white",
   } as const;
+
   return (
-    <span
-      className={`px-3 py-1 rounded-full text-[9px] font-semibold ${map[color]}`}
-    >
+    <span className={`px-3 py-1 rounded-full text-[9px] font-semibold ${map[color]}`}>
       {children}
     </span>
   );

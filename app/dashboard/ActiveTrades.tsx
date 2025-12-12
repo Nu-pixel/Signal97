@@ -1,43 +1,112 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+type VmTrade = {
+  trade_id?: string;
+  alert_key?: string;
+  taken_at?: number;
+  status?: string;
+  alert?: Record<string, any>;
+};
+
+type TradesResp = {
+  ok?: boolean;
+  trades: VmTrade[];
+  error?: string;
+};
+
+const SAMPLE_ROWS = [
+  { symbol: "PLTR", side: "Call", size: "5 contracts", entry: "$24.50", current: "$25.60", pnl: "+4.5%" },
+  { symbol: "LCID", side: "Call", size: "10 contracts", entry: "$3.20", current: "$3.33", pnl: "+4.1%" },
+  { symbol: "NIO", side: "Call", size: "8 contracts", entry: "$6.80", current: "$7.05", pnl: "+3.7%" },
+];
 
 const ActiveTrades: React.FC = () => {
-  const rows = [
-    {
-      symbol: "PLTR",
-      side: "Call",
-      size: "5 contracts",
-      entry: "$24.50",
-      current: "$25.60",
-      pnl: "+4.5%",
-    },
-    {
-      symbol: "LCID",
-      side: "Call",
-      size: "10 contracts",
-      entry: "$3.20",
-      current: "$3.33",
-      pnl: "+4.1%",
-    },
-    {
-      symbol: "NIO",
-      side: "Call",
-      size: "8 contracts",
-      entry: "$6.80",
-      current: "$7.05",
-      pnl: "+3.7%",
-    },
-  ];
+  const searchParams = useSearchParams();
+  const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
+
+  const [trades, setTrades] = useState<VmTrade[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(!isDemo);
+
+  useEffect(() => {
+    if (isDemo) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/active-trades", { cache: "no-store" });
+        const data = (await res.json()) as TradesResp;
+
+        if (cancelled) return;
+
+        if (!res.ok || data.ok === false) {
+          setErr(data.error || "Failed to load active trades");
+          setTrades([]);
+        } else {
+          setErr(null);
+          setTrades(Array.isArray(data.trades) ? data.trades : []);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setErr(e?.message ?? "Failed to load active trades");
+          setTrades([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    const id = window.setInterval(run, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [isDemo]);
+
+  const rows = useMemo(() => {
+    if (isDemo) return SAMPLE_ROWS;
+
+    return (trades || []).map((t) => {
+      const a = t.alert || {};
+      const symbol = String(a.symbol || a.ticker || "").toUpperCase() || "—";
+      const side = String(a.direction || a.side || "").toUpperCase();
+      const prettySide =
+        side === "CALL" ? "Call" : side === "PUT" ? "Put" : side ? side : "—";
+
+      return {
+        id: t.trade_id || t.alert_key || symbol,
+        symbol,
+        side: prettySide,
+        size: "—",
+        entry: a.entry_price ? `$${Number(a.entry_price).toFixed(2)}` : "—",
+        current: "—",
+        pnl: "—",
+        note: t.taken_at ? `Taken ${new Date(t.taken_at * 1000).toLocaleString()}` : "Active",
+      };
+    });
+  }, [isDemo, trades]);
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Active Trades
-        </h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Active Trades</h1>
         <p className="text-xs text-slate-500">
-          Based only on trades you marked as taken. Sample data.
+          {isDemo
+            ? "Based only on trades you marked as taken. Sample data."
+            : loading
+            ? "Loading active trades..."
+            : err
+            ? `Active trades error: ${err}`
+            : `Live active trades loaded (${rows.length}).`}
         </p>
       </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-[11px] text-slate-500 border-b border-slate-100">
@@ -51,37 +120,49 @@ const ActiveTrades: React.FC = () => {
               <th className="py-2 text-left">Note</th>
             </tr>
           </thead>
+
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.symbol} className="border-b border-slate-50">
-                <td className="py-2 font-semibold text-slate-900">
-                  {r.symbol}
-                </td>
+            {rows.map((r: any) => (
+              <tr key={r.id} className="border-b border-slate-50">
+                <td className="py-2 font-semibold text-slate-900">{r.symbol}</td>
                 <td className="py-2">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px]">
+                  <span
+                    className={
+                      "px-2 py-0.5 rounded-full text-[9px] " +
+                      (r.side === "Call"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : r.side === "Put"
+                        ? "bg-orange-50 text-orange-700"
+                        : "bg-slate-100 text-slate-700")
+                    }
+                  >
                     {r.side}
                   </span>
                 </td>
                 <td className="py-2 text-slate-700">{r.size}</td>
                 <td className="py-2 text-slate-700">{r.entry}</td>
                 <td className="py-2 text-slate-700">{r.current}</td>
-                <td className="py-2 text-emerald-600 font-semibold">
-                  {r.pnl}
-                </td>
-                <td className="py-2 text-slate-500 text-[10px]">
-                  Near +4% target
-                </td>
+                <td className="py-2 text-emerald-600 font-semibold">{r.pnl}</td>
+                <td className="py-2 text-slate-500 text-[10px]">{r.note}</td>
               </tr>
             ))}
+
+            {!rows.length && (
+              <tr>
+                <td className="py-4 text-xs text-slate-500" colSpan={7}>
+                  No active trades yet. (Use “Take” on an alert to create one.)
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Summary row */}
+      {/* Summary row (kept same layout, just truthful values) */}
       <div className="grid md:grid-cols-3 gap-4 text-sm">
-        <Summary label="Total P&amp;L" value="+$1,247" />
-        <Summary label="Avg P&amp;L" value="+4.1%" />
-        <Summary label="Open positions" value="3" />
+        <Summary label="Active trades" value={String(rows.length)} />
+        <Summary label="Closed trades" value="—" />
+        <Summary label="P&amp;L" value="—" />
       </div>
     </div>
   );

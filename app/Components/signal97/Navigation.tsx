@@ -34,28 +34,16 @@ export default function Navigation({
 
         {/* Center: nav links */}
         <div className="hidden md:flex items-center gap-8 text-base text-slate-600 font-medium">
-          <button
-            onClick={() => onNavClick("how")}
-            className="hover:text-blue-600"
-          >
+          <button onClick={() => onNavClick("how")} className="hover:text-blue-600">
             How it works
           </button>
-          <button
-            onClick={() => onNavClick("features")}
-            className="hover:text-blue-600"
-          >
+          <button onClick={() => onNavClick("features")} className="hover:text-blue-600">
             Features
           </button>
-          <button
-            onClick={() => onNavClick("who")}
-            className="hover:text-blue-600"
-          >
+          <button onClick={() => onNavClick("who")} className="hover:text-blue-600">
             Who it&apos;s for
           </button>
-          <button
-            onClick={() => onNavClick("results")}
-            className="hover:text-blue-600"
-          >
+          <button onClick={() => onNavClick("results")} className="hover:text-blue-600">
             Results &amp; safety
           </button>
         </div>
@@ -68,11 +56,23 @@ export default function Navigation({
           >
             Log in
           </button>
+
           <button
             onClick={onDemo}
-            className="px-5 py-2 rounded-2xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+            className="px-4 py-2 rounded-2xl text-sm font-semibold bg-slate-900 hover:bg-black text-white shadow-md"
           >
             Launch demo
+          </button>
+
+          <button
+            onClick={() => {
+              // If you want, replace this with a prop like onLaunchLive.
+              // For now we reuse onLogin as the “go to app” action.
+              onLogin();
+            }}
+            className="px-5 py-2 rounded-2xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+          >
+            Launch live
           </button>
         </div>
       </div>
