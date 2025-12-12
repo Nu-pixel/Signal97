@@ -5,7 +5,7 @@ import { Activity, Eye, Bell, BarChart2, ArrowRight } from "lucide-react";
 
 type LiveWatchlistResp = { items?: string[] };
 type LiveAlertsResp = { alerts?: any[] };
-type TradesResp = { trades?: any[] };
+type TradesResp = { trades?: any[]; ok?: boolean; error?: string };
 
 export default function CommandCenter() {
   const [watching, setWatching] = useState<number>(0);
@@ -21,9 +21,9 @@ export default function CommandCenter() {
         setErr(null);
 
         const [wRes, aRes, tRes] = await Promise.all([
-          fetch("/api/live-watchlist", { cache: "no-store" }),
+          fetch("/api/watchlist-live", { cache: "no-store" }),
           fetch("/api/live-alerts", { cache: "no-store" }),
-          fetch("/api/trades", { cache: "no-store" }),
+          fetch("/api/active-trades", { cache: "no-store" }),
         ]);
 
         const wJson: LiveWatchlistResp = wRes.ok ? await wRes.json() : {};
@@ -34,15 +34,28 @@ export default function CommandCenter() {
 
         setWatching(Array.isArray(wJson.items) ? wJson.items.length : 0);
         setAlertsCount(Array.isArray(aJson.alerts) ? aJson.alerts.length : 0);
+
+        // active-trades shape in your app looks like { ok, trades: [...] }
         setOpenTrades(Array.isArray(tJson.trades) ? tJson.trades.length : 0);
+
+        if (!wRes.ok || !aRes.ok || !tRes.ok || tJson.ok === false) {
+          setErr(
+            tJson.error ||
+              (!wRes.ok
+                ? "watchlist-live failed"
+                : !aRes.ok
+                ? "live-alerts failed"
+                : "active-trades failed")
+          );
+        }
       } catch (e: any) {
         if (!alive) return;
-        setErr(e?.message ?? "Failed to load live stats");
+        setErr(e?.message ?? "Failed to load dashboard stats");
       }
     }
 
     load();
-    const id = setInterval(load, 15_000); // refresh
+    const id = setInterval(load, 15000);
     return () => {
       alive = false;
       clearInterval(id);
@@ -50,7 +63,7 @@ export default function CommandCenter() {
   }, []);
 
   const marketMood = useMemo(() => {
-    // Keep static for now. Later we can wire a /market/mood endpoint from news/sentiment.
+    // Keep static for now (later we can wire to sentiment/news).
     return { badge: "Calm", text: "Good conditions" };
   }, []);
 

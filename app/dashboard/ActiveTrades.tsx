@@ -23,6 +23,20 @@ const SAMPLE_ROWS = [
   { symbol: "NIO", side: "Call", size: "8 contracts", entry: "$6.80", current: "$7.05", pnl: "+3.7%" },
 ];
 
+async function postJson(url: string, body: unknown) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (data as any)?.error || (data as any)?.detail || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
 const ActiveTrades: React.FC = () => {
   const searchParams = useSearchParams();
   const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
@@ -30,6 +44,20 @@ const ActiveTrades: React.FC = () => {
   const [trades, setTrades] = useState<VmTrade[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(!isDemo);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  const loadTrades = async () => {
+    const res = await fetch("/api/active-trades", { cache: "no-store" });
+    const data = (await res.json()) as TradesResp;
+
+    if (!res.ok || data.ok === false) {
+      setErr(data.error || "Failed to load active trades");
+      setTrades([]);
+    } else {
+      setErr(null);
+      setTrades(Array.isArray(data.trades) ? data.trades : []);
+    }
+  };
 
   useEffect(() => {
     if (isDemo) return;
@@ -39,18 +67,7 @@ const ActiveTrades: React.FC = () => {
     const run = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/active-trades", { cache: "no-store" });
-        const data = (await res.json()) as TradesResp;
-
-        if (cancelled) return;
-
-        if (!res.ok || data.ok === false) {
-          setErr(data.error || "Failed to load active trades");
-          setTrades([]);
-        } else {
-          setErr(null);
-          setTrades(Array.isArray(data.trades) ? data.trades : []);
-        }
+        await loadTrades();
       } catch (e: any) {
         if (!cancelled) {
           setErr(e?.message ?? "Failed to load active trades");
@@ -70,17 +87,27 @@ const ActiveTrades: React.FC = () => {
   }, [isDemo]);
 
   const rows = useMemo(() => {
-    if (isDemo) return SAMPLE_ROWS;
+    if (isDemo) {
+      return SAMPLE_ROWS.map((r, i) => ({
+        id: `demo-${i}`,
+        ...r,
+        note: "Demo row",
+        trade_id: undefined,
+        alert_key: undefined,
+      }));
+    }
 
     return (trades || []).map((t) => {
       const a = t.alert || {};
       const symbol = String(a.symbol || a.ticker || "").toUpperCase() || "—";
-      const side = String(a.direction || a.side || "").toUpperCase();
+      const sideRaw = String(a.direction || a.side || "").toUpperCase();
       const prettySide =
-        side === "CALL" ? "Call" : side === "PUT" ? "Put" : side ? side : "—";
+        sideRaw === "CALL" ? "Call" : sideRaw === "PUT" ? "Put" : sideRaw ? sideRaw : "—";
 
       return {
         id: t.trade_id || t.alert_key || symbol,
+        trade_id: t.trade_id,
+        alert_key: t.alert_key,
         symbol,
         side: prettySide,
         size: "—",
@@ -91,6 +118,24 @@ const ActiveTrades: React.FC = () => {
       };
     });
   }, [isDemo, trades]);
+
+  const onClose = async (row: any) => {
+    const key = row.id;
+    try {
+      setBusyKey(key);
+      // best effort: send both ids, VM can choose
+      await postJson("/api/close-trade", {
+        trade_id: row.trade_id,
+        alert_key: row.alert_key,
+        symbol: row.symbol,
+      });
+      await loadTrades();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to close trade");
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-6">
@@ -118,6 +163,7 @@ const ActiveTrades: React.FC = () => {
               <th className="py-2 text-left">Current</th>
               <th className="py-2 text-left">P&amp;L</th>
               <th className="py-2 text-left">Note</th>
+              <th className="py-2 text-left">Actions</th>
             </tr>
           </thead>
 
@@ -144,12 +190,22 @@ const ActiveTrades: React.FC = () => {
                 <td className="py-2 text-slate-700">{r.current}</td>
                 <td className="py-2 text-emerald-600 font-semibold">{r.pnl}</td>
                 <td className="py-2 text-slate-500 text-[10px]">{r.note}</td>
+                <td className="py-2">
+                  <button
+                    className="px-3 py-1.5 rounded-md border text-xs hover:bg-black/5 disabled:opacity-50"
+                    disabled={isDemo || busyKey === r.id}
+                    onClick={() => onClose(r)}
+                    title="Close/remove from Active Trades"
+                  >
+                    {busyKey === r.id ? "Closing..." : "Close"}
+                  </button>
+                </td>
               </tr>
             ))}
 
             {!rows.length && (
               <tr>
-                <td className="py-4 text-xs text-slate-500" colSpan={7}>
+                <td className="py-4 text-xs text-slate-500" colSpan={8}>
                   No active trades yet. (Use “Take” on an alert to create one.)
                 </td>
               </tr>
@@ -158,7 +214,6 @@ const ActiveTrades: React.FC = () => {
         </table>
       </div>
 
-      {/* Summary row (kept same layout, just truthful values) */}
       <div className="grid md:grid-cols-3 gap-4 text-sm">
         <Summary label="Active trades" value={String(rows.length)} />
         <Summary label="Closed trades" value="—" />

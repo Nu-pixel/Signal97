@@ -112,9 +112,7 @@ async function postJson(url: string, body: unknown) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg =
-      (data as any)?.error ||
-      (data as any)?.detail ||
-      `HTTP ${res.status}`;
+      (data as any)?.error || (data as any)?.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
   return data;
@@ -232,6 +230,20 @@ export default function LiveAlertsPanel() {
   );
   const [loading, setLoading] = useState(true);
 
+  // key for "button busy" so users can't double-click Take/Snooze/Dismiss
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  function makeKey(a: RawAlert) {
+    // best-effort stable key across refreshes
+    return [
+      a.symbol || "",
+      a.forecast_time || a.forecast_time_12h_ct || "",
+      a.entry_time_12h_ct || "",
+      a.direction_rule_direction || a.direction || "",
+      String(a.forecast_pct ?? ""),
+    ].join("|");
+  }
+
   async function loadAlerts() {
     try {
       const res = await fetch("/api/live-alerts", { cache: "no-store" });
@@ -246,19 +258,48 @@ export default function LiveAlertsPanel() {
     }
   }
 
+  // ✅ FIX: Take should also remove the alert from this page
+  // We do: take -> then dismiss -> then reload
   async function onTake(rawAlert: RawAlert) {
-    await postJson("/api/take-alert", { alert: rawAlert });
-    await loadAlerts();
+    const key = makeKey(rawAlert);
+    setBusyKey(key);
+    try {
+      await postJson("/api/take-alert", { alert: rawAlert });
+
+      // Remove it from alerts list (most backends implement this)
+      // If your backend ignores dismiss, we still reload and it won’t break.
+      try {
+        await postJson("/api/dismiss-alert", { alert: rawAlert });
+      } catch {
+        // ignore dismiss errors; take is more important
+      }
+
+      await loadAlerts();
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   async function onDismiss(rawAlert: RawAlert) {
-    await postJson("/api/dismiss-alert", { alert: rawAlert });
-    await loadAlerts();
+    const key = makeKey(rawAlert);
+    setBusyKey(key);
+    try {
+      await postJson("/api/dismiss-alert", { alert: rawAlert });
+      await loadAlerts();
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   async function onSnooze(rawAlert: RawAlert, minutes = 30) {
-    await postJson("/api/snooze-alert", { alert: rawAlert, minutes });
-    await loadAlerts();
+    const key = makeKey(rawAlert);
+    setBusyKey(key);
+    try {
+      await postJson("/api/snooze-alert", { alert: rawAlert, minutes });
+      await loadAlerts();
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   useEffect(() => {
@@ -310,6 +351,7 @@ export default function LiveAlertsPanel() {
         <AlertBubble
           alert={sample}
           rawAlert={{}}
+          busy={false}
           onTake={async () => window.alert("No live alerts yet.")}
           onDismiss={async () => window.alert("No live alerts yet.")}
           onSnooze={async () => window.alert("No live alerts yet.")}
@@ -333,16 +375,21 @@ export default function LiveAlertsPanel() {
         {alerts
           .slice()
           .reverse()
-          .map((a, idx) => (
-            <AlertBubble
-              key={idx}
-              alert={a.card}
-              rawAlert={a.raw}
-              onTake={onTake}
-              onDismiss={onDismiss}
-              onSnooze={onSnooze}
-            />
-          ))}
+          .map((a, idx) => {
+            const key = makeKey(a.raw);
+            const busy = busyKey === key;
+            return (
+              <AlertBubble
+                key={key || idx}
+                alert={a.card}
+                rawAlert={a.raw}
+                busy={busy}
+                onTake={onTake}
+                onDismiss={onDismiss}
+                onSnooze={onSnooze}
+              />
+            );
+          })}
       </div>
     </div>
   );
@@ -351,12 +398,14 @@ export default function LiveAlertsPanel() {
 function AlertBubble({
   alert,
   rawAlert,
+  busy,
   onTake,
   onDismiss,
   onSnooze,
 }: {
   alert: AlertCardData;
   rawAlert: RawAlert;
+  busy: boolean;
   onTake: (a: RawAlert) => Promise<void>;
   onDismiss: (a: RawAlert) => Promise<void>;
   onSnooze: (a: RawAlert, minutes?: number) => Promise<void>;
@@ -427,21 +476,24 @@ function AlertBubble({
       {/* ACTION BUTTONS */}
       <div className="flex flex-wrap gap-2">
         <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5"
+          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
+          disabled={busy}
           onClick={() => onTake(rawAlert)}
         >
-          Take
+          {busy ? "Working..." : "Take"}
         </button>
 
         <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5"
+          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
+          disabled={busy}
           onClick={() => onSnooze(rawAlert, 30)}
         >
           Snooze 30m
         </button>
 
         <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5"
+          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
+          disabled={busy}
           onClick={() => onDismiss(rawAlert)}
         >
           Dismiss
