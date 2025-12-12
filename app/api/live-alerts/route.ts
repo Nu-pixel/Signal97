@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Hard-code the VM API base through the SSH tunnel
-const API_BASE = "http://127.0.0.1:8000";
+// VM public IP (no SSH tunnel needed now)
+const API_BASE = "http://136.114.207.90:8000";
 
 export async function GET() {
   console.log("Using API_BASE =", API_BASE);
