@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Activity, Eye, Bell, BarChart2, ArrowRight } from "lucide-react";
 
-type LiveWatchlistResp = { ok?: boolean; items?: string[]; source?: string };
+type LiveWatchlistResp = { ok?: boolean; items?: string[] };
 type LiveAlertsResp = { alerts?: any[] };
 type TradesResp = { trades?: any[]; ok?: boolean; error?: string };
 
@@ -13,8 +13,8 @@ export default function CommandCenter() {
   const [openTrades, setOpenTrades] = useState<number>(0);
   const [err, setErr] = useState<string | null>(null);
 
-  // ✅ ADD: connection badge state
-  const [conn, setConn] = useState<{ ok: boolean; source?: string } | null>(null);
+  // Connection badge state (NO source)
+  const [connOk, setConnOk] = useState<boolean>(false);
   const [checkedAt, setCheckedAt] = useState<string>("");
 
   useEffect(() => {
@@ -40,8 +40,8 @@ export default function CommandCenter() {
         setAlertsCount(Array.isArray(aJson.alerts) ? aJson.alerts.length : 0);
         setOpenTrades(Array.isArray(tJson.trades) ? tJson.trades.length : 0);
 
-        // ✅ ADD: update the "proof" badge fields
-        setConn({ ok: !!wJson.ok && wRes.ok, source: wJson.source });
+        // VM connection = endpoint reachable + it returns ok:true
+        setConnOk(Boolean(wRes.ok && wJson.ok));
         setCheckedAt(new Date().toLocaleString());
 
         if (!wRes.ok || !aRes.ok || !tRes.ok || tJson.ok === false) {
@@ -57,15 +57,14 @@ export default function CommandCenter() {
       } catch (e: any) {
         if (!alive) return;
         setErr(e?.message ?? "Failed to load dashboard stats");
-
-        // ✅ ADD: mark as not connected on error
-        setConn({ ok: false });
+        setConnOk(false);
         setCheckedAt(new Date().toLocaleString());
       }
     }
 
     load();
     const id = setInterval(load, 15000);
+
     return () => {
       alive = false;
       clearInterval(id);
@@ -83,23 +82,13 @@ export default function CommandCenter() {
           Today at a glance
         </h1>
 
-        {/* ✅ ADD: VM connection badge (place right here, under the title) */}
+        {/* VM connection badge (NO source) */}
         <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <span className="font-semibold">VM Connection:</span>{" "}
-              {conn?.ok ? "Connected ✅" : "Not connected ❌"}
-              {checkedAt ? (
-                <span className="text-slate-500"> (checked: {checkedAt})</span>
-              ) : null}
-            </div>
-
-            {conn?.source ? (
-              <div className="text-slate-500 truncate max-w-[420px]">
-                Source: <span className="font-mono">{conn.source}</span>
-              </div>
-            ) : null}
-          </div>
+          <span className="font-semibold">VM Connection:</span>{" "}
+          {connOk ? "Connected ✅" : "Not connected ❌"}
+          {checkedAt ? (
+            <span className="text-slate-500"> (checked: {checkedAt})</span>
+          ) : null}
         </div>
 
         {err && (
