@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Activity, Eye, Bell, BarChart2, ArrowRight } from "lucide-react";
 
-type LiveWatchlistResp = { items?: string[] };
+type LiveWatchlistResp = { ok?: boolean; items?: string[]; source?: string };
 type LiveAlertsResp = { alerts?: any[] };
 type TradesResp = { trades?: any[]; ok?: boolean; error?: string };
 
@@ -12,6 +12,10 @@ export default function CommandCenter() {
   const [alertsCount, setAlertsCount] = useState<number>(0);
   const [openTrades, setOpenTrades] = useState<number>(0);
   const [err, setErr] = useState<string | null>(null);
+
+  // ✅ ADD: connection badge state
+  const [conn, setConn] = useState<{ ok: boolean; source?: string } | null>(null);
+  const [checkedAt, setCheckedAt] = useState<string>("");
 
   useEffect(() => {
     let alive = true;
@@ -34,9 +38,11 @@ export default function CommandCenter() {
 
         setWatching(Array.isArray(wJson.items) ? wJson.items.length : 0);
         setAlertsCount(Array.isArray(aJson.alerts) ? aJson.alerts.length : 0);
-
-        // active-trades shape in your app looks like { ok, trades: [...] }
         setOpenTrades(Array.isArray(tJson.trades) ? tJson.trades.length : 0);
+
+        // ✅ ADD: update the "proof" badge fields
+        setConn({ ok: !!wJson.ok && wRes.ok, source: wJson.source });
+        setCheckedAt(new Date().toLocaleString());
 
         if (!wRes.ok || !aRes.ok || !tRes.ok || tJson.ok === false) {
           setErr(
@@ -51,6 +57,10 @@ export default function CommandCenter() {
       } catch (e: any) {
         if (!alive) return;
         setErr(e?.message ?? "Failed to load dashboard stats");
+
+        // ✅ ADD: mark as not connected on error
+        setConn({ ok: false });
+        setCheckedAt(new Date().toLocaleString());
       }
     }
 
@@ -63,7 +73,6 @@ export default function CommandCenter() {
   }, []);
 
   const marketMood = useMemo(() => {
-    // Keep static for now (later we can wire to sentiment/news).
     return { badge: "Calm", text: "Good conditions" };
   }, []);
 
@@ -73,6 +82,25 @@ export default function CommandCenter() {
         <h1 className="text-2xl font-semibold text-slate-900 mb-2">
           Today at a glance
         </h1>
+
+        {/* ✅ ADD: VM connection badge (place right here, under the title) */}
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="font-semibold">VM Connection:</span>{" "}
+              {conn?.ok ? "Connected ✅" : "Not connected ❌"}
+              {checkedAt ? (
+                <span className="text-slate-500"> (checked: {checkedAt})</span>
+              ) : null}
+            </div>
+
+            {conn?.source ? (
+              <div className="text-slate-500 truncate max-w-[420px]">
+                Source: <span className="font-mono">{conn.source}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
 
         {err && (
           <div className="mb-4 text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3">
