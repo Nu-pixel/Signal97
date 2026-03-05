@@ -25,6 +25,39 @@ function normalizeSymbol(s: string) {
   return String(s ?? "").trim().toUpperCase();
 }
 
+
+function cn(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const re = new RegExp(escapeRegExp(q), "ig");
+  const parts = text.split(re);
+  const matches = text.match(re) || [];
+  const out: any[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    out.push(<span key={`p-${i}`}>{parts[i]}</span>);
+    if (i < matches.length) {
+      out.push(
+        <mark
+          key={`m-${i}`}
+          className="rounded px-1 py-0.5 bg-yellow-100 text-yellow-900"
+        >
+          {matches[i]}
+        </mark>
+      );
+    }
+  }
+  return <>{out}</>;
+}
+
+
 // ✅ HARD-CODED industry buckets (ALL 2000 tickers) generated from your uploaded Excel:
 // watchlist_by_industry (2).xlsx → sheet "ALL"
 // No fetch, no /public json, no 404.
@@ -2094,6 +2127,35 @@ export default function LiveWatchlist() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [collapseAll, setCollapseAll] = useState(false);
 
+  const [quickIndustry, setQuickIndustry] = useState<string | null>(null);
+
+  const [view, setView] = useState<"comfortable" | "compact">("comfortable");
+  const [activeOnly, setActiveOnly] = useState(false); // optional future use
+  const [toast, setToast] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ symbol: string; industry: string } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 1400);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast(`Copied ${text}`);
+    } catch {
+      // fallback
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setToast(`Copied ${text}`);
+    }
+  }
+
   // sanitize: normalize symbols + dedupe once (defensive, though GROUPS is already clean)
   const groups = useMemo(() => {
     const cleaned: IndustryGroups = {};
@@ -2116,13 +2178,17 @@ export default function LiveWatchlist() {
     return new Set(all).size;
   }, [groups]);
 
+  
   const groupedFiltered = useMemo(() => {
     const q = query.trim().toUpperCase();
     const out: { industry: string; symbols: string[] }[] = [];
 
     for (const [industry, syms] of Object.entries(groups)) {
+      if (quickIndustry && industry !== quickIndustry) continue;
+
       const industryMatch = !q || industry.toUpperCase().includes(q);
       const symbols = !q ? syms : syms.filter((s) => industryMatch || s.includes(q));
+
       if (symbols.length) out.push({ industry, symbols });
     }
 
@@ -2134,7 +2200,19 @@ export default function LiveWatchlist() {
     });
 
     return out;
-  }, [groups, query]);
+  }, [groups, query, quickIndustry]);
+
+  const topIndustries = useMemo(() => {
+    const arr = Object.entries(groups)
+      .map(([industry, syms]) => ({ industry, n: syms.length }))
+      .sort((a, b) => b.n - a.n);
+    // Show top 8 quick filters, keep Unknown last if it appears
+    const top = arr.filter((x) => x.industry !== "Unknown").slice(0, 8);
+    const unk = arr.find((x) => x.industry === "Unknown");
+    if (unk) top.push(unk);
+    return top;
+  }, [groups]);
+
 
   useEffect(() => {
     setCollapsed((prev) => {
@@ -2145,47 +2223,137 @@ export default function LiveWatchlist() {
   }, [collapseAll, groupedFiltered]);
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 mb-1">Live Watchlist</h1>
-          <p className="text-xs text-slate-500">
-            Loaded {totalSymbols} symbols across {Object.keys(groups).length} industry groups.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:items-end gap-2 w-full sm:w-[440px]">
-          <div className="flex gap-2 w-full">
-            <div className="flex-1">
-              <label className="sr-only">Search</label>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search symbol or industry…"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-200"
-              />
-            </div>
-
-            <button
-              onClick={() => setCollapseAll((v) => !v)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              title={collapseAll ? "Expand all" : "Collapse all"}
-            >
-              {collapseAll ? "Expand" : "Collapse"}
-            </button>
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      {/* Top gradient header */}
+      <div className="relative p-6 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
+             style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(99,102,241,0.18), transparent 45%), radial-gradient(circle at 80% 30%, rgba(16,185,129,0.16), transparent 42%), radial-gradient(circle at 60% 80%, rgba(244,63,94,0.12), transparent 45%)" }} />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900 mb-1 tracking-tight">Live Watchlist</h1>
+            <p className="text-xs text-slate-600">
+              Loaded {totalSymbols} symbols across {Object.keys(groups).length} industry groups.
+              <span className="ml-2 text-slate-400">•</span>
+              <span className="ml-2 text-slate-500">Click a ticker to copy.</span>
+            </p>
           </div>
 
-          <div className="text-[11px] text-slate-500">
-            Showing{" "}
-            <span className="font-semibold text-slate-700">
-              {groupedFiltered.reduce((acc, g) => acc + g.symbols.length, 0)}
-            </span>{" "}
-            / <span className="font-semibold text-slate-700">{totalSymbols}</span> symbols
+          <div className="flex flex-col sm:items-end gap-3 w-full sm:w-[520px]">
+            <div className="flex gap-2 w-full">
+              <div className="flex-1">
+                <label className="sr-only">Search</label>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search symbol or industry…"
+                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-slate-200/60"
+                />
+              </div>
+
+              <button
+                onClick={() => setCollapseAll((v) => !v)}
+                className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2.5 text-sm text-slate-700 hover:bg-white transition"
+                title={collapseAll ? "Expand all" : "Collapse all"}
+              >
+                {collapseAll ? "Expand" : "Collapse"}
+              </button>
+
+              <button
+                onClick={() => setView((v) => (v === "comfortable" ? "compact" : "comfortable"))}
+                className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2.5 text-sm text-slate-700 hover:bg-white transition"
+                title={view === "comfortable" ? "Switch to compact" : "Switch to comfortable"}
+              >
+                {view === "comfortable" ? "Compact" : "Comfort"}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <button
+                onClick={() => setQuickIndustry(null)}
+                className={cn(
+                  "text-[12px] px-3 py-1.5 rounded-full border transition",
+                  !quickIndustry ? "bg-slate-900 text-white border-slate-900" : "bg-white/80 text-slate-700 border-slate-200 hover:bg-white"
+                )}
+              >
+                All
+              </button>
+              {topIndustries.map((x) => {
+                const t = themeForKey(x.industry);
+                const active = quickIndustry === x.industry;
+                return (
+                  <button
+                    key={x.industry}
+                    onClick={() => setQuickIndustry((cur) => (cur === x.industry ? null : x.industry))}
+                    className={cn(
+                      "text-[12px] px-3 py-1.5 rounded-full border transition flex items-center gap-2",
+                      active ? "shadow-sm" : "hover:shadow-sm"
+                    )}
+                    style={{
+                      backgroundColor: active ? t.bg : "rgba(255,255,255,0.75)",
+                      borderColor: active ? t.border : "rgba(226,232,240,1)",
+                      color: "rgba(15,23,42,0.85)",
+                    }}
+                    title={x.industry}
+                  >
+                    <span className="truncate max-w-[160px]">{x.industry}</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: "rgba(15,23,42,0.06)" }}>
+                      {x.n}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="text-[11px] text-slate-600">
+              Showing <span className="font-semibold text-slate-800">
+                {groupedFiltered.reduce((acc, g) => acc + g.symbols.length, 0)}
+              </span>{" "}
+              / <span className="font-semibold text-slate-800">{totalSymbols}</span> symbols
+              {quickIndustry ? <span className="ml-2 text-slate-500">• Filter: {quickIndustry}</span> : null}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-5 space-y-4">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
+
+      {/* Selected ticker mini-panel */}
+      {selected && (
+        <div className="px-6 py-3 border-b border-slate-100 bg-white">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-slate-700">
+              <span className="font-semibold text-slate-900">{selected.symbol}</span>
+              <span className="mx-2 text-slate-300">•</span>
+              <span className="text-slate-600">{selected.industry}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => copyToClipboard(selected.symbol)}
+                className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="p-6">
+        <div className="space-y-4">
         {groupedFiltered.length === 0 && (
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 text-sm text-slate-600">
             No symbols to show.
@@ -2199,12 +2367,12 @@ export default function LiveWatchlist() {
           return (
             <section
               key={g.industry}
-              className="rounded-2xl border p-4"
+              className="rounded-3xl border p-4 shadow-sm hover:shadow-md transition-shadow"
               style={{ backgroundColor: theme.bg, borderColor: theme.border }}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-slate-900">{g.industry}</h2>
+                  <h2 className="text-sm font-semibold text-slate-900"><Highlight text={g.industry} query={query} /></h2>
                   <span
                     className="text-[11px] px-2 py-0.5 rounded-full border"
                     style={{
@@ -2221,7 +2389,7 @@ export default function LiveWatchlist() {
                   onClick={() =>
                     setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
                   }
-                  className="text-xs px-3 py-1.5 rounded-xl border bg-white/60 hover:bg-white"
+                  className="text-xs px-3 py-1.5 rounded-xl border bg-white/70 hover:bg-white transition"
                   style={{ borderColor: theme.border }}
                 >
                   {isCollapsed ? "Show" : "Hide"}
@@ -2229,11 +2397,14 @@ export default function LiveWatchlist() {
               </div>
 
               {!isCollapsed && (
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+                <div className={cn("mt-3 grid gap-2", view === "compact" ? "grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 xl:grid-cols-12" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8")}>
                   {g.symbols.map((sym) => (
-                    <div
+                    <button
                       key={`${g.industry}:${sym}`}
-                      className="select-none rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide text-center cursor-default hover:shadow-sm hover:-translate-y-[1px] transition"
+                      type="button"
+                      onClick={() => { setSelected({ symbol: sym, industry: g.industry }); copyToClipboard(sym); }}
+                      onContextMenu={(e) => { e.preventDefault(); setSelected({ symbol: sym, industry: g.industry }); }}
+                      className={cn("select-none rounded-2xl border px-3 py-2 text-sm font-semibold tracking-wide text-center transition will-change-transform", view === "compact" ? "py-1.5 text-[13px]" : "py-2 text-sm", "hover:shadow-sm hover:-translate-y-[1px] active:translate-y-0")}
                       style={{
                         backgroundColor: theme.chipBg,
                         borderColor: theme.chipBorder,
@@ -2241,8 +2412,8 @@ export default function LiveWatchlist() {
                       }}
                       title={`${sym} • ${g.industry}`}
                     >
-                      {sym}
-                    </div>
+                      <Highlight text={sym} query={query} />
+                    </button>
                   ))}
                 </div>
               )}
