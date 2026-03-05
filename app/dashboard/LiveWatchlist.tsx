@@ -57,8 +57,9 @@ function themeForKey(key: string) {
 // Display labels (keep GROUPS keys unchanged; only change what user sees)
 const DISPLAY_NAME: Record<string, string> = {
   "Unknown": "Misc / Funds",
-  "Agriculture/Forestry/Fishing": "Ag / Forestry / Fishing",
-  "Media/Publishing": "Media / Publishing",
+  // User requested: keep only the short names in the UI
+  "Agriculture/Forestry/Fishing": "Agriculture",
+  "Media/Publishing": "Media",
 };
 
 function displaySectorName(key: string) {
@@ -2878,6 +2879,56 @@ export default function LiveWatchlist() {
                 </div>
               </div>
             )}
+
+            {/*
+              ✅ Ticker list “dispenses” immediately on balloon click.
+              This stays inside the bubble map as a bottom-sheet so mobile users
+              don’t have to scroll down to see the tickers.
+            */}
+            {activeSector && (
+              <div className="absolute inset-x-4 bottom-4">
+                <div className="rounded-[22px] border border-slate-200 bg-white/95 backdrop-blur shadow-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">{activeSymbols.length} tickers</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
+                        Copy all
+                      </button>
+                      <button onClick={() => setActiveSector(null)} className={actionBtn}>
+                        Close
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-[42vh] sm:max-h-[36vh] overflow-auto p-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+                      {activeSymbols.map((sym) => {
+                        const t = themeForKey(activeSector);
+                        return (
+                          <button
+                            key={`${activeSector}:${sym}:sheet`}
+                            type="button"
+                            onClick={() => copyToClipboard(sym)}
+                            className="rounded-2xl border px-3 py-2 text-sm font-semibold text-center transition hover:-translate-y-[1px] hover:shadow-sm"
+                            style={{
+                              backgroundColor: t.chipBg,
+                              borderColor: t.chipBorder,
+                              color: t.chipText,
+                            }}
+                            title="Click to copy"
+                          >
+                            {sym}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -2932,46 +2983,7 @@ export default function LiveWatchlist() {
           </div>
         )}
 
-        {view === "bubbles" && activeSector && (
-          <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-base font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
-                <div className="text-xs text-slate-600 mt-1">{activeSymbols.length} tickers</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
-                  Copy all
-                </button>
-                <button onClick={() => setActiveSector(null)} className={actionBtn}>
-                  Close
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
-              {activeSymbols.map((sym) => {
-                const t = themeForKey(activeSector);
-                return (
-                  <button
-                    key={`${displaySectorName(activeSector)}:${sym}`}
-                    type="button"
-                    onClick={() => copyToClipboard(sym)}
-                    className="rounded-2xl border px-3 py-2 text-sm font-semibold text-center transition hover:-translate-y-[1px] hover:shadow-sm"
-                    style={{
-                      backgroundColor: t.chipBg,
-                      borderColor: t.chipBorder,
-                      color: t.chipText,
-                    }}
-                    title="Click to copy"
-                  >
-                    {sym}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* ticker list is now shown as an in-map bottom sheet on balloon click */}
       </div>
     </div>
   );
