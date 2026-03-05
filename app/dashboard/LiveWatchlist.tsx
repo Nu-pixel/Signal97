@@ -25,14 +25,7 @@ function normalizeSymbol(s: string) {
   return String(s ?? "").trim().toUpperCase();
 }
 
-function sortIndustry(a: string, b: string) {
-  // Put Unknown at the bottom
-  if (a === "Unknown" && b !== "Unknown") return 1;
-  if (b === "Unknown" && a !== "Unknown") return -1;
-  return a.localeCompare(b);
-}
-
-const GROUPS_URL = "/industry_groups.json"; // <-- make sure your file lives in /public
+const GROUPS_URL = "/industry_groups.json"; // file must live in /public
 
 export default function LiveWatchlist() {
   const [groups, setGroups] = useState<IndustryGroups>({});
@@ -96,14 +89,11 @@ export default function LiveWatchlist() {
 
     for (const [industry, syms] of Object.entries(groups)) {
       const industryMatch = !q || industry.toUpperCase().includes(q);
-      const symbols = !q
-        ? syms
-        : syms.filter((s) => industryMatch || s.includes(q));
-
+      const symbols = !q ? syms : syms.filter((s) => industryMatch || s.includes(q));
       if (symbols.length) out.push({ industry, symbols });
     }
 
-    // sort by size desc, then name (Unknown last)
+    // ✅ Keep “largest industry first”, Unknown last
     out.sort((a, b) => {
       if (a.industry === "Unknown" && b.industry !== "Unknown") return 1;
       if (b.industry === "Unknown" && a.industry !== "Unknown") return -1;
@@ -114,7 +104,6 @@ export default function LiveWatchlist() {
   }, [groups, query]);
 
   useEffect(() => {
-    // apply collapseAll to whatever industries are currently shown
     setCollapsed((prev) => {
       const next = { ...prev };
       for (const g of groupedFiltered) next[g.industry] = collapseAll;
@@ -178,65 +167,63 @@ export default function LiveWatchlist() {
         )}
 
         {!err &&
-          groupedFiltered
-            .sort((a, b) => sortIndustry(a.industry, b.industry))
-            .map((g) => {
-              const theme = themeForKey(g.industry);
-              const isCollapsed = collapsed[g.industry] ?? false;
+          groupedFiltered.map((g) => {
+            const theme = themeForKey(g.industry);
+            const isCollapsed = collapsed[g.industry] ?? false;
 
-              return (
-                <section
-                  key={g.industry}
-                  className="rounded-2xl border p-4"
-                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-sm font-semibold text-slate-900">{g.industry}</h2>
-                      <span
-                        className="text-[11px] px-2 py-0.5 rounded-full border"
-                        style={{
-                          backgroundColor: "rgba(255,255,255,0.6)",
-                          borderColor: theme.border,
-                          color: "rgba(15,23,42,0.75)",
-                        }}
-                      >
-                        {g.symbols.length}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
-                      }
-                      className="text-xs px-3 py-1.5 rounded-xl border bg-white/60 hover:bg-white"
-                      style={{ borderColor: theme.border }}
+            return (
+              <section
+                key={g.industry}
+                className="rounded-2xl border p-4"
+                style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-sm font-semibold text-slate-900">{g.industry}</h2>
+                    <span
+                      className="text-[11px] px-2 py-0.5 rounded-full border"
+                      style={{
+                        backgroundColor: "rgba(255,255,255,0.6)",
+                        borderColor: theme.border,
+                        color: "rgba(15,23,42,0.75)",
+                      }}
                     >
-                      {isCollapsed ? "Show" : "Hide"}
-                    </button>
+                      {g.symbols.length}
+                    </span>
                   </div>
 
-                  {!isCollapsed && (
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
-                      {g.symbols.map((sym) => (
-                        <div
-                          key={`${g.industry}:${sym}`}
-                          className="select-none rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide text-center cursor-default hover:shadow-sm"
-                          style={{
-                            backgroundColor: theme.chipBg,
-                            borderColor: theme.chipBorder,
-                            color: theme.chipText,
-                          }}
-                          title={`${sym} • ${g.industry}`}
-                        >
-                          {sym}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
+                  <button
+                    onClick={() =>
+                      setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
+                    }
+                    className="text-xs px-3 py-1.5 rounded-xl border bg-white/60 hover:bg-white"
+                    style={{ borderColor: theme.border }}
+                  >
+                    {isCollapsed ? "Show" : "Hide"}
+                  </button>
+                </div>
+
+                {!isCollapsed && (
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+                    {g.symbols.map((sym) => (
+                      <div
+                        key={`${g.industry}:${sym}`}
+                        className="select-none rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide text-center cursor-default hover:shadow-sm"
+                        style={{
+                          backgroundColor: theme.chipBg,
+                          borderColor: theme.chipBorder,
+                          color: theme.chipText,
+                        }}
+                        title={`${sym} • ${g.industry}`}
+                      >
+                        {sym}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
       </div>
     </div>
   );
