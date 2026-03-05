@@ -56,7 +56,7 @@ function themeForKey(key: string) {
 
 // Display labels (keep GROUPS keys unchanged; only change what user sees)
 const DISPLAY_NAME: Record<string, string> = {
-  "Unknown": "Misc / Funds",
+  Unknown: "Misc / Funds",
   // User requested: keep only the short names in the UI
   "Agriculture/Forestry/Fishing": "Agriculture",
   "Media/Publishing": "Media",
@@ -88,7 +88,10 @@ function splitLabel(label: string): string[] {
 
   // Handle slash-delimited labels without spaces (e.g., Agriculture/Forestry/Fishing)
   if (s.includes("/") && !s.includes(" / ")) {
-    const parts = s.split("/").map((x) => x.trim()).filter(Boolean);
+    const parts = s
+      .split("/")
+      .map((x) => x.trim())
+      .filter(Boolean);
     if (parts.length >= 2) {
       // Prefer 2 lines; if 3 parts, combine 2+1
       if (parts.length === 2) return [parts[0], parts[1]];
@@ -148,10 +151,10 @@ function balloonDropPack(
   const areaAvail = Math.max(1, (W - margin * 2) * (H - margin * 2));
   const areaSum = raw.reduce((acc, b) => acc + Math.PI * b.r * b.r, 0);
 
-  const targetFill = mobile ? 0.50 : 0.54;
+  const targetFill = mobile ? 0.5 : 0.54;
   const s = Math.sqrt((areaAvail * targetFill) / Math.max(1, areaSum));
 
-  const rMax = Math.min(W, H) * (mobile ? 0.20 : 0.22);
+  const rMax = Math.min(W, H) * (mobile ? 0.2 : 0.22);
   const bubbles: Bubble[] = raw
     .map((b) => ({ ...b, r: clamp(b.r * s, mobile ? 28 : 34, rMax), x: 0, y: 0 }))
     .sort((a, b) => b.r - a.r);
@@ -170,12 +173,12 @@ function balloonDropPack(
   }
 
   // Physics-ish params
-  const g = mobile ? 0.60 : 0.55;
+  const g = mobile ? 0.6 : 0.55;
   const damp = 0.92;
   const wallBounce = 0.32;
   const floorBounce = 0.08;
 
-  // Iterations: enough to settle, still fast (29 bubbles)
+  // Iterations: enough to settle, still fast
   const steps = mobile ? 1200 : 1000;
 
   for (let step = 0; step < steps; step++) {
@@ -305,2075 +308,56 @@ function balloonDropPack(
 }
 
 /**
- * ✅ IMPORTANT:
- * Keep your existing GROUPS object exactly as-is.
- * I’m not pasting it here because it’s huge.
- * Replace the line below with your full GROUPS constant.
+ * GROUPS (kept as-is)
  */
 const GROUPS: SectorGroups = {
-  "Agriculture/Forestry/Fishing": [
-    "AGRO",
-    "CALM",
-    "VFF"
-  ],
+  "Agriculture/Forestry/Fishing": ["AGRO", "CALM", "VFF"],
   "Communication Services (Telecom)": [
-    "ADEA",
-    "AMCX",
-    "AMX",
-    "ASTS",
-    "CCOI",
-    "CHTR",
-    "CMCSA",
-    "FOXA",
-    "GLIBK",
-    "GSAT",
-    "GTN",
-    "IHRT",
-    "IHS",
-    "IRDM",
-    "LBRDK",
-    "LUMN",
-    "NMAX",
-    "PSKY",
-    "ROKU",
-    "SATS",
-    "SBGI",
-    "SIRI",
-    "SPIR",
-    "SPOT",
-    "SSP",
-    "SURG",
-    "T",
-    "TDS",
-    "TME",
-    "TMUS",
-    "TSAT",
-    "TSQ",
-    "TTGT",
-    "UNIT",
-    "UONEK",
-    "VOD",
-    "VSAT",
-    "VZ",
-    "WBD"
+    "ADEA","AMCX","AMX","ASTS","CCOI","CHTR","CMCSA","FOXA","GLIBK","GSAT","GTN","IHRT","IHS","IRDM","LBRDK","LUMN","NMAX","PSKY","ROKU","SATS","SBGI","SIRI","SPIR","SPOT","SSP","SURG","T","TDS","TME","TMUS","TSAT","TSQ","TTGT","UNIT","UONEK","VOD","VSAT","VZ","WBD"
   ],
-  "Construction": [
-    "AMRC",
-    "BBCP",
-    "BZH",
-    "DHI",
-    "DY",
-    "FIX",
-    "GEO",
-    "GRBK",
-    "GVA",
-    "LEN",
-    "MTZ",
-    "PHM",
-    "STRL",
-    "TOL",
-    "TPC",
-    "TPH"
-  ],
+  "Construction": ["AMRC","BBCP","BZH","DHI","DY","FIX","GEO","GRBK","GVA","LEN","MTZ","PHM","STRL","TOL","TPC","TPH"],
   "Consumer (Retail)": [
-    "AAP",
-    "ABG",
-    "ACI",
-    "AEO",
-    "AMZN",
-    "ANF",
-    "ARHS",
-    "ARMK",
-    "ASO",
-    "BARK",
-    "BBBY",
-    "BBWI",
-    "BBY",
-    "BJ",
-    "BKE",
-    "BLMN",
-    "BNED",
-    "BROS",
-    "BURL",
-    "CAKE",
-    "CAVA",
-    "CBRL",
-    "CHWY",
-    "CMG",
-    "COST",
-    "CPNG",
-    "CTRN",
-    "CVNA",
-    "CVS",
-    "DBI",
-    "DDL",
-    "DG",
-    "DKS",
-    "DLTR",
-    "DNUT",
-    "DRI",
-    "EAT",
-    "ELA",
-    "FIVE",
-    "FLWS",
-    "FND",
-    "GAP",
-    "GCO",
-    "GCT",
-    "GME",
-    "GO",
-    "HD",
-    "JACK",
-    "JD",
-    "JMIA",
-    "KMX",
-    "KR",
-    "KSS",
-    "LESL",
-    "LOW",
-    "LUXE",
-    "LVO",
-    "M",
-    "MCD",
-    "OLLI",
-    "PETS",
-    "PLAY",
-    "PLBY",
-    "PLCE",
-    "PTLO",
-    "PZZA",
-    "QVCGA",
-    "REAL",
-    "RH",
-    "ROST",
-    "RVLV",
-    "SBUX",
-    "SFIX",
-    "SFM",
-    "SG",
-    "SHAK",
-    "SIG",
-    "STKS",
-    "SVV",
-    "TGT",
-    "TJX",
-    "TSCO",
-    "TXRH",
-    "ULTA",
-    "URBN",
-    "VIPS",
-    "VRM",
-    "VSCO",
-    "W",
-    "WEN",
-    "WMT",
-    "WOOF"
+    "AAP","ABG","ACI","AEO","AMZN","ANF","ARHS","ARMK","ASO","BARK","BBBY","BBWI","BBY","BJ","BKE","BLMN","BNED","BROS","BURL","CAKE","CAVA","CBRL","CHWY","CMG","COST","CPNG","CTRN","CVNA","CVS","DBI","DDL","DG","DKS","DLTR","DNUT","DRI","EAT","ELA","FIVE","FLWS","FND","GAP","GCO","GCT","GME","GO","HD","JACK","JD","JMIA","KMX","KR","KSS","LESL","LOW","LUXE","LVO","M","MCD","OLLI","PETS","PLAY","PLBY","PLCE","PTLO","PZZA","QVCGA","REAL","RH","ROST","RVLV","SBUX","SFIX","SFM","SG","SHAK","SIG","STKS","SVV","TGT","TJX","TSCO","TXRH","ULTA","URBN","VIPS","VRM","VSCO","W","WEN","WMT","WOOF"
   ],
-  "ETF (Commodity)": [
-    "FCG",
-    "GDX",
-    "GDXJ",
-    "GLD",
-    "IAU",
-    "SILJ",
-    "SLV",
-    "UNG",
-    "USO",
-    "XHB"
-  ],
-  "ETF (Index)": [
-    "DIA",
-    "DVY",
-    "EDV",
-    "EEM",
-    "EFA",
-    "EMB",
-    "EWG",
-    "EWJ",
-    "EWZ",
-    "FXI",
-    "HYG",
-    "IEF",
-    "IVV",
-    "IWM",
-    "IYR",
-    "LQD",
-    "QQQ",
-    "RSP",
-    "SCHD",
-    "SPY",
-    "TLT",
-    "VOO"
-  ],
+  "ETF (Commodity)": ["FCG","GDX","GDXJ","GLD","IAU","SILJ","SLV","UNG","USO","XHB"],
+  "ETF (Index)": ["DIA","DVY","EDV","EEM","EFA","EMB","EWG","EWJ","EWZ","FXI","HYG","IEF","IVV","IWM","IYR","LQD","QQQ","RSP","SCHD","SPY","TLT","VOO"],
   "ETF (Leveraged/Inverse)": [
-    "BDN",
-    "BOIL",
-    "BULL",
-    "CCUP",
-    "DRIP",
-    "DUST",
-    "ELDN",
-    "FAS",
-    "JDST",
-    "KOLD",
-    "LABD",
-    "LABU",
-    "MSTU",
-    "MSTX",
-    "MSTY",
-    "MSTZ",
-    "NUGT",
-    "NVDL",
-    "NVDS",
-    "NVDU",
-    "NVDX",
-    "SMUP",
-    "SOXL",
-    "SOXS",
-    "SPXL",
-    "SPXS",
-    "SPXU",
-    "SQQQ",
-    "SSO",
-    "SVIX",
-    "TECL",
-    "TMF",
-    "TNA",
-    "TQQQ",
-    "TSLL",
-    "TSLQ",
-    "TSLT",
-    "TSLZ",
-    "TZA",
-    "UP",
-    "UPRO",
-    "UVIX",
-    "UVXY",
-    "VRDN",
-    "VXX"
+    "BDN","BOIL","BULL","CCUP","DRIP","DUST","ELDN","FAS","JDST","KOLD","LABD","LABU","MSTU","MSTX","MSTY","MSTZ","NUGT","NVDL","NVDS","NVDU","NVDX","SMUP","SOXL","SOXS","SPXL","SPXS","SPXU","SQQQ","SSO","SVIX","TECL","TMF","TNA","TQQQ","TSLL","TSLQ","TSLT","TSLZ","TZA","UP","UPRO","UVIX","UVXY","VRDN","VXX"
   ],
-  "ETF (Sector)": [
-    "ICLN",
-    "JETS",
-    "KRE",
-    "KWEB",
-    "URA",
-    "XBI",
-    "XLB",
-    "XLC",
-    "XLE",
-    "XLF",
-    "XLI",
-    "XLK",
-    "XLP",
-    "XLU",
-    "XLV",
-    "XLY",
-    "XOP",
-    "XRT"
-  ],
-  "ETP (Crypto)": [
-    "BITO",
-    "BITX",
-    "EETH",
-    "ETH",
-    "ETHA",
-    "ETHD",
-    "ETHE",
-    "ETHT",
-    "ETHZ",
-    "FBTC",
-    "GBTC",
-    "IBIT"
-  ],
+  "ETF (Sector)": ["ICLN","JETS","KRE","KWEB","URA","XBI","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLU","XLV","XLY","XOP","XRT"],
+  "ETP (Crypto)": ["BITO","BITX","EETH","ETH","ETHA","ETHD","ETHE","ETHT","ETHZ","FBTC","GBTC","IBIT"],
   "Energy (Oil & Gas)": [
-    "ACDC",
-    "AESI",
-    "AMPY",
-    "APA",
-    "AR",
-    "BKV",
-    "BTE",
-    "CHRD",
-    "CLB",
-    "CNQ",
-    "CRC",
-    "CRGY",
-    "CRK",
-    "CTRA",
-    "CVE",
-    "DVN",
-    "EC",
-    "EOG",
-    "EPSN",
-    "EQT",
-    "EXE",
-    "FANG",
-    "HAL",
-    "HESM",
-    "HP",
-    "HPK",
-    "KLXE",
-    "KOS",
-    "MGY",
-    "NOG",
-    "NUAI",
-    "OBE",
-    "OII",
-    "OXY",
-    "PBR",
-    "RIG",
-    "RRC",
-    "SDRL",
-    "SHEL",
-    "SLB",
-    "SM",
-    "SOC",
-    "TALO",
-    "TTI",
-    "VAL",
-    "VIST",
-    "VNOM",
-    "VOC",
-    "WDS",
-    "WTTR",
-    "XPRO"
+    "ACDC","AESI","AMPY","APA","AR","BKV","BTE","CHRD","CLB","CNQ","CRC","CRGY","CRK","CTRA","CVE","DVN","EC","EOG","EPSN","EQT","EXE","FANG","HAL","HESM","HP","HPK","KLXE","KOS","MGY","NOG","NUAI","OBE","OII","OXY","PBR","RIG","RRC","SDRL","SHEL","SLB","SM","SOC","TALO","TTI","VAL","VIST","VNOM","VOC","WDS","WTTR","XPRO"
   ],
-  "Energy (Refining)": [
-    "BP",
-    "CLMT",
-    "COP",
-    "CVI",
-    "CVX",
-    "DK",
-    "EQNR",
-    "MPC",
-    "PBF",
-    "PSX",
-    "SU",
-    "VLO",
-    "VVV",
-    "XOM",
-    "YPF"
-  ],
+  "Energy (Refining)": ["BP","CLMT","COP","CVI","CVX","DK","EQNR","MPC","PBF","PSX","SU","VLO","VVV","XOM","YPF"],
   "Financials/Real Estate": [
-    "AAMI",
-    "ABCB",
-    "ABR",
-    "ABTC",
-    "ACGL",
-    "AEXA",
-    "AFL",
-    "AFRM",
-    "AGNC",
-    "AGQ",
-    "AIFU",
-    "AIG",
-    "ALHC",
-    "ALRS",
-    "ALTS",
-    "AMBR",
-    "AMH",
-    "AMP",
-    "AMT",
-    "ANY",
-    "APO",
-    "APPS",
-    "ARBK",
-    "ARE",
-    "ARES",
-    "ASB",
-    "ASST",
-    "AUB",
-    "AXP",
-    "BAC",
-    "BAM",
-    "BBAR",
-    "BBT",
-    "BCS",
-    "BEKE",
-    "BFST",
-    "BHF",
-    "BITF",
-    "BK",
-    "BKKT",
-    "BLK",
-    "BLSH",
-    "BMNR",
-    "BN",
-    "BNL",
-    "BRO",
-    "BRR",
-    "BSOL",
-    "BTBT",
-    "BTDR",
-    "BUSE",
-    "BWET",
-    "BWIN",
-    "BX",
-    "C",
-    "CAN",
-    "CATY",
-    "CBOE",
-    "CBRE",
-    "CBSH",
-    "CCBG",
-    "CDP",
-    "CG",
-    "CHMI",
-    "CHYM",
-    "CI",
-    "CIA",
-    "CIFR",
-    "CLDT",
-    "CLOV",
-    "CLSK",
-    "CME",
-    "CMTG",
-    "CNC",
-    "CNO",
-    "COF",
-    "COIN",
-    "COMP",
-    "CORZ",
-    "CPT",
-    "CRCL",
-    "CSR",
-    "CTBI",
-    "CTRE",
-    "CUBE",
-    "CWK",
-    "CZNC",
-    "DB",
-    "DBRG",
-    "DEI",
-    "DFDV",
-    "DGXX",
-    "DLR",
-    "DOUG",
-    "EBC",
-    "ECPG",
-    "EGBN",
-    "EHTH",
-    "EIG",
-    "ELME",
-    "ELS",
-    "EQBK",
-    "EQIX",
-    "ESNT",
-    "ESS",
-    "EZBC",
-    "FFBC",
-    "FFIN",
-    "FG",
-    "FGNX",
-    "FHN",
-    "FIGR",
-    "FISI",
-    "FLG",
-    "FNF",
-    "FRGE",
-    "FSP",
-    "FUTU",
-    "FWDI",
-    "GDOT",
-    "GEMI",
-    "GGAL",
-    "GLXY",
-    "GPMT",
-    "GS",
-    "HASI",
-    "HIVE",
-    "HLNE",
-    "HOOD",
-    "HOPE",
-    "HR",
-    "HRTG",
-    "HSBC",
-    "HST",
-    "HTBK",
-    "HUM",
-    "HUT",
-    "IBKR",
-    "ICE",
-    "INVH",
-    "IREN",
-    "IRM",
-    "JEF",
-    "JPM",
-    "JRVR",
-    "KKR",
-    "LB",
-    "LC",
-    "LDI",
-    "LINE",
-    "LMND",
-    "LNC",
-    "LPRO",
-    "LX",
-    "LXP",
-    "MAC",
-    "MARA",
-    "MC",
-    "MCHB",
-    "MIAX",
-    "MOH",
-    "MRP",
-    "MRX",
-    "MS",
-    "MSTR",
-    "MTG",
-    "MUFG",
-    "NAKA",
-    "NDAQ",
-    "NLY",
-    "NRT",
-    "NSA",
-    "NTST",
-    "NU",
-    "OPAD",
-    "OPEN",
-    "OPRT",
-    "ORBS",
-    "ORC",
-    "OSCR",
-    "OWL",
-    "PEB",
-    "PGR",
-    "PGY",
-    "PKST",
-    "PLD",
-    "PNC",
-    "PNFP",
-    "QFIN",
-    "RC",
-    "RILY",
-    "RIOT",
-    "RKT",
-    "RYAN",
-    "RYN",
-    "SAN",
-    "SBCF",
-    "SBET",
-    "SCHW",
-    "SIEB",
-    "SKYH",
-    "SLAI",
-    "SLDE",
-    "SLG",
-    "SLM",
-    "SLQT",
-    "SMA",
-    "SOFI",
-    "SSRM",
-    "SUIG",
-    "SUPV",
-    "SVC",
-    "TBBK",
-    "TFC",
-    "TIGR",
-    "TPG",
-    "TWO",
-    "UBSI",
-    "UCB",
-    "UNH",
-    "UPST",
-    "UPXI",
-    "USB",
-    "UWMC",
-    "VNO",
-    "WFC",
-    "WNEB",
-    "WRB",
-    "WULF",
-    "WY",
-    "WYFI",
-    "XP",
-    "YRD"
+    "AAMI","ABCB","ABR","ABTC","ACGL","AEXA","AFL","AFRM","AGNC","AGQ","AIFU","AIG","ALHC","ALRS","ALTS","AMBR","AMH","AMP","AMT","ANY","APO","APPS","ARBK","ARE","ARES","ASB","ASST","AUB","AXP","BAC","BAM","BBAR","BBT","BCS","BEKE","BFST","BHF","BITF","BK","BKKT","BLK","BLSH","BMNR","BN","BNL","BRO","BRR","BSOL","BTBT","BTDR","BUSE","BWET","BWIN","BX","C","CAN","CATY","CBOE","CBRE","CBSH","CCBG","CDP","CG","CHMI","CHYM","CI","CIA","CIFR","CLDT","CLOV","CLSK","CME","CMTG","CNC","CNO","COF","COIN","COMP","CORZ","CPT","CRCL","CSR","CTBI","CTRE","CUBE","CWK","CZNC","DB","DBRG","DEI","DFDV","DGXX","DLR","DOUG","EBC","ECPG","EGBN","EHTH","EIG","ELME","ELS","EQBK","EQIX","ESNT","ESS","EZBC","FFBC","FFIN","FG","FGNX","FHN","FIGR","FISI","FLG","FNF","FRGE","FSP","FUTU","FWDI","GDOT","GEMI","GGAL","GLXY","GPMT","GS","HASI","HIVE","HLNE","HOOD","HOPE","HR","HRTG","HSBC","HST","HTBK","HUM","HUT","IBKR","ICE","INVH","IREN","IRM","JEF","JPM","JRVR","KKR","LB","LC","LDI","LINE","LMND","LNC","LPRO","LX","LXP","MAC","MARA","MC","MCHB","MIAX","MOH","MRP","MRX","MS","MSTR","MTG","MUFG","NAKA","NDAQ","NLY","NRT","NSA","NTST","NU","OPAD","OPEN","OPRT","ORBS","ORC","OSCR","OWL","PEB","PGR","PGY","PKST","PLD","PNC","PNFP","QFIN","RC","RILY","RIOT","RKT","RYAN","RYN","SAN","SBCF","SBET","SCHW","SIEB","SKYH","SLAI","SLDE","SLG","SLM","SLQT","SMA","SOFI","SSRM","SUIG","SUPV","SVC","TBBK","TFC","TIGR","TPG","TWO","UBSI","UCB","UNH","UPST","UPXI","USB","UWMC","VNO","WFC","WNEB","WRB","WULF","WY","WYFI","XP","YRD"
   ],
   "Healthcare (Medical Devices)": [
-    "ALC",
-    "ALGN",
-    "ANGO",
-    "APT",
-    "ATEC",
-    "BAX",
-    "BBNX",
-    "BFLY",
-    "BLFS",
-    "BSX",
-    "CLPT",
-    "CNMD",
-    "CODX",
-    "CTSO",
-    "CVRX",
-    "DCTH",
-    "DRIO",
-    "DXCM",
-    "EMBC",
-    "ENOV",
-    "ESTA",
-    "EYE",
-    "GEHC",
-    "GKOS",
-    "GMED",
-    "HSDT",
-    "HTFL",
-    "INSP",
-    "ISRG",
-    "KRMD",
-    "LFWD",
-    "MBOT",
-    "MDT",
-    "MMM",
-    "MYO",
-    "NNOX",
-    "NSPR",
-    "NVST",
-    "OBIO",
-    "OM",
-    "SGHT",
-    "SKIN",
-    "STAA",
-    "STIM",
-    "STSS",
-    "STVN",
-    "STXS",
-    "TELA",
-    "TMCI",
-    "TMDX",
-    "TNDM",
-    "WRBY",
-    "XAIR"
+    "ALC","ALGN","ANGO","APT","ATEC","BAX","BBNX","BFLY","BLFS","BSX","CLPT","CNMD","CODX","CTSO","CVRX","DCTH","DRIO","DXCM","EMBC","ENOV","ESTA","EYE","GEHC","GKOS","GMED","HSDT","HTFL","INSP","ISRG","KRMD","LFWD","MBOT","MDT","MMM","MYO","NNOX","NSPR","NVST","OBIO","OM","SGHT","SKIN","STAA","STIM","STSS","STVN","STXS","TELA","TMCI","TMDX","TNDM","WRBY","XAIR"
   ],
   "Healthcare (Pharma)": [
-    "ABBV",
-    "ABCL",
-    "ABT",
-    "ABVC",
-    "ABVX",
-    "ACAD",
-    "ACB",
-    "ACHV",
-    "ACLX",
-    "ACRS",
-    "ACXP",
-    "ADCT",
-    "ADMA",
-    "ADPT",
-    "AGIO",
-    "AKBA",
-    "ALDX",
-    "ALEC",
-    "ALKS",
-    "ALLO",
-    "ALMS",
-    "ALNY",
-    "ALT",
-    "ALXO",
-    "AMGN",
-    "AMLX",
-    "AMRN",
-    "ANAB",
-    "ANNX",
-    "ANRO",
-    "ANVS",
-    "APGE",
-    "APLS",
-    "AQST",
-    "ARCT",
-    "ARDX",
-    "ARQT",
-    "ASMB",
-    "ATAI",
-    "ATOS",
-    "ATYR",
-    "AUTL",
-    "AVTX",
-    "AXSM",
-    "BBIO",
-    "BCAB",
-    "BCAX",
-    "BCRX",
-    "BEAM",
-    "BHC",
-    "BHVN",
-    "BIIB",
-    "BLRX",
-    "BMEA",
-    "BMRN",
-    "BMY",
-    "BNTC",
-    "BTAI",
-    "CABA",
-    "CAPR",
-    "CATX",
-    "CCCC",
-    "CELU",
-    "CGC",
-    "CGEM",
-    "CGEN",
-    "CMPS",
-    "CNTA",
-    "COGT",
-    "CPIX",
-    "CRBU",
-    "CRDF",
-    "CRMD",
-    "CRON",
-    "CRSP",
-    "CRVS",
-    "CTMX",
-    "CTXR",
-    "CVM",
-    "CYRX",
-    "CYTK",
-    "DAWN",
-    "DNA",
-    "DNLI",
-    "DNTH",
-    "DYAI",
-    "DYN",
-    "EBS",
-    "EDIT",
-    "ELAN",
-    "ELVN",
-    "ENTA",
-    "ENTX",
-    "EOLS",
-    "EQ",
-    "ESPR",
-    "EWTX",
-    "EXEL",
-    "FATE",
-    "FBIO",
-    "FDMT",
-    "FHTX",
-    "FULC",
-    "GALT",
-    "GERN",
-    "GHRS",
-    "GILD",
-    "GLUE",
-    "GMAB",
-    "GOSS",
-    "GPCR",
-    "GSK",
-    "HOWL",
-    "HRMY",
-    "HUMA",
-    "HYFT",
-    "IBRX",
-    "IFRX",
-    "IMMX",
-    "IMNM",
-    "IMRX",
-    "INBX",
-    "INDV",
-    "INO",
-    "INSM",
-    "IOVA",
-    "IRD",
-    "IVVD",
-    "JANX",
-    "JAZZ",
-    "JNJ",
-    "JSPR",
-    "KOD",
-    "KPTI",
-    "KROS",
-    "KRRO",
-    "KYTX",
-    "LENZ",
-    "LFCR",
-    "LLY",
-    "LNAI",
-    "LNTH",
-    "LQDA",
-    "LRMR",
-    "LTRN",
-    "LXEO",
-    "LXRX",
-    "LYEL",
-    "MBX",
-    "MCRB",
-    "MIRM",
-    "MIST",
-    "MLTX",
-    "MLYS",
-    "MNKD",
-    "MRK",
-    "MRNA",
-    "MYGN",
-    "NAGE",
-    "NAMS",
-    "NBP",
-    "NEOG",
-    "NGNE",
-    "NKTX",
-    "NMRA",
-    "NNVC",
-    "NRIX",
-    "NRXP",
-    "NTLA",
-    "NUVB",
-    "NVAX",
-    "NVO",
-    "OCUL",
-    "OGN",
-    "OLMA",
-    "OMER",
-    "ORGO",
-    "ORKA",
-    "OTLK",
-    "PBYI",
-    "PCRX",
-    "PCVX",
-    "PDSB",
-    "PFE",
-    "PGEN",
-    "PLX",
-    "PMVP",
-    "PPBT",
-    "PRAX",
-    "PRGO",
-    "PRLD",
-    "PRME",
-    "PROK",
-    "PRPH",
-    "PRQR",
-    "PRTA",
-    "PTCT",
-    "PVLA",
-    "QURE",
-    "RANI",
-    "RAPP",
-    "RCKT",
-    "REGN",
-    "REPL",
-    "RGC",
-    "RIGL",
-    "RLAY",
-    "RLMD",
-    "RMTI",
-    "ROIV",
-    "RVPH",
-    "RXRX",
-    "RZLT",
-    "SANA",
-    "SAVA",
-    "SEPN",
-    "SGMO",
-    "SGMT",
-    "SIGA",
-    "SKYE",
-    "SLN",
-    "SLNO",
-    "SLS",
-    "SMMT",
-    "SNDX",
-    "SPRO",
-    "SPRY",
-    "SRPT",
-    "SRRK",
-    "STOK",
-    "STRO",
-    "SUPN",
-    "SVRA",
-    "SYRE",
-    "TARA",
-    "TARS",
-    "TECH",
-    "TECX",
-    "TERN",
-    "TEVA",
-    "TGTX",
-    "TLRY",
-    "TNGX",
-    "TNXP",
-    "TNYA",
-    "TRIB",
-    "TRVI",
-    "TSHA",
-    "TVRD",
-    "TWST",
-    "UNCY",
-    "UPB",
-    "URGN",
-    "VCEL",
-    "VERA",
-    "VERU",
-    "VIR",
-    "VKTX",
-    "VNDA",
-    "VOR",
-    "VRTX",
-    "VSTM",
-    "VTYX",
-    "VYGR",
-    "WVE",
-    "XENE",
-    "XERS",
-    "XFOR",
-    "XNCR",
-    "ZBIO",
-    "ZLAB",
-    "ZTS",
-    "ZURA",
-    "ZVRA"
+    "ABBV","ABCL","ABT","ABVC","ABVX","ACAD","ACB","ACHV","ACLX","ACRS","ACXP","ADCT","ADMA","ADPT","AGIO","AKBA","ALDX","ALEC","ALKS","ALLO","ALMS","ALNY","ALT","ALXO","AMGN","AMLX","AMRN","ANAB","ANNX","ANRO","ANVS","APGE","APLS","AQST","ARCT","ARDX","ARQT","ASMB","ATAI","ATOS","ATYR","AUTL","AVTX","AXSM","BBIO","BCAB","BCAX","BCRX","BEAM","BHC","BHVN","BIIB","BLRX","BMEA","BMRN","BMY","BNTC","BTAI","CABA","CAPR","CATX","CCCC","CELU","CGC","CGEM","CGEN","CMPS","CNTA","COGT","CPIX","CRBU","CRDF","CRMD","CRON","CRSP","CRVS","CTMX","CTXR","CVM","CYRX","CYTK","DAWN","DNA","DNLI","DNTH","DYAI","DYN","EBS","EDIT","ELAN","ELVN","ENTA","ENTX","EOLS","EQ","ESPR","EWTX","EXEL","FATE","FBIO","FDMT","FHTX","FULC","GALT","GERN","GHRS","GILD","GLUE","GMAB","GOSS","GPCR","GSK","HOWL","HRMY","HUMA","HYFT","IBRX","IFRX","IMMX","IMNM","IMRX","INBX","INDV","INO","INSM","IOVA","IRD","IVVD","JANX","JAZZ","JNJ","JSPR","KOD","KPTI","KROS","KRRO","KYTX","LENZ","LFCR","LLY","LNAI","LNTH","LQDA","LRMR","LTRN","LXEO","LXRX","LYEL","MBX","MCRB","MIRM","MIST","MLTX","MLYS","MNKD","MRK","MRNA","MYGN","NAGE","NAMS","NBP","NEOG","NGNE","NKTX","NMRA","NNVC","NRIX","NRXP","NTLA","NUVB","NVAX","NVO","OCUL","OGN","OLMA","OMER","ORGO","ORKA","OTLK","PBYI","PCRX","PCVX","PDSB","PFE","PGEN","PLX","PMVP","PPBT","PRAX","PRGO","PRLD","PRME","PROK","PRPH","PRQR","PRTA","PTCT","PVLA","QURE","RANI","RAPP","RCKT","REGN","REPL","RGC","RIGL","RLAY","RLMD","RMTI","ROIV","RVPH","RXRX","RZLT","SANA","SAVA","SEPN","SGMO","SGMT","SIGA","SKYE","SLN","SLNO","SLS","SMMT","SNDX","SPRO","SPRY","SRPT","SRRK","STOK","STRO","SUPN","SVRA","SYRE","TARA","TARS","TECH","TECX","TERN","TEVA","TGTX","TLRY","TNGX","TNXP","TNYA","TRIB","TRVI","TSHA","TVRD","TWST","UNCY","UPB","URGN","VCEL","VERA","VERU","VIR","VKTX","VNDA","VOR","VRTX","VSTM","VTYX","VYGR","WVE","XENE","XERS","XFOR","XNCR","ZBIO","ZLAB","ZTS","ZURA","ZVRA"
   ],
-  "Healthcare (Providers/Services)": [
-    "AIRS",
-    "AVAH",
-    "BDSX",
-    "BKD",
-    "BTSG",
-    "CAI",
-    "CELC",
-    "CYH",
-    "DCGO",
-    "FTRE",
-    "GH",
-    "GRAL",
-    "HCSG",
-    "HIMS",
-    "LFMD",
-    "LFST",
-    "NTRA",
-    "OPCH",
-    "PACS",
-    "PGNY",
-    "PSNL",
-    "RDNT",
-    "SERA",
-    "SGRY",
-    "SRTA",
-    "TDOC",
-    "TOI",
-    "UHS",
-    "VCYT",
-    "WGS",
-    "XGN"
+  "Healthcare (Providers/Services)": ["AIRS","AVAH","BDSX","BKD","BTSG","CAI","CELC","CYH","DCGO","FTRE","GH","GRAL","HCSG","HIMS","LFMD","LFST","NTRA","OPCH","PACS","PGNY","PSNL","RDNT","SERA","SGRY","SRTA","TDOC","TOI","UHS","VCYT","WGS","XGN"],
+  Manufacturing: [
+    "A","AA","ABEV","ABVE","ACMR","AEHR","AGCO","AIRJ","ALB","ALH","ALTO","AME","AMPX","AMRZ","AMSC","AMTX","AOUT","AP","APD","AQMS","ARRY","AS","ASML","ASPI","ATER","ATI","AVD","AVNT","BC","BE","BG","BIOX","BIRK","BLDP","BLNK","BNKK","BOOM","BRCC","BRKR","BRLT","BUD","BW","BWEN","BWXT","BYND","BYRN","CAG","CAL","CAPT","CAT","CBAT","CBUS","CC","CCU","CE","CELH","CENX","CF","CGNX","CHD","CHPT","CL","CMC","CMI","CNH","COCO","CODI","COHR","COKE","COLM","CPB","CR","CRH","CRI","CROX","CSL","CSTM","CSW","CTAS","CTKB","CW","CXT","DAIO","DAKT","DE","DECK","DFLI","DHR","DOW","DRS","EAF","ECL","EL","ELF","EMR","ENTG","ENVX","EOSE","EPAC","ERII","ESI","ETN","EYPT","FCEL","FIGS","FLNC","FLO","FLY","FOSL","FOXF","FRPT","FTI","FTK","GD","GE","GEOS","GEV","GGB","GLW","GNRC","GNSS","GOOS","GPK","GPRO","GTES","HII","HLMN","HOG","HRL","HSAI","HSY","HTOO","HUN","HWM","HXL","HY","IFF","ILMN","IMAX","IP","ISPR","ITP","JBS","JCI","KDP","KHC","KLAC","KMB","KMT","KO","KODK","KTOS","KVUE","LASE","LEG","LEVI","LHX","LMT","LNZA","LODE","LOMA","LPX","LRCX","LULU","LUNR","LW","LWLG","LYB","LYTS","MASS","MAT","MATV","MBC","MDLZ","MEC","MHK","MIDD","MIR","MO","MT","MVST","NKE","NN","NOMD","NPWR","NRGV","NTR","NWL","NX","OC","ODD","OI","OLN","ONON","ORGN","OUST","OXM","PACB","PACK","PCT","PEP","PG","PII","PLUG","PM","POST","PPC","PPG","PPSI","PRM","PRMB","PTON","QS","QSI","QTRX","RAIL","RAL","RDW","RKLB","RR","RUN","RVTY","RYAM","SEER","SEI","SENS","SERV","SES","SHOO","SLDP","SLGN","SLI","SMR","SNBR","SOLS","SONO","SONY","ST","STZ","SUZ","SXC","SYM","TAP","TER","TEX","TKR","TMO","TPR","TREX","TROX","TS","TSE","TT","TTC","TWI","TXG","UA","UAMY","VFC","VITL","VOYG","WBX","WFRD","WHD","WLK","WRAP","WWD","XXII","YETI","YSG"
   ],
-  "Manufacturing": [
-    "A",
-    "AA",
-    "ABEV",
-    "ABVE",
-    "ACMR",
-    "AEHR",
-    "AGCO",
-    "AIRJ",
-    "ALB",
-    "ALH",
-    "ALTO",
-    "AME",
-    "AMPX",
-    "AMRZ",
-    "AMSC",
-    "AMTX",
-    "AOUT",
-    "AP",
-    "APD",
-    "AQMS",
-    "ARRY",
-    "AS",
-    "ASML",
-    "ASPI",
-    "ATER",
-    "ATI",
-    "AVD",
-    "AVNT",
-    "BC",
-    "BE",
-    "BG",
-    "BIOX",
-    "BIRK",
-    "BLDP",
-    "BLNK",
-    "BNKK",
-    "BOOM",
-    "BRCC",
-    "BRKR",
-    "BRLT",
-    "BUD",
-    "BW",
-    "BWEN",
-    "BWXT",
-    "BYND",
-    "BYRN",
-    "CAG",
-    "CAL",
-    "CAPT",
-    "CAT",
-    "CBAT",
-    "CBUS",
-    "CC",
-    "CCU",
-    "CE",
-    "CELH",
-    "CENX",
-    "CF",
-    "CGNX",
-    "CHD",
-    "CHPT",
-    "CL",
-    "CMC",
-    "CMI",
-    "CNH",
-    "COCO",
-    "CODI",
-    "COHR",
-    "COKE",
-    "COLM",
-    "CPB",
-    "CR",
-    "CRH",
-    "CRI",
-    "CROX",
-    "CSL",
-    "CSTM",
-    "CSW",
-    "CTAS",
-    "CTKB",
-    "CW",
-    "CXT",
-    "DAIO",
-    "DAKT",
-    "DE",
-    "DECK",
-    "DFLI",
-    "DHR",
-    "DOW",
-    "DRS",
-    "EAF",
-    "ECL",
-    "EL",
-    "ELF",
-    "EMR",
-    "ENTG",
-    "ENVX",
-    "EOSE",
-    "EPAC",
-    "ERII",
-    "ESI",
-    "ETN",
-    "EYPT",
-    "FCEL",
-    "FIGS",
-    "FLNC",
-    "FLO",
-    "FLY",
-    "FOSL",
-    "FOXF",
-    "FRPT",
-    "FTI",
-    "FTK",
-    "GD",
-    "GE",
-    "GEOS",
-    "GEV",
-    "GGB",
-    "GLW",
-    "GNRC",
-    "GNSS",
-    "GOOS",
-    "GPK",
-    "GPRO",
-    "GTES",
-    "HII",
-    "HLMN",
-    "HOG",
-    "HRL",
-    "HSAI",
-    "HSY",
-    "HTOO",
-    "HUN",
-    "HWM",
-    "HXL",
-    "HY",
-    "IFF",
-    "ILMN",
-    "IMAX",
-    "IP",
-    "ISPR",
-    "ITP",
-    "JBS",
-    "JCI",
-    "KDP",
-    "KHC",
-    "KLAC",
-    "KMB",
-    "KMT",
-    "KO",
-    "KODK",
-    "KTOS",
-    "KVUE",
-    "LASE",
-    "LEG",
-    "LEVI",
-    "LHX",
-    "LMT",
-    "LNZA",
-    "LODE",
-    "LOMA",
-    "LPX",
-    "LRCX",
-    "LULU",
-    "LUNR",
-    "LW",
-    "LWLG",
-    "LYB",
-    "LYTS",
-    "MASS",
-    "MAT",
-    "MATV",
-    "MBC",
-    "MDLZ",
-    "MEC",
-    "MHK",
-    "MIDD",
-    "MIR",
-    "MO",
-    "MT",
-    "MVST",
-    "NKE",
-    "NN",
-    "NOMD",
-    "NPWR",
-    "NRGV",
-    "NTR",
-    "NWL",
-    "NX",
-    "OC",
-    "ODD",
-    "OI",
-    "OLN",
-    "ONON",
-    "ORGN",
-    "OUST",
-    "OXM",
-    "PACB",
-    "PACK",
-    "PCT",
-    "PEP",
-    "PG",
-    "PII",
-    "PLUG",
-    "PM",
-    "POST",
-    "PPC",
-    "PPG",
-    "PPSI",
-    "PRM",
-    "PRMB",
-    "PTON",
-    "QS",
-    "QSI",
-    "QTRX",
-    "RAIL",
-    "RAL",
-    "RDW",
-    "RKLB",
-    "RR",
-    "RUN",
-    "RVTY",
-    "RYAM",
-    "SEER",
-    "SEI",
-    "SENS",
-    "SERV",
-    "SES",
-    "SHOO",
-    "SLDP",
-    "SLGN",
-    "SLI",
-    "SMR",
-    "SNBR",
-    "SOLS",
-    "SONO",
-    "SONY",
-    "ST",
-    "STZ",
-    "SUZ",
-    "SXC",
-    "SYM",
-    "TAP",
-    "TER",
-    "TEX",
-    "TKR",
-    "TMO",
-    "TPR",
-    "TREX",
-    "TROX",
-    "TS",
-    "TSE",
-    "TT",
-    "TTC",
-    "TWI",
-    "TXG",
-    "UA",
-    "UAMY",
-    "VFC",
-    "VITL",
-    "VOYG",
-    "WBX",
-    "WFRD",
-    "WHD",
-    "WLK",
-    "WRAP",
-    "WWD",
-    "XXII",
-    "YETI",
-    "YSG"
-  ],
-  "Manufacturing (Aerospace)": [
-    "ACHR",
-    "AIR",
-    "ATRO",
-    "AVAV",
-    "BA",
-    "DPRO",
-    "EH",
-    "EVTL",
-    "HON",
-    "JOBY",
-    "RTX",
-    "SARO",
-    "TXT"
-  ],
-  "Manufacturing (Automotive)": [
-    "ADNT",
-    "AEVA",
-    "APTV",
-    "BLBD",
-    "CAAS",
-    "CPS",
-    "CVGI",
-    "EMPD",
-    "F",
-    "FFAI",
-    "GM",
-    "GTX",
-    "HYLN",
-    "INVZ",
-    "LCID",
-    "LEA",
-    "LI",
-    "MGA",
-    "MOD",
-    "NIO",
-    "OSK",
-    "PATK",
-    "PSNY",
-    "RIVN",
-    "SEV",
-    "STLA",
-    "TSLA",
-    "VFS",
-    "WKHS",
-    "XPEV"
-  ],
-  "Media/Entertainment": [
-    "AMC",
-    "ANGX",
-    "CNVS",
-    "CURI",
-    "FUBO",
-    "IQ",
-    "NFLX",
-    "TOON"
-  ],
-  "Media/Publishing": [
-    "TRI"
-  ],
-  "Mining": [
-    "ABAT",
-    "AEM",
-    "AG",
-    "AGI",
-    "B",
-    "BHP",
-    "BTG",
-    "BTU",
-    "BVN",
-    "CCJ",
-    "CDE",
-    "CLF",
-    "CNR",
-    "CRML",
-    "DNN",
-    "EQX",
-    "ERO",
-    "FCX",
-    "GFI",
-    "GROY",
-    "GSM",
-    "HBM",
-    "HCC",
-    "HL",
-    "HMY",
-    "HYMC",
-    "IAG",
-    "IDR",
-    "IE",
-    "KGC",
-    "LAC",
-    "LGO",
-    "METC",
-    "MP",
-    "MUX",
-    "NAK",
-    "NB",
-    "NEM",
-    "NEWP",
-    "NG",
-    "NVA",
-    "NXE",
-    "ODV",
-    "ORLA",
-    "PAAS",
-    "SA",
-    "SCCO",
-    "SGML",
-    "SKE",
-    "SQM",
-    "SVM",
-    "TECK",
-    "TGB",
-    "TMC",
-    "TMQ",
-    "UEC",
-    "USAR",
-    "USAS",
-    "USAU",
-    "UUUU",
-    "VALE",
-    "VMC",
-    "WPM",
-    "WWR"
-  ],
-  "Other/Services": [
-    "ABM",
-    "ABNB",
-    "ABSI",
-    "ACEL",
-    "ACN",
-    "ACVA",
-    "ADV",
-    "AKAM",
-    "AMTM",
-    "ANGI",
-    "APG",
-    "BABA",
-    "BAH",
-    "BATRA",
-    "BGSF",
-    "BRSL",
-    "CAR",
-    "CART",
-    "CHGG",
-    "CHH",
-    "CNXC",
-    "CRL",
-    "CSGP",
-    "CZR",
-    "DASH",
-    "DHX",
-    "DIS",
-    "DKNG",
-    "DLO",
-    "EBAY",
-    "ETSY",
-    "EVGO",
-    "FIS",
-    "FLL",
-    "FTAI",
-    "FUN",
-    "GETY",
-    "GPN",
-    "GRAB",
-    "GRPN",
-    "HGV",
-    "HLT",
-    "HQY",
-    "HTZ",
-    "INCY",
-    "IT",
-    "KLC",
-    "LTH",
-    "LUCK",
-    "LVS",
-    "LYFT",
-    "MA",
-    "MAN",
-    "MANU",
-    "MAR",
-    "MAX",
-    "MELI",
-    "MGM",
-    "MLCO",
-    "MMS",
-    "MNY",
-    "MSCI",
-    "MXCT",
-    "NCMI",
-    "NEO",
-    "NOTE",
-    "NOTV",
-    "NRDY",
-    "NSP",
-    "PAY",
-    "PAYO",
-    "PDD",
-    "PENN",
-    "PK",
-    "PLNT",
-    "PRKS",
-    "PSFE",
-    "PSQH",
-    "PYPL",
-    "RELY",
-    "RHI",
-    "RSI",
-    "RSKD",
-    "SE",
-    "SGHC",
-    "SHO",
-    "SPGI",
-    "STUB",
-    "TAL",
-    "TIC",
-    "TNL",
-    "TONX",
-    "TSSI",
-    "TTEK",
-    "UBER",
-    "UDMY",
-    "UPBD",
-    "URI",
-    "V",
-    "WH",
-    "WMG",
-    "WSC",
-    "WW",
-    "WYNN",
-    "XPOF",
-    "YELP",
-    "YQ",
-    "ZG"
-  ],
-  "Technology (Computers/Hardware)": [
-    "AAPL",
-    "ANET",
-    "CSCO",
-    "DELL",
-    "DGII",
-    "EVLV",
-    "EXTR",
-    "FFIV",
-    "FTNT",
-    "HPE",
-    "HPQ",
-    "IBM",
-    "NTAP",
-    "OMCL",
-    "OSS",
-    "PANW",
-    "SMCI",
-    "SNDK",
-    "STX",
-    "WDC",
-    "ZEPP"
-  ],
-  "Technology (Semiconductors/Electronics)": [
-    "AAOI",
-    "ADI",
-    "ALAB",
-    "ALGM",
-    "ALMU",
-    "AMAT",
-    "AMBA",
-    "AMD",
-    "AMPG",
-    "AOSL",
-    "APH",
-    "ARM",
-    "ASX",
-    "ATOM",
-    "AUDC",
-    "AVGO",
-    "AXTI",
-    "BKSY",
-    "CIEN",
-    "CLS",
-    "CMBM",
-    "CMTL",
-    "CRDO",
-    "CRNT",
-    "CSIQ",
-    "ENPH",
-    "FLEX",
-    "FN",
-    "FSLR",
-    "FTCI",
-    "GSIT",
-    "HIMX",
-    "INDI",
-    "INSG",
-    "INTC",
-    "KLIC",
-    "KOPN",
-    "KULR",
-    "LAES",
-    "LASR",
-    "LITE",
-    "LPTH",
-    "LSCC",
-    "MAXN",
-    "MCHP",
-    "MEI",
-    "MRVL",
-    "MU",
-    "MVIS",
-    "MX",
-    "MXL",
-    "NEON",
-    "NOK",
-    "NVDA",
-    "NVTS",
-    "NXPI",
-    "OLED",
-    "ON",
-    "ONDS",
-    "PENG",
-    "PI",
-    "PL",
-    "PLAB",
-    "POET",
-    "POWI",
-    "QCOM",
-    "QRVO",
-    "SANM",
-    "SATL",
-    "SEDG",
-    "SHLS",
-    "SKYT",
-    "SMTC",
-    "SQNS",
-    "STM",
-    "SWKS",
-    "SYNA",
-    "TE",
-    "TSM",
-    "TTMI",
-    "TXN",
-    "UMAC",
-    "UMC",
-    "VIAV",
-    "VREX",
-    "VRT",
-    "VSH",
-    "VUZI",
-    "WATT",
-    "WOLF"
-  ],
-  "Technology (Software)": [
-    "ADBE",
-    "ADP",
-    "ADSK",
-    "AEYE",
-    "AGYS",
-    "AI",
-    "AISP",
-    "ALKT",
-    "API",
-    "APLD",
-    "APP",
-    "APPF",
-    "APPN",
-    "ARBE",
-    "ARQQ",
-    "ASAN",
-    "ASUR",
-    "AUR",
-    "AVPT",
-    "BAND",
-    "BB",
-    "BBAI",
-    "BIDU",
-    "BILI",
-    "BILL",
-    "BL",
-    "BLZE",
-    "BMBL",
-    "BRAG",
-    "BRZE",
-    "BSY",
-    "CARG",
-    "CARS",
-    "CCLD",
-    "CCSI",
-    "CDLX",
-    "CDNS",
-    "CFLT",
-    "CGNT",
-    "CINT",
-    "CLVT",
-    "CMRC",
-    "CRM",
-    "CRNC",
-    "CRWD",
-    "CRWV",
-    "CVLT",
-    "CWAN",
-    "CXAI",
-    "CXM",
-    "DBX",
-    "DCBO",
-    "DDD",
-    "DDOG",
-    "DH",
-    "DJT",
-    "DMRC",
-    "DOCN",
-    "DOCS",
-    "DOCU",
-    "DSGX",
-    "DSP",
-    "DUOL",
-    "DV",
-    "EA",
-    "EGHT",
-    "ESTC",
-    "EVTC",
-    "FDS",
-    "FIG",
-    "FIVN",
-    "FLUT",
-    "FNGR",
-    "FROG",
-    "FRSH",
-    "FSLY",
-    "GDDY",
-    "GDRX",
-    "GDS",
-    "GLBE",
-    "GMGI",
-    "GOOG",
-    "GOOGL",
-    "GRND",
-    "GRRR",
-    "GTLB",
-    "GTM",
-    "GWRE",
-    "HCAT",
-    "HNGE",
-    "HUBS",
-    "IAC",
-    "INFY",
-    "INOD",
-    "INTU",
-    "IONQ",
-    "IOT",
-    "KC",
-    "KD",
-    "KDK",
-    "LDOS",
-    "LIF",
-    "LPSN",
-    "LZ",
-    "MBLY",
-    "MDB",
-    "META",
-    "MSFT",
-    "MTLS",
-    "NBIS",
-    "NCNO",
-    "NET",
-    "NOW",
-    "NTNX",
-    "NTSK",
-    "OKTA",
-    "ORCL",
-    "PATH",
-    "PAYC",
-    "PCTY",
-    "PD",
-    "PDYN",
-    "PEGA",
-    "PHUN",
-    "PINS",
-    "PLTR",
-    "PONY",
-    "PRCH",
-    "PUBM",
-    "QBTS",
-    "QTWO",
-    "QUBT",
-    "RBLX",
-    "RBRK",
-    "RCAT",
-    "RDDT",
-    "RDNW",
-    "RGTI",
-    "RNG",
-    "RPD",
-    "RUM",
-    "RXT",
-    "RZLV",
-    "S",
-    "SABR",
-    "SAIC",
-    "SAIL",
-    "SAP",
-    "SHOP",
-    "SLP",
-    "SMSI",
-    "SNAP",
-    "SNOW",
-    "SNPS",
-    "SOGP",
-    "SOUN",
-    "SPT",
-    "SRAD",
-    "STEM",
-    "STNE",
-    "SY",
-    "TDC",
-    "TEAD",
-    "TEAM",
-    "TEM",
-    "TENB",
-    "TLS",
-    "TOST",
-    "TRIP",
-    "TTAN",
-    "TTD",
-    "TTWO",
-    "TUYA",
-    "TWLO",
-    "U",
-    "UPWK",
-    "VERI",
-    "VERX",
-    "VNET",
-    "VRAR",
-    "VRNS",
-    "WAY",
-    "WDAY",
-    "WEAV",
-    "WIT",
-    "WRD",
-    "XNET",
-    "XYZ",
-    "YEXT",
-    "YYAI",
-    "ZENA",
-    "ZETA",
-    "ZIP",
-    "ZM",
-    "ZS"
-  ],
-  "Transportation": [
-    "AAL",
-    "ALK",
-    "BKNG",
-    "CCEC",
-    "CCL",
-    "CMBT",
-    "CNI",
-    "CP",
-    "CSX",
-    "CUK",
-    "DAL",
-    "DINO",
-    "EXPE",
-    "FDX",
-    "FIP",
-    "FLNG",
-    "FRO",
-    "FWRD",
-    "GBTG",
-    "GLNG",
-    "HUBG",
-    "JBLU",
-    "KEX",
-    "LUV",
-    "MMYT",
-    "NAT",
-    "NCLH",
-    "NSC",
-    "NVGS",
-    "OMEX",
-    "PAA",
-    "RCL",
-    "RXO",
-    "RYAAY",
-    "SMHI",
-    "SNCY",
-    "SOBO",
-    "SPCE",
-    "STNG",
-    "TEN",
-    "TORO",
-    "UAL",
-    "ULCC",
-    "UNP",
-    "UPS",
-    "VIK",
-    "WERN",
-    "ZIM"
-  ],
-  "Unknown": [
-    "AAPU",
-    "AGIX",
-    "AIRR",
-    "AIYY",
-    "AMDL",
-    "AMZW",
-    "AMZZ",
-    "APLT",
-    "ARKG",
-    "ARKK",
-    "ARKW",
-    "ASHR",
-    "ASTX",
-    "ATHA",
-    "AVGG",
-    "AVGX",
-    "AVL",
-    "AVMV",
-    "AVUV",
-    "AXL",
-    "AZYY",
-    "BABX",
-    "BAGY",
-    "BAIG",
-    "BBH",
-    "BBJP",
-    "BCD",
-    "BCSF",
-    "BEDZ",
-    "BETZ",
-    "BITY",
-    "BLCN",
-    "BMNG",
-    "BOND",
-    "BOTZ",
-    "BSV",
-    "BTAL",
-    "BTCL",
-    "BUG",
-    "BULU",
-    "BUZZ",
-    "BXSL",
-    "CADE",
-    "CASI",
-    "CCCX",
-    "CCOR",
-    "CIVI",
-    "CLSX",
-    "CMPO",
-    "CNBS",
-    "COMM",
-    "CONI",
-    "CONL",
-    "CORO",
-    "CRCA",
-    "CRCD",
-    "CRWG",
-    "CRWU",
-    "CSD",
-    "CVAC",
-    "CWVX",
-    "CYBN",
-    "DBEF",
-    "DFAS",
-    "DFIP",
-    "DFUV",
-    "DGRS",
-    "DISV",
-    "DIVI",
-    "DJTU",
-    "DLN",
-    "DMAT",
-    "DOL",
-    "DPST",
-    "DRN",
-    "DTCR",
-    "DUHP",
-    "DUSA",
-    "DVAX",
-    "EBIZ",
-    "ECH",
-    "EFAV",
-    "ENPX",
-    "ESGV",
-    "ETHU",
-    "EUFN",
-    "EVMT",
-    "EWM",
-    "EWZS",
-    "FDEM",
-    "FDIS",
-    "FDVV",
-    "FEM",
-    "FENI",
-    "FEZ",
-    "FHEQ",
-    "FIGG",
-    "FLAX",
-    "FMET",
-    "FNX",
-    "FPE",
-    "FPWR",
-    "FSK",
-    "FTXR",
-    "FV",
-    "FYBR",
-    "GES",
-    "GLGG",
-    "GLXU",
-    "HIBL",
-    "HIBS",
-    "HIMZ",
-    "HOOX",
-    "HOUS",
-    "INTW",
-    "IONX",
-    "IONZ",
-    "IRE",
-    "IREX",
-    "JAMF",
-    "KYN",
-    "LABX",
-    "MAGS",
-    "METU",
-    "MNMD",
-    "MNRS",
-    "MODG",
-    "MPW",
-    "MRAL",
-    "MRSN",
-    "MSOS",
-    "MULL",
-    "NAIL",
-    "NAN",
-    "NBIG",
-    "NINE",
-    "NVTX",
-    "OMI",
-    "PCH",
-    "PLTU",
-    "PSEC",
-    "PXIU",
-    "QPUX",
-    "QUBX",
-    "REVG",
-    "RGTU",
-    "RIOX",
-    "RKLX",
-    "ROBN",
-    "SBIT",
-    "SMCL",
-    "SMCX",
-    "SMH",
-    "SMLR",
-    "SMST",
-    "SMU",
-    "SOFX",
-    "SOLT",
-    "SOXX",
-    "TARK",
-    "THS",
-    "TRUE",
-    "TSDD",
-    "TSLG",
-    "TSLR",
-    "ULTY",
-    "URTY",
-    "USD",
-    "WEBL",
-    "WGMI",
-    "XRPT",
-    "YINN"
-  ],
-  "Utilities": [
-    "AEE",
-    "AES",
-    "AM",
-    "AQN",
-    "BEPC",
-    "CDZI",
-    "CEG",
-    "CEPU",
-    "CLNE",
-    "CMS",
-    "CTRI",
-    "CWEN",
-    "CWST",
-    "D",
-    "EIX",
-    "EPD",
-    "ES",
-    "ET",
-    "FTS",
-    "KGS",
-    "KMI",
-    "KNTK",
-    "LNG",
-    "MNTK",
-    "NEE",
-    "NEXT",
-    "NFE",
-    "NFG",
-    "NNE",
-    "NRG",
-    "OKLO",
-    "OPTT",
-    "ORA",
-    "PCG",
-    "QRHC",
-    "SBS",
-    "SMC",
-    "SO",
-    "SPRU",
-    "TLN",
-    "TRP",
-    "VG",
-    "VST",
-    "VVPR",
-    "WMB",
-    "WTRG"
-  ],
-  "Wholesale": [
-    "AIT",
-    "ASH",
-    "ASPN",
-    "CAH",
-    "CENT",
-    "COSM",
-    "DPZ",
-    "DXPE",
-    "FERG",
-    "GPC",
-    "HFFG",
-    "HLF",
-    "LKQ",
-    "MCK",
-    "QXO",
-    "RELL",
-    "TEL",
-    "UGRO",
-    "VSTS",
-    "WKC"
-  ]
+  "Manufacturing (Aerospace)": ["ACHR","AIR","ATRO","AVAV","BA","DPRO","EH","EVTL","HON","JOBY","RTX","SARO","TXT"],
+  "Manufacturing (Automotive)": ["ADNT","AEVA","APTV","BLBD","CAAS","CPS","CVGI","EMPD","F","FFAI","GM","GTX","HYLN","INVZ","LCID","LEA","LI","MGA","MOD","NIO","OSK","PATK","PSNY","RIVN","SEV","STLA","TSLA","VFS","WKHS","XPEV"],
+  "Media/Entertainment": ["AMC","ANGX","CNVS","CURI","FUBO","IQ","NFLX","TOON"],
+  "Media/Publishing": ["TRI"],
+  Mining: ["ABAT","AEM","AG","AGI","B","BHP","BTG","BTU","BVN","CCJ","CDE","CLF","CNR","CRML","DNN","EQX","ERO","FCX","GFI","GROY","GSM","HBM","HCC","HL","HMY","HYMC","IAG","IDR","IE","KGC","LAC","LGO","METC","MP","MUX","NAK","NB","NEM","NEWP","NG","NVA","NXE","ODV","ORLA","PAAS","SA","SCCO","SGML","SKE","SQM","SVM","TECK","TGB","TMC","TMQ","UEC","USAR","USAS","USAU","UUUU","VALE","VMC","WPM","WWR"],
+  "Other/Services": ["ABM","ABNB","ABSI","ACEL","ACN","ACVA","ADV","AKAM","AMTM","ANGI","APG","BABA","BAH","BATRA","BGSF","BRSL","CAR","CART","CHGG","CHH","CNXC","CRL","CSGP","CZR","DASH","DHX","DIS","DKNG","DLO","EBAY","ETSY","EVGO","FIS","FLL","FTAI","FUN","GETY","GPN","GRAB","GRPN","HGV","HLT","HQY","HTZ","INCY","IT","KLC","LTH","LUCK","LVS","LYFT","MA","MAN","MANU","MAR","MAX","MELI","MGM","MLCO","MMS","MNY","MSCI","MXCT","NCMI","NEO","NOTE","NOTV","NRDY","NSP","PAY","PAYO","PDD","PENN","PK","PLNT","PRKS","PSFE","PSQH","PYPL","RELY","RHI","RSI","RSKD","SE","SGHC","SHO","SPGI","STUB","TAL","TIC","TNL","TONX","TSSI","TTEK","UBER","UDMY","UPBD","URI","V","WH","WMG","WSC","WW","WYNN","XPOF","YELP","YQ","ZG"],
+  "Technology (Computers/Hardware)": ["AAPL","ANET","CSCO","DELL","DGII","EVLV","EXTR","FFIV","FTNT","HPE","HPQ","IBM","NTAP","OMCL","OSS","PANW","SMCI","SNDK","STX","WDC","ZEPP"],
+  "Technology (Semiconductors/Electronics)": ["AAOI","ADI","ALAB","ALGM","ALMU","AMAT","AMBA","AMD","AMPG","AOSL","APH","ARM","ASX","ATOM","AUDC","AVGO","AXTI","BKSY","CIEN","CLS","CMBM","CMTL","CRDO","CRNT","CSIQ","ENPH","FLEX","FN","FSLR","FTCI","GSIT","HIMX","INDI","INSG","INTC","KLIC","KOPN","KULR","LAES","LASR","LITE","LPTH","LSCC","MAXN","MCHP","MEI","MRVL","MU","MVIS","MX","MXL","NEON","NOK","NVDA","NVTS","NXPI","OLED","ON","ONDS","PENG","PI","PL","PLAB","POET","POWI","QCOM","QRVO","SANM","SATL","SEDG","SHLS","SKYT","SMTC","SQNS","STM","SWKS","SYNA","TE","TSM","TTMI","TXN","UMAC","UMC","VIAV","VREX","VRT","VSH","VUZI","WATT","WOLF"],
+  "Technology (Software)": ["ADBE","ADP","ADSK","AEYE","AGYS","AI","AISP","ALKT","API","APLD","APP","APPF","APPN","ARBE","ARQQ","ASAN","ASUR","AUR","AVPT","BAND","BB","BBAI","BIDU","BILI","BILL","BL","BLZE","BMBL","BRAG","BRZE","BSY","CARG","CARS","CCLD","CCSI","CDLX","CDNS","CFLT","CGNT","CINT","CLVT","CMRC","CRM","CRNC","CRWD","CRWV","CVLT","CWAN","CXAI","CXM","DBX","DCBO","DDD","DDOG","DH","DJT","DMRC","DOCN","DOCS","DOCU","DSGX","DSP","DUOL","DV","EA","EGHT","ESTC","EVTC","FDS","FIG","FIVN","FLUT","FNGR","FROG","FRSH","FSLY","GDDY","GDRX","GDS","GLBE","GMGI","GOOG","GOOGL","GRND","GRRR","GTLB","GTM","GWRE","HCAT","HNGE","HUBS","IAC","INFY","INOD","INTU","IONQ","IOT","KC","KD","KDK","LDOS","LIF","LPSN","LZ","MBLY","MDB","META","MSFT","MTLS","NBIS","NCNO","NET","NOW","NTNX","NTSK","OKTA","ORCL","PATH","PAYC","PCTY","PD","PDYN","PEGA","PHUN","PINS","PLTR","PONY","PRCH","PUBM","QBTS","QTWO","QUBT","RBLX","RBRK","RCAT","RDDT","RDNW","RGTI","RNG","RPD","RUM","RXT","RZLV","S","SABR","SAIC","SAIL","SAP","SHOP","SLP","SMSI","SNAP","SNOW","SNPS","SOGP","SOUN","SPT","SRAD","STEM","STNE","SY","TDC","TEAD","TEAM","TEM","TENB","TLS","TOST","TRIP","TTAN","TTD","TTWO","TUYA","TWLO","U","UPWK","VERI","VERX","VNET","VRAR","VRNS","WAY","WDAY","WEAV","WIT","WRD","XNET","XYZ","YEXT","YYAI","ZENA","ZETA","ZIP","ZM","ZS"],
+  Transportation: ["AAL","ALK","BKNG","CCEC","CCL","CMBT","CNI","CP","CSX","CUK","DAL","DINO","EXPE","FDX","FIP","FLNG","FRO","FWRD","GBTG","GLNG","HUBG","JBLU","KEX","LUV","MMYT","NAT","NCLH","NSC","NVGS","OMEX","PAA","RCL","RXO","RYAAY","SMHI","SNCY","SOBO","SPCE","STNG","TEN","TORO","UAL","ULCC","UNP","UPS","VIK","WERN","ZIM"],
+  Unknown: ["AAPU","AGIX","AIRR","AIYY","AMDL","AMZW","AMZZ","APLT","ARKG","ARKK","ARKW","ASHR","ASTX","ATHA","AVGG","AVGX","AVL","AVMV","AVUV","AXL","AZYY","BABX","BAGY","BAIG","BBH","BBJP","BCD","BCSF","BEDZ","BETZ","BITY","BLCN","BMNG","BOND","BOTZ","BSV","BTAL","BTCL","BUG","BULU","BUZZ","BXSL","CADE","CASI","CCCX","CCOR","CIVI","CLSX","CMPO","CNBS","COMM","CONI","CONL","CORO","CRCA","CRCD","CRWG","CRWU","CSD","CVAC","CWVX","CYBN","DBEF","DFAS","DFIP","DFUV","DGRS","DISV","DIVI","DJTU","DLN","DMAT","DOL","DPST","DRN","DTCR","DUHP","DUSA","DVAX","EBIZ","ECH","EFAV","ENPX","ESGV","ETHU","EUFN","EVMT","EWM","EWZS","FDEM","FDIS","FDVV","FEM","FENI","FEZ","FHEQ","FIGG","FLAX","FMET","FNX","FPE","FPWR","FSK","FTXR","FV","FYBR","GES","GLGG","GLXU","HIBL","HIBS","HIMZ","HOOX","HOUS","INTW","IONX","IONZ","IRE","IREX","JAMF","KYN","LABX","MAGS","METU","MNMD","MNRS","MODG","MPW","MRAL","MRSN","MSOS","MULL","NAIL","NAN","NBIG","NINE","NVTX","OMI","PCH","PLTU","PSEC","PXIU","QPUX","QUBX","REVG","RGTU","RIOX","RKLX","ROBN","SBIT","SMCL","SMCX","SMH","SMLR","SMST","SMU","SOFX","SOLT","SOXX","TARK","THS","TRUE","TSDD","TSLG","TSLR","ULTY","URTY","USD","WEBL","WGMI","XRPT","YINN"],
+  Utilities: ["AEE","AES","AM","AQN","BEPC","CDZI","CEG","CEPU","CLNE","CMS","CTRI","CWEN","CWST","D","EIX","EPD","ES","ET","FTS","KGS","KMI","KNTK","LNG","MNTK","NEE","NEXT","NFE","NFG","NNE","NRG","OKLO","OPTT","ORA","PCG","QRHC","SBS","SMC","SO","SPRU","TLN","TRP","VG","VST","VVPR","WMB","WTRG"],
+  Wholesale: ["AIT","ASH","ASPN","CAH","CENT","COSM","DPZ","DXPE","FERG","GPC","HFFG","HLF","LKQ","MCK","QXO","RELL","TEL","UGRO","VSTS","WKC"],
 };
 
-/* ================================
-   Component
-================================ */
 export default function LiveWatchlist() {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -2387,7 +371,7 @@ export default function LiveWatchlist() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  // Pointer gesture state (supports: 1-finger pan, 2-finger pinch-zoom)
+  // Pointer gesture state
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{
     mode: "none" | "pan" | "pinch";
@@ -2404,7 +388,6 @@ export default function LiveWatchlist() {
   });
 
   const didInitView = useRef(false);
-  // On first mobile render, default to list (bubbles still available).
   useEffect(() => {
     if (!isMobile) return;
     if (didInitView.current) return;
@@ -2415,11 +398,9 @@ export default function LiveWatchlist() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 900, h: 560 });
 
-  // Resize to *actual* container size (this fixes the mobile overlap regression)
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-
     const ro = new ResizeObserver(() => {
       const rect = el.getBoundingClientRect();
       const w = Math.max(360, Math.floor(rect.width));
@@ -2451,7 +432,6 @@ export default function LiveWatchlist() {
     }
   }
 
-  // sanitize groups once (defensive)
   const groups = useMemo(() => {
     const cleaned: SectorGroups = {};
     for (const [sector, syms] of Object.entries(GROUPS || {})) {
@@ -2499,7 +479,6 @@ export default function LiveWatchlist() {
     return balloonDropPack(list, size.w, size.h, { mobile: isMobile });
   }, [filteredGroups, size.w, size.h, isMobile]);
 
-  // keep activeSector valid after search
   useEffect(() => {
     if (!activeSector) return;
     if (filteredGroups[activeSector]?.length) return;
@@ -2573,7 +552,6 @@ export default function LiveWatchlist() {
       const scale = dist / Math.max(1, gesture.current.startDist);
       const nextZoom = clamp(gesture.current.startZoom * scale, ZOOM_MIN, ZOOM_MAX);
 
-      // Keep pinch midpoint stable (screen-space approximation)
       const mdx = mid.x - gesture.current.startMid.x;
       const mdy = mid.y - gesture.current.startMid.y;
 
@@ -2602,7 +580,6 @@ export default function LiveWatchlist() {
   }
 
   function onWheel(e: React.WheelEvent<SVGSVGElement>) {
-    // Desktop zoom (trackpads / mouse wheels)
     if (isMobile) return;
     e.preventDefault();
     const delta = -e.deltaY;
@@ -2610,7 +587,6 @@ export default function LiveWatchlist() {
     setZoom(next);
   }
 
-  // ✅ Background: remove grid completely; keep soft "card" vibe
   const mapBg =
     "radial-gradient(circle at 18% 18%, rgba(99,102,241,0.08), transparent 52%)," +
     "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 54%)," +
@@ -2622,7 +598,6 @@ export default function LiveWatchlist() {
 
   return (
     <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -2639,7 +614,6 @@ export default function LiveWatchlist() {
           </div>
 
           <div className="flex flex-col gap-2 w-full lg:w-[820px]">
-            {/* Search + toggles + zoom controls (moved to top row) */}
             <div className="flex flex-col md:flex-row gap-2">
               <input
                 value={query}
@@ -2697,7 +671,6 @@ export default function LiveWatchlist() {
               </div>
             </div>
 
-            {/* Active sector bar */}
             {activeSector ? (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
                 <div className="truncate">
@@ -2715,15 +688,12 @@ export default function LiveWatchlist() {
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-500">
-                Tip: drag to pan • pinch/scroll to zoom • tap a balloon to open tickers
-              </div>
+              <div className="text-xs text-slate-500">Tip: drag to pan • pinch/scroll to zoom • tap a balloon</div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
           <div className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow-lg">{toast}</div>
@@ -2732,204 +702,192 @@ export default function LiveWatchlist() {
 
       <div className="p-6">
         {view === "bubbles" ? (
-          <div
-            ref={wrapRef}
-            className="relative w-full rounded-[28px] overflow-hidden border border-slate-200"
-            style={{
-              height: "min(78vh, 860px)",
-              background: mapBg,
-            }}
-          >
-            <svg
-              width={size.w}
-              height={size.h}
-              viewBox={`0 0 ${size.w} ${size.h}`}
-              className="absolute inset-0"
-              style={{ touchAction: "none" }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              onWheel={onWheel}
+          <>
+            <div
+              ref={wrapRef}
+              className="relative w-full rounded-[28px] overflow-hidden border border-slate-200"
+              style={{ height: "min(78vh, 860px)", background: mapBg }}
             >
-              <defs>
-                {bubbleData.map((b) => {
-                  const t = themeForKey(b.key);
-                  const id = `grad-${hashToHue(b.key)}`;
-                  return (
-                    <radialGradient key={id} id={id} cx="35%" cy="30%" r="78%">
-                      <stop offset="0%" stopColor={t.fillA} />
-                      <stop offset="70%" stopColor={t.fillB} />
-                      <stop offset="100%" stopColor="rgba(255,255,255,0.10)" />
-                    </radialGradient>
-                  );
-                })}
+              <svg
+                width={size.w}
+                height={size.h}
+                viewBox={`0 0 ${size.w} ${size.h}`}
+                className="absolute inset-0"
+                style={{ touchAction: "none" }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+                onWheel={onWheel}
+              >
+                <defs>
+                  {bubbleData.map((b) => {
+                    const t = themeForKey(b.key);
+                    const id = `grad-${hashToHue(b.key)}`;
+                    return (
+                      <radialGradient key={id} id={id} cx="35%" cy="30%" r="78%">
+                        <stop offset="0%" stopColor={t.fillA} />
+                        <stop offset="70%" stopColor={t.fillB} />
+                        <stop offset="100%" stopColor="rgba(255,255,255,0.10)" />
+                      </radialGradient>
+                    );
+                  })}
 
-                <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="8" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
+                  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="8" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
 
-                <filter id="labelShadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="rgba(15,23,42,0.25)" />
-                </filter>
-              </defs>
+                  <filter id="labelShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="rgba(15,23,42,0.25)" />
+                  </filter>
+                </defs>
 
-              <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
-                {bubbleData.map((b) => {
-                  const t = themeForKey(b.key);
-                  const gradId = `grad-${hashToHue(b.key)}`;
-                  const isActive = activeSector === b.key;
-                  const lines = splitLabel(displaySectorName(b.key));
+                <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
+                  {bubbleData.map((b) => {
+                    const t = themeForKey(b.key);
+                    const gradId = `grad-${hashToHue(b.key)}`;
+                    const isActive = activeSector === b.key;
+                    const lines = splitLabel(displaySectorName(b.key));
 
-                  const titleSize = Math.max(11, Math.min(20, b.r * 0.18));
-                  const subSize = Math.max(10, Math.min(15, b.r * 0.14));
+                    const titleSize = Math.max(11, Math.min(20, b.r * 0.18));
+                    const subSize = Math.max(10, Math.min(15, b.r * 0.14));
 
-                  return (
-                    <g
-                      key={b.key}
-                      style={{ cursor: "pointer" }}
-                      onMouseEnter={() => setHoverSector(b.key)}
-                      onMouseLeave={() => setHoverSector(null)}
-                      onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
-                    >
-                      <circle
-                        cx={b.x}
-                        cy={b.y}
-                        r={b.r + (isActive ? 12 : 10)}
-                        fill="transparent"
-                        stroke={t.glow}
-                        strokeWidth={isActive ? 3 : 2}
-                        opacity={isActive ? 0.9 : 0.55}
-                      />
-
-                      <circle
-                        cx={b.x}
-                        cy={b.y}
-                        r={b.r}
-                        fill={`url(#${gradId})`}
-                        stroke={t.stroke}
-                        strokeWidth={1.4}
-                        filter="url(#softGlow)"
-                      />
-
-                      {/* specular highlight */}
-                      <ellipse
-                        cx={b.x - b.r * 0.22}
-                        cy={b.y - b.r * 0.30}
-                        rx={b.r * 0.34}
-                        ry={b.r * 0.22}
-                        fill="rgba(255,255,255,0.42)"
-                        opacity={0.55}
-                      />
-
-                      {/* subtle shadow */}
-                      <ellipse
-                        cx={b.x}
-                        cy={b.y + b.r * 0.92}
-                        rx={Math.max(6, b.r * 0.10)}
-                        ry={Math.max(4, b.r * 0.07)}
-                        fill="rgba(15,23,42,0.08)"
-                      />
-
-                      {/* label (lighter weights + shadow for readability) */}
-                      <text
-                        x={b.x}
-                        y={b.y - (lines.length === 2 ? 6 : 2)}
-                        textAnchor="middle"
-                        fill={t.text}
-                        fontSize={titleSize}
-                        fontWeight={600}
-                        filter="url(#labelShadow)"
-                        style={{ pointerEvents: "none" }}
+                    return (
+                      <g
+                        key={b.key}
+                        style={{ cursor: "pointer" }}
+                        onMouseEnter={() => setHoverSector(b.key)}
+                        onMouseLeave={() => setHoverSector(null)}
+                        onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
                       >
-                        {lines.map((ln, idx) => (
-                          <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
-                            {ln}
-                          </tspan>
-                        ))}
-                      </text>
+                        <circle
+                          cx={b.x}
+                          cy={b.y}
+                          r={b.r + (isActive ? 12 : 10)}
+                          fill="transparent"
+                          stroke={t.glow}
+                          strokeWidth={isActive ? 3 : 2}
+                          opacity={isActive ? 0.9 : 0.55}
+                        />
 
-                      <text
-                        x={b.x}
-                        y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
-                        textAnchor="middle"
-                        fill={t.textDim}
-                        fontSize={subSize}
-                        fontWeight={500}
-                        filter="url(#labelShadow)"
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {b.n} tickers
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
-            </svg>
+                        <circle
+                          cx={b.x}
+                          cy={b.y}
+                          r={b.r}
+                          fill={`url(#${gradId})`}
+                          stroke={t.stroke}
+                          strokeWidth={1.4}
+                          filter="url(#softGlow)"
+                        />
 
-            {hoverSector && (
-              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm">
-                <div className="text-sm font-semibold text-slate-900">{displaySectorName(hoverSector)}</div>
-                <div className="text-xs text-slate-600 mt-0.5">
-                  {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
+                        <ellipse
+                          cx={b.x - b.r * 0.22}
+                          cy={b.y - b.r * 0.3}
+                          rx={b.r * 0.34}
+                          ry={b.r * 0.22}
+                          fill="rgba(255,255,255,0.42)"
+                          opacity={0.55}
+                        />
+
+                        <ellipse
+                          cx={b.x}
+                          cy={b.y + b.r * 0.92}
+                          rx={Math.max(6, b.r * 0.1)}
+                          ry={Math.max(4, b.r * 0.07)}
+                          fill="rgba(15,23,42,0.08)"
+                        />
+
+                        <text
+                          x={b.x}
+                          y={b.y - (lines.length === 2 ? 6 : 2)}
+                          textAnchor="middle"
+                          fill={t.text}
+                          fontSize={titleSize}
+                          fontWeight={600}
+                          filter="url(#labelShadow)"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {lines.map((ln, idx) => (
+                            <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
+                              {ln}
+                            </tspan>
+                          ))}
+                        </text>
+
+                        <text
+                          x={b.x}
+                          y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
+                          textAnchor="middle"
+                          fill={t.textDim}
+                          fontSize={subSize}
+                          fontWeight={500}
+                          filter="url(#labelShadow)"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {b.n} tickers
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              </svg>
+
+              {hoverSector && (
+                <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-900">{displaySectorName(hoverSector)}</div>
+                  <div className="text-xs text-slate-600 mt-0.5">
+                    {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/*
-              ✅ Ticker list “dispenses” immediately on balloon click.
-              This stays inside the bubble map as a bottom-sheet so mobile users
-              don’t have to scroll down to see the tickers.
-            */}
+            {/* ✅ THIS IS THE FIX: show the tickers list BELOW the bubble map (not as an overlay). */}
             {activeSector && (
-              <div className="absolute inset-x-4 bottom-4">
-                <div className="rounded-[22px] border border-slate-200 bg-white/95 backdrop-blur shadow-lg overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">{activeSymbols.length} tickers</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
-                        Copy all
-                      </button>
-                      <button onClick={() => setActiveSector(null)} className={actionBtn}>
-                        Close
-                      </button>
-                    </div>
+              <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-base font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
+                    <div className="text-xs text-slate-600 mt-1">{activeSymbols.length} tickers</div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
+                      Copy all
+                    </button>
+                    <button onClick={() => setActiveSector(null)} className={actionBtn}>
+                      Close
+                    </button>
+                  </div>
+                </div>
 
-                  <div className="max-h-[42vh] sm:max-h-[36vh] overflow-auto p-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
-                      {activeSymbols.map((sym) => {
-                        const t = themeForKey(activeSector);
-                        return (
-                          <button
-                            key={`${activeSector}:${sym}:sheet`}
-                            type="button"
-                            onClick={() => copyToClipboard(sym)}
-                            className="rounded-2xl border px-3 py-2 text-sm font-semibold text-center transition hover:-translate-y-[1px] hover:shadow-sm"
-                            style={{
-                              backgroundColor: t.chipBg,
-                              borderColor: t.chipBorder,
-                              color: t.chipText,
-                            }}
-                            title="Click to copy"
-                          >
-                            {sym}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+                  {activeSymbols.map((sym) => {
+                    const t = themeForKey(activeSector);
+                    return (
+                      <button
+                        key={`${activeSector}:${sym}:below`}
+                        type="button"
+                        onClick={() => copyToClipboard(sym)}
+                        className="rounded-2xl border px-3 py-2 text-sm font-semibold text-center transition hover:-translate-y-[1px] hover:shadow-sm"
+                        style={{
+                          backgroundColor: t.chipBg,
+                          borderColor: t.chipBorder,
+                          color: t.chipText,
+                        }}
+                        title="Click to copy"
+                      >
+                        {sym}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
-          </div>
+          </>
         ) : (
           <div className="space-y-4">
             {Object.entries(filteredGroups)
@@ -2982,8 +940,6 @@ export default function LiveWatchlist() {
               })}
           </div>
         )}
-
-        {/* ticker list is now shown as an in-map bottom sheet on balloon click */}
       </div>
     </div>
   );
