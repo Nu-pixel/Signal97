@@ -1,15 +1,4 @@
-// save as: prettify_watchlist_groups.js
-const fs = require("fs");
-
-const inputJsonPath = "industry_groups.json";   // your updated file
-const outputTsxPath = "LiveWatchlist.tsx";      // output component
-
-const groups = JSON.parse(fs.readFileSync(inputJsonPath, "utf8"));
-
-// pretty JSON with indentation (tickers will be visible line-by-line)
-const prettyGroups = JSON.stringify(groups, null, 2);
-
-const tsx = `"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -24,11 +13,11 @@ function hashToHue(str: string) {
 function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
   return {
-    bg: \`hsla(\${hue}, 70%, 96%, 1)\`,
-    border: \`hsla(\${hue}, 55%, 80%, 1)\`,
-    chipBg: \`hsla(\${hue}, 60%, 98%, 1)\`,
-    chipBorder: \`hsla(\${hue}, 45%, 78%, 1)\`,
-    chipText: \`hsla(\${hue}, 30%, 22%, 1)\`,
+    bg: `hsla(${hue}, 70%, 96%, 1)`,
+    border: `hsla(${hue}, 55%, 80%, 1)`,
+    chipBg: `hsla(${hue}, 60%, 98%, 1)`,
+    chipBorder: `hsla(${hue}, 45%, 78%, 1)`,
+    chipText: `hsla(${hue}, 30%, 22%, 1)`,
   };
 }
 
@@ -38,13 +27,14 @@ function normalizeSymbol(s: string) {
 
 // ✅ HARD-CODED industry buckets (ALL tickers) from your UPDATED file.
 // No fetch, no /public json, no 404.
-const GROUPS: IndustryGroups = ${prettyGroups};
+const GROUPS: IndustryGroups = {"Agriculture/Forestry/Fishing":["AGRO","CALM","VFF"],"Communication Services (Telecom)":["ADEA","AMCX","AMX","ASTS","CCOI","CHTR","CMCSA","FOXA","GLIBK","GSAT","GTN","IHRT","IHS","IRDM","LBRDK","LUMN","NMAX","PSKY","ROKU","SATS","SBGI","SIRI","SPIR","SPOT","SSP","SURG","T","TDS","TME","TMUS","TSAT","TSQ","TTGT","UNIT","UONEK","VOD","VSAT","VZ","WBD"],"Construction":["AMRC","BBCP","BZH","DHI","DY","FIX","GEO","GRBK","GVA","LEN","MTZ","PHM","STRL","TOL","TPC","TPH"],"Consumer (Retail)":["AAP","ABG","ACI","AEO","AMZN","ANF","ARHS","ARMK","ASO","BARK","BBBY","BBWI","BBY","BJ","BKE","BLMN","BNED","BROS","BURL","CAKE","CAVA","CBRL","CHWY","CMG","COST","CPNG","CTRN","CVNA","CVS","DBI","DDL","DG","DKS","DLTR","DNUT","DRI","EAT","ELA","FIVE","FLWS","FND","GAP","GCO","GCT","GME","GO","HD","JACK","JD","JMIA","KMX","KR","KSS","LESL","LOW","LUXE","LVO","M","MCD","OLLI","PETS","PLAY","PLBY","PLCE","PTLO","PZZA","QVCGA","REAL","RH","ROST","RVLV","SBUX","SFIX","SFM","SG","SHAK","SIG","STKS","SVV","TGT","TJX","TSCO","TXRH","ULTA","URBN","VIPS","VRM","VSCO","W","WEN","WMT","WOOF"],"Energy (Oil & Gas)":["ACDC","AESI","AMPY","APA","AR","BKV","BTE","CHRD","CLB","CNQ","CRC","CRGY","CRK","CTRA","CVE","DVN","EC","EOG","EPSN","EQT","EXE","FANG","HAL","HESM","HP","HPK","KLXE","KOS","MGY","NOG","NUAI","OBE","OII","OXY","PBR","RIG","RRC","SDRL","SHEL","SLB","SM","SOC","TALO","TTI","VAL","VIST","VNOM","VOC","WDS","WTTR","XPRO"],"Energy (Refining)":["BP","CLMT","COP","CVI","CVX","DK","EQNR","MPC","PBF","PSX","SU","VLO","VVV","XOM","YPF"],"Financials/Real Estate":["AAMI","ABCB","ABR","ABTC","ACGL","AEXA","AFL","AFRM","AGNC","AGQ","AIFU","AIG","ALHC","ALRS","ALTS","AMBR","AMH","AMP","AMT","ANY","APO","APPS","ARBK","ARE","ARES","ASB","ASST","AUB","AXP","BAC","BAM","BBAR","BBT","BCS","BDN","BEKE","BFST","BHF","BITF","BK","BKKT","BLK","BLSH","BMNR","BN","BNL","BOIL","BRO","BRR","BSOL","BTBT","BTDR","BULL","BUSE","BWET","BWIN","BX","C","CAN","CATY","CBOE","CBRE","CBSH","CCBG","CDP","CG","CHMI","CHYM","CI","CIA","CIFR","CLDT","CLOV","CLSK","CME","CMTG","CNC","CNO","COF","COIN","COMP","CORZ","CPT","CRCL","CSR","CTBI","CTRE","CUBE","CWK","CZNC","DB","DBRG","DEI","DFDV","DGXX","DLR","DOUG","EBC","ECPG","EGBN","EHTH","EIG","ELME","ELS","EQBK","EQIX","ESNT","ESS","ETH","ETHA","ETHE","ETHZ","EZBC","FBTC","FFBC","FFIN","FG","FGNX","FHN","FIGR","FISI","FLG","FNF","FRGE","FSP","FUTU","FWDI","GBTC","GDOT","GEMI","GGAL","GLD","GLXY","GPMT","GS","HASI","HIVE","HLNE","HOOD","HOPE","HR","HRTG","HSBC","HST","HTBK","HUM","HUT","IAU","IBIT","IBKR","ICE","INVH","IREN","IRM","JEF","JPM","JRVR","KKR","KOLD","LB","LC","LDI","LINE","LMND","LNC","LPRO","LX","LXP","MAC","MARA","MC","MCHB","MIAX","MOH","MRP","MRX","MS","MSTR","MTG","MUFG","NAKA","NDAQ","NLY","NRT","NSA","NTST","NU","OPAD","OPEN","OPRT","ORBS","ORC","OSCR","OWL","PEB","PGR","PGY","PKST","PLD","PNC","PNFP","QFIN","RC","RILY","RIOT","RKT","RYAN","RYN","SAN","SBCF","SBET","SCHW","SIEB","SKYH","SLAI","SLDE","SLG","SLM","SLQT","SLV","SMA","SOFI","SSRM","SUIG","SUPV","SVC","SVIX","TBBK","TFC","TIGR","TPG","TWO","UBSI","UCB","UNG","UNH","UPST","UPXI","USB","USO","UVIX","UVXY","UWMC","VNO","VXX","WFC","WNEB","WRB","WULF","WY","WYFI","XP","YRD"],"Healthcare (Medical Devices)":["ALC","ALGN","ANGO","APT","ATEC","BAX","BBNX","BFLY","BLFS","BSX","CLPT","CNMD","CODX","CTSO","CVRX","DCTH","DRIO","DXCM","EMBC","ENOV","ESTA","EYE","GEHC","GKOS","GMED","HSDT","HTFL","INSP","ISRG","KRMD","LFWD","MBOT","MDT","MMM","MYO","NNOX","NSPR","NVST","OBIO","OM","SGHT","SKIN","STAA","STIM","STSS","STVN","STXS","TELA","TMCI","TMDX","TNDM","WRBY","XAIR"],"Healthcare (Pharma)":["ABBV","ABCL","ABT","ABVC","ABVX","ACAD","ACB","ACHV","ACLX","ACRS","ACXP","ADCT","ADMA","ADPT","AGIO","AKBA","ALDX","ALEC","ALKS","ALLO","ALMS","ALNY","ALT","ALXO","AMGN","AMLX","AMRN","ANAB","ANNX","ANRO","ANVS","APGE","APLS","AQST","ARCT","ARDX","ARQT","ASMB","ATAI","ATOS","ATYR","AUTL","AVTX","AXSM","BBIO","BCAB","BCAX","BCRX","BEAM","BHC","BHVN","BIIB","BLRX","BMEA","BMRN","BMY","BNTC","BTAI","CABA","CAPR","CATX","CCCC","CELU","CGC","CGEM","CGEN","CMPS","CNTA","COGT","CPIX","CRBU","CRDF","CRMD","CRON","CRSP","CRVS","CTMX","CTXR","CVM","CYRX","CYTK","DAWN","DNA","DNLI","DNTH","DYAI","DYN","EBS","EDIT","ELAN","ELDN","ELVN","ENTA","ENTX","EOLS","EQ","ESPR","EWTX","EXEL","FATE","FBIO","FDMT","FHTX","FULC","GALT","GERN","GHRS","GILD","GLUE","GMAB","GOSS","GPCR","GSK","HOWL","HRMY","HUMA","HYFT","IBRX","IFRX","IMMX","IMNM","IMRX","INBX","INDV","INO","INSM","IOVA","IRD","IVVD","JANX","JAZZ","JNJ","JSPR","KOD","KPTI","KROS","KRRO","KYTX","LENZ","LFCR","LLY","LNAI","LNTH","LQDA","LRMR","LTRN","LXEO","LXRX","LYEL","MBX","MCRB","MIRM","MIST","MLTX","MLYS","MNKD","MRK","MRNA","MYGN","NAGE","NAMS","NBP","NEOG","NGNE","NKTX","NMRA","NNVC","NRIX","NRXP","NTLA","NUVB","NVAX","NVO","OCUL","OGN","OLMA","OMER","ORGO","ORKA","OTLK","PBYI","PCRX","PCVX","PDSB","PFE","PGEN","PLX","PMVP","PPBT","PRAX","PRGO","PRLD","PRME","PROK","PRPH","PRQR","PRTA","PTCT","PVLA","QURE","RANI","RAPP","RCKT","REGN","REPL","RGC","RIGL","RLAY","RLMD","RMTI","ROIV","RVPH","RXRX","RZLT","SANA","SAVA","SEPN","SGMO","SGMT","SIGA","SKYE","SLN","SLNO","SLS","SMMT","SNDX","SPRO","SPRY","SRPT","SRRK","STOK","STRO","SUPN","SVRA","SYRE","TARA","TARS","TECH","TECX","TERN","TEVA","TGTX","TLRY","TNGX","TNXP","TNYA","TRIB","TRVI","TSHA","TVRD","TWST","UNCY","UPB","URGN","VCEL","VERA","VERU","VIR","VKTX","VNDA","VOR","VRDN","VRTX","VSTM","VTYX","VYGR","WVE","XENE","XERS","XFOR","XNCR","ZBIO","ZLAB","ZTS","ZURA","ZVRA"],"Healthcare (Providers/Services)":["AIRS","AVAH","BDSX","BKD","BTSG","CAI","CELC","CYH","DCGO","FTRE","GH","GRAL","HCSG","HIMS","LFMD","LFST","NTRA","OPCH","PACS","PGNY","PSNL","RDNT","SERA","SGRY","SRTA","TDOC","TOI","UHS","VCYT","WGS","XGN"],"Manufacturing":["A","AA","ABEV","ABVE","ACMR","AEHR","AGCO","AIRJ","ALB","ALH","ALTO","AME","AMPX","AMRZ","AMSC","AMTX","AOUT","AP","APD","AQMS","ARRY","AS","ASML","ASPI","ATER","ATI","AVD","AVNT","BC","BE","BG","BIOX","BIRK","BLDP","BLNK","BNKK","BOOM","BRCC","BRKR","BRLT","BUD","BW","BWEN","BWXT","BYND","BYRN","CAG","CAL","CAPT","CAT","CBAT","CBUS","CC","CCU","CE","CELH","CENX","CF","CGNX","CHD","CHPT","CL","CMC","CMI","CNH","COCO","CODI","COHR","COKE","COLM","CPB","CR","CRH","CRI","CROX","CSL","CSTM","CSW","CTAS","CTKB","CW","CXT","DAIO","DAKT","DE","DECK","DFLI","DHR","DOW","DRS","EAF","ECL","EL","ELF","EMR","ENTG","ENVX","EOSE","EPAC","ERII","ESI","ETN","EYPT","FCEL","FIGS","FLNC","FLO","FLY","FOSL","FOXF","FRPT","FTI","FTK","GD","GE","GEOS","GEV","GGB","GLW","GNRC","GNSS","GOOS","GPK","GPRO","GTES","HII","HLMN","HOG","HRL","HSAI","HSY","HTOO","HUN","HWM","HXL","HY","IFF","ILMN","IMAX","IP","ISPR","ITP","JBS","JCI","KDP","KHC","KLAC","KMB","KMT","KO","KODK","KTOS","KVUE","LASE","LEG","LEVI","LHX","LMT","LNZA","LODE","LOMA","LPX","LRCX","LULU","LUNR","LW","LWLG","LYB","LYTS","MASS","MAT","MATV","MBC","MDLZ","MEC","MHK","MIDD","MIR","MO","MT","MVST","NKE","NN","NOMD","NPWR","NRGV","NTR","NWL","NX","OC","ODD","OI","OLN","ONON","ORGN","OUST","OXM","PACB","PACK","PCT","PEP","PG","PII","PLUG","PM","POST","PPC","PPG","PPSI","PRM","PRMB","PTON","QS","QSI","QTRX","RAIL","RAL","RDW","RKLB","RR","RUN","RVTY","RYAM","SEER","SEI","SENS","SERV","SES","SHOO","SLDP","SLGN","SLI","SMR","SNBR","SOLS","SONO","SONY","ST","STZ","SUZ","SXC","SYM","TAP","TER","TEX","TKR","TMO","TPR","TREX","TROX","TS","TSE","TT","TTC","TWI","TXG","UA","UAMY","VFC","VITL","VOYG","WBX","WFRD","WHD","WLK","WRAP","WWD","XXII","YETI","YSG"],"Manufacturing (Aerospace)":["ACHR","AIR","ATRO","AVAV","BA","DPRO","EH","EVTL","HON","JOBY","RTX","SARO","TXT"],"Manufacturing (Automotive)":["ADNT","AEVA","APTV","BLBD","CAAS","CPS","CVGI","EMPD","F","FFAI","GM","GTX","HYLN","INVZ","LCID","LEA","LI","MGA","MOD","NIO","OSK","PATK","PSNY","RIVN","SEV","STLA","TSLA","VFS","WKHS","XPEV"],"Media/Entertainment":["AMC","ANGX","CNVS","CURI","FUBO","IQ","NFLX","TOON"],"Media/Publishing":["TRI"],"Mining":["ABAT","AEM","AG","AGI","B","BHP","BTG","BTU","BVN","CCJ","CDE","CLF","CNR","CRML","DNN","EQX","ERO","FCX","GFI","GROY","GSM","HBM","HCC","HL","HMY","HYMC","IAG","IDR","IE","KGC","LAC","LGO","METC","MP","MUX","NAK","NB","NEM","NEWP","NG","NVA","NXE","ODV","ORLA","PAAS","SA","SCCO","SGML","SKE","SQM","SVM","TECK","TGB","TMC","TMQ","UEC","USAR","USAS","USAU","UUUU","VALE","VMC","WPM","WWR"],"Other/Services":["ABM","ABNB","ABSI","ACEL","ACN","ACVA","ADV","AKAM","AMTM","ANGI","APG","BABA","BAH","BATRA","BGSF","BRSL","CAR","CART","CHGG","CHH","CNXC","CRL","CSGP","CZR","DASH","DHX","DIS","DKNG","DLO","EBAY","ETSY","EVGO","FIS","FLL","FTAI","FUN","GETY","GPN","GRAB","GRPN","HGV","HLT","HQY","HTZ","INCY","IT","KLC","LTH","LUCK","LVS","LYFT","MA","MAN","MANU","MAR","MAX","MELI","MGM","MLCO","MMS","MNY","MSCI","MXCT","NCMI","NEO","NOTE","NOTV","NRDY","NSP","PAY","PAYO","PDD","PENN","PK","PLNT","PRKS","PSFE","PSQH","PYPL","RELY","RHI","RSI","RSKD","SE","SGHC","SHO","SPGI","STUB","TAL","TIC","TNL","TONX","TSSI","TTEK","UBER","UDMY","UPBD","URI","V","WH","WMG","WSC","WW","WYNN","XPOF","YELP","YQ","ZG"],"Technology (Computers/Hardware)":["AAPL","ANET","CSCO","DELL","DGII","EVLV","EXTR","FFIV","FTNT","HPE","HPQ","IBM","NTAP","OMCL","OSS","PANW","SMCI","SNDK","STX","WDC","ZEPP"],"Technology (Semiconductors/Electronics)":["AAOI","ADI","ALAB","ALGM","ALMU","AMAT","AMBA","AMD","AMPG","AOSL","APH","ARM","ASX","ATOM","AUDC","AVGO","AXTI","BKSY","CIEN","CLS","CMBM","CMTL","CRDO","CRNT","CSIQ","ENPH","FLEX","FN","FSLR","FTCI","GSIT","HIMX","INDI","INSG","INTC","KLIC","KOPN","KULR","LAES","LASR","LITE","LPTH","LSCC","MAXN","MCHP","MEI","MRVL","MU","MVIS","MX","MXL","NEON","NOK","NVDA","NVTS","NXPI","OLED","ON","ONDS","PENG","PI","PL","PLAB","POET","POWI","QCOM","QRVO","SANM","SATL","SEDG","SHLS","SKYT","SMTC","SQNS","STM","SWKS","SYNA","TE","TSM","TTMI","TXN","UMAC","UMC","VIAV","VREX","VRT","VSH","VUZI","WATT","WOLF"],"Technology (Software)":["ADBE","ADP","ADSK","AEYE","AGYS","AI","AISP","ALKT","API","APLD","APP","APPF","APPN","ARBE","ARQQ","ASAN","ASUR","AUR","AVPT","BAND","BB","BBAI","BIDU","BILI","BILL","BL","BLZE","BMBL","BRAG","BRZE","BSY","CARG","CARS","CCLD","CCSI","CDLX","CDNS","CFLT","CGNT","CINT","CLVT","CMRC","CRM","CRNC","CRWD","CRWV","CVLT","CWAN","CXAI","CXM","DBX","DCBO","DDD","DDOG","DH","DJT","DMRC","DOCN","DOCS","DOCU","DSGX","DSP","DUOL","DV","EA","EGHT","ESTC","EVTC","FDS","FIG","FIVN","FLUT","FNGR","FROG","FRSH","FSLY","GDDY","GDRX","GDS","GLBE","GMGI","GOOG","GOOGL","GRND","GRRR","GTLB","GTM","GWRE","HCAT","HNGE","HUBS","IAC","INFY","INOD","INTU","IONQ","IOT","KC","KD","KDK","LDOS","LIF","LPSN","LZ","MBLY","MDB","META","MSFT","MTLS","NBIS","NCNO","NET","NOW","NTNX","NTSK","OKTA","ORCL","PATH","PAYC","PCTY","PD","PDYN","PEGA","PHUN","PINS","PLTR","PONY","PRCH","PUBM","QBTS","QTWO","QUBT","RBLX","RBRK","RCAT","RDDT","RDNW","RGTI","RNG","RPD","RUM","RXT","RZLV","S","SABR","SAIC","SAIL","SAP","SHOP","SLP","SMSI","SNAP","SNOW","SNPS","SOGP","SOUN","SPT","SRAD","STEM","STNE","SY","TDC","TEAD","TEAM","TEM","TENB","TLS","TOST","TRIP","TTAN","TTD","TTWO","TUYA","TWLO","U","UPWK","VERI","VERX","VNET","VRAR","VRNS","WAY","WDAY","WEAV","WIT","WRD","XNET","XYZ","YEXT","YYAI","ZENA","ZETA","ZIP","ZM","ZS"],"Transportation":["AAL","ALK","BKNG","CCEC","CCL","CMBT","CNI","CP","CSX","CUK","DAL","DINO","EXPE","FDX","FIP","FLNG","FRO","FWRD","GBTG","GLNG","HUBG","JBLU","KEX","LUV","MMYT","NAT","NCLH","NSC","NVGS","OMEX","PAA","RCL","RXO","RYAAY","SMHI","SNCY","SOBO","SPCE","STNG","TEN","TORO","UAL","ULCC","UNP","UP","UPS","VIK","WERN","ZIM"],"Unknown":["AAPU","AGIX","AIRR","AIYY","AMDL","AMZW","AMZZ","APLT","ARKG","ARKK","ARKW","ASHR","ASTX","ATHA","AVGG","AVGX","AVL","AVMV","AVUV","AXL","AZYY","BABX","BAGY","BAIG","BBH","BBJP","BCD","BCSF","BEDZ","BETZ","BITO","BITX","BITY","BLCN","BMNG","BOND","BOTZ","BSV","BTAL","BTCL","BUG","BULU","BUZZ","BXSL","CADE","CASI","CCCX","CCOR","CCUP","CIVI","CLSX","CMPO","CNBS","COMM","CONI","CONL","CORO","CRCA","CRCD","CRWG","CRWU","CSD","CVAC","CWVX","CYBN","DBEF","DFAS","DFIP","DFUV","DGRS","DIA","DISV","DIVI","DJTU","DLN","DMAT","DOL","DPST","DRIP","DRN","DTCR","DUHP","DUSA","DUST","DVAX","DVY","EBIZ","ECH","EDV","EEM","EETH","EFA","EFAV","EMB","ENPX","ESGV","ETHD","ETHT","ETHU","EUFN","EVMT","EWG","EWJ","EWM","EWZ","EWZS","FAS","FCG","FDEM","FDIS","FDVV","FEM","FENI","FEZ","FHEQ","FIGG","FLAX","FMET","FNX","FPE","FPWR","FSK","FTXR","FV","FXI","FYBR","GDX","GDXJ","GES","GLGG","GLXU","HIBL","HIBS","HIMZ","HOOX","HOUS","HYG","ICLN","IEF","INTW","IONX","IONZ","IRE","IREX","IVV","IWM","IYR","JAMF","JDST","JETS","KRE","KWEB","KYN","LABD","LABU","LABX","LQD","MAGS","METU","MNMD","MNRS","MODG","MPW","MRAL","MRSN","MSOS","MSTU","MSTX","MSTY","MSTZ","MULL","NAIL","NAN","NBIG","NINE","NUGT","NVDL","NVDS","NVDU","NVDX","NVTX","OMI","PCH","PLTU","PSEC","PXIU","QPUX","QQQ","QUBX","REVG","RGTU","RIOX","RKLX","ROBN","RSP","SBIT","SCHD","SILJ","SMCL","SMCX","SMH","SMLR","SMST","SMU","SMUP","SOFX","SOLT","SOXL","SOXS","SOXX","SPXL","SPXS","SPXU","SPY","SQQQ","SSO","TARK","TECL","THS","TLT","TMF","TNA","TQQQ","TRUE","TSDD","TSLG","TSLL","TSLQ","TSLR","TSLT","TSLZ","TZA","ULTY","UPRO","URA","URTY","USD","VOO","WEBL","WGMI","XBI","XHB","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLU","XLV","XLY","XOP","XRPT","XRT","YINN"],"Utilities":["AEE","AES","AM","AQN","BEPC","CDZI","CEG","CEPU","CLNE","CMS","CTRI","CWEN","CWST","D","EIX","EPD","ES","ET","FTS","KGS","KMI","KNTK","LNG","MNTK","NEE","NEXT","NFE","NFG","NNE","NRG","OKLO","OPTT","ORA","PCG","QRHC","SBS","SMC","SO","SPRU","TLN","TRP","VG","VST","VVPR","WMB","WTRG"],"Wholesale":["AIT","ASH","ASPN","CAH","CENT","COSM","DPZ","DXPE","FERG","GPC","HFFG","HLF","LKQ","MCK","QXO","RELL","TEL","UGRO","VSTS","WKC"]};
 
 export default function LiveWatchlist() {
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [collapseAll, setCollapseAll] = useState(false);
 
+  // sanitize: normalize symbols + dedupe once
   const groups = useMemo(() => {
     const cleaned: IndustryGroups = {};
     for (const [industry, syms] of Object.entries(GROUPS || {})) {
@@ -76,6 +66,7 @@ export default function LiveWatchlist() {
       if (symbols.length) out.push({ industry, symbols });
     }
 
+    // biggest industries first; Unknown last
     out.sort((a, b) => {
       if (a.industry === "Unknown" && b.industry !== "Unknown") return 1;
       if (b.industry === "Unknown" && a.industry !== "Unknown") return -1;
@@ -167,7 +158,9 @@ export default function LiveWatchlist() {
                 </div>
 
                 <button
-                  onClick={() => setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))}
+                  onClick={() =>
+                    setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
+                  }
                   className="text-xs px-3 py-1.5 rounded-xl border bg-white/60 hover:bg-white"
                   style={{ borderColor: theme.border }}
                 >
@@ -179,14 +172,14 @@ export default function LiveWatchlist() {
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                   {g.symbols.map((sym) => (
                     <div
-                      key={\`\${g.industry}:\${sym}\`}
+                      key={`${g.industry}:${sym}`}
                       className="select-none rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide text-center cursor-default hover:shadow-sm"
                       style={{
                         backgroundColor: theme.chipBg,
                         borderColor: theme.chipBorder,
                         color: theme.chipText,
                       }}
-                      title={\`\${sym} • \${g.industry}\`}
+                      title={`${sym} • ${g.industry}`}
                     >
                       {sym}
                     </div>
@@ -200,7 +193,3 @@ export default function LiveWatchlist() {
     </div>
   );
 }
-`;
-
-fs.writeFileSync(outputTsxPath, tsx, "utf8");
-console.log("Wrote:", outputTsxPath);
