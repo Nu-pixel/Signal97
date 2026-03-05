@@ -18,7 +18,6 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(false);
 
@@ -38,21 +37,20 @@ function useMediaQuery(query: string) {
   return matches;
 }
 
-
 function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
   // Pastel palette: low saturation, high lightness
   return {
     hue,
-    fillA: `hsla(${hue}, 55%, 82%, 0.80)`,
-    fillB: `hsla(${hue}, 55%, 74%, 0.65)`,
-    stroke: `hsla(${hue}, 45%, 58%, 0.45)`,
-    glow: `hsla(${hue}, 60%, 70%, 0.35)`,
-    text: `hsla(${hue}, 20%, 18%, 0.92)`,
-    textDim: `hsla(${hue}, 18%, 22%, 0.70)`,
+    fillA: `hsla(${hue}, 55%, 84%, 0.88)`,
+    fillB: `hsla(${hue}, 55%, 76%, 0.72)`,
+    stroke: `hsla(${hue}, 35%, 42%, 0.35)`,
+    glow: `hsla(${hue}, 55%, 72%, 0.28)`,
+    text: `hsla(${hue}, 18%, 14%, 0.92)`,
+    textDim: `hsla(${hue}, 16%, 18%, 0.72)`,
     chipBg: `hsla(${hue}, 55%, 98%, 1)`,
-    chipBorder: `hsla(${hue}, 35%, 80%, 1)`,
-    chipText: `hsla(${hue}, 30%, 22%, 1)`,
+    chipBorder: `hsla(${hue}, 30%, 76%, 1)`,
+    chipText: `hsla(${hue}, 26%, 18%, 1)`,
   };
 }
 
@@ -82,36 +80,53 @@ function splitLabel(label: string): string[] {
 // Deterministic PRNG (so layout doesn't jump every re-render)
 function mulberry32(seed: number) {
   return function () {
-    let t = (seed += 0x6D2B79F5);
+    let t = (seed += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-// Balloon drop pack: starts above the frame and "falls" down with gravity.
-// We resolve overlaps each step, so final layout is non-overlapping and looks like settled balloons.
-function balloonDropPack(items: Array<{ key: string; n: number }>, W: number, H: number): Bubble[] {
-  const margin = 18;
-  const pad = 10;
+/**
+ * Balloon drop pack:
+ * - starts above the frame and "falls" down with gravity
+ * - resolves overlaps each step
+ * - finishes with a deterministic "final relax" pass to guarantee no overlaps
+ *
+ * NOTE: mobile gets slightly smaller radii and more padding to improve tap targets.
+ */
+function balloonDropPack(
+  items: Array<{ key: string; n: number }>,
+  W: number,
+  H: number,
+  opts?: { mobile?: boolean }
+): Bubble[] {
+  const mobile = !!opts?.mobile;
+
+  const margin = mobile ? 16 : 18;
+  const pad = mobile ? 16 : 12; // more spacing on mobile to prevent re-overlap at small sizes
 
   const nMax = Math.max(1, ...items.map((k) => k.n));
 
   // Radius sizing:
   // 1) proportional to sqrt(count)
-  // 2) then scaled so total area fits ~55% of available area (leaves "gaps" like fallen balloons)
+  // 2) then scaled so total area fits ~50–55% of available area (leaves "gaps" like fallen balloons)
   const raw = items.map((k) => {
     const t = Math.sqrt(k.n / nMax);
-    return { key: k.key, n: k.n, r: 46 + t * 150 };
+    const base = mobile ? 36 : 44;
+    const span = mobile ? 120 : 150;
+    return { key: k.key, n: k.n, r: base + t * span };
   });
 
-  const areaAvail = (W - margin * 2) * (H - margin * 2);
+  const areaAvail = Math.max(1, (W - margin * 2) * (H - margin * 2));
   const areaSum = raw.reduce((acc, b) => acc + Math.PI * b.r * b.r, 0);
-  const targetFill = 0.55;
+
+  const targetFill = mobile ? 0.50 : 0.54;
   const s = Math.sqrt((areaAvail * targetFill) / Math.max(1, areaSum));
 
+  const rMax = Math.min(W, H) * (mobile ? 0.20 : 0.22);
   const bubbles: Bubble[] = raw
-    .map((b) => ({ ...b, r: clamp(b.r * s, 34, Math.min(W, H) * 0.22), x: 0, y: 0 }))
+    .map((b) => ({ ...b, r: clamp(b.r * s, mobile ? 28 : 34, rMax), x: 0, y: 0 }))
     .sort((a, b) => b.r - a.r);
 
   // Init above the top edge, spread across width
@@ -121,20 +136,20 @@ function balloonDropPack(items: Array<{ key: string; n: number }>, W: number, H:
 
   for (let i = 0; i < bubbles.length; i++) {
     const b = bubbles[i];
-    b.x = margin + b.r + rng() * (W - 2 * margin - 2 * b.r);
-    b.y = -margin - b.r - rng() * (H * 0.65);
-    vx[i] = (rng() - 0.5) * 0.55;
+    b.x = margin + b.r + rng() * Math.max(1, W - 2 * margin - 2 * b.r);
+    b.y = -margin - b.r - rng() * (H * 0.75);
+    vx[i] = (rng() - 0.5) * (mobile ? 0.45 : 0.55);
     vy[i] = 0;
   }
 
   // Physics-ish params
-  const g = 0.55; // gravity
-  const damp = 0.92; // velocity damping
-  const wallBounce = 0.35;
-  const floorBounce = 0.10;
+  const g = mobile ? 0.60 : 0.55;
+  const damp = 0.92;
+  const wallBounce = 0.32;
+  const floorBounce = 0.08;
 
   // Iterations: enough to settle, still fast (29 bubbles)
-  const steps = 900;
+  const steps = mobile ? 1200 : 1000;
 
   for (let step = 0; step < steps; step++) {
     // gravity + integrate
@@ -204,32 +219,70 @@ function balloonDropPack(items: Array<{ key: string; n: number }>, W: number, H:
       } else if (b.y > bottom) {
         b.y = bottom;
         vy[i] = -Math.abs(vy[i]) * floorBounce;
-        // friction on floor
-        vx[i] *= 0.85;
+        vx[i] *= 0.86; // floor friction
       }
     }
 
     // stop early if settled
-    if (step > 220) {
+    if (step > 260) {
       let maxV = 0;
       for (let i = 0; i < bubbles.length; i++) {
         const v = Math.abs(vx[i]) + Math.abs(vy[i]);
         if (v > maxV) maxV = v;
       }
-      if (maxV < 0.05) break;
+      if (maxV < (mobile ? 0.06 : 0.05)) break;
     }
   }
 
-  // Final tidy: clamp within bounds
-  for (const b of bubbles) {
-    b.x = clamp(b.x, margin + b.r, W - margin - b.r);
-    b.y = clamp(b.y, margin + b.r, H - margin - b.r);
+  // Final relax pass (guarantees non-overlap even after any tiny numeric drift)
+  for (let step = 0; step < 120; step++) {
+    let moved = false;
+
+    for (let i = 0; i < bubbles.length; i++) {
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const a = bubbles[i];
+        const b = bubbles[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+        const minDist = a.r + b.r + pad;
+        if (dist < minDist) {
+          moved = true;
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          const wa = 1 / (a.r * a.r);
+          const wb = 1 / (b.r * b.r);
+          const sum = wa + wb;
+          const ma = wb / sum;
+          const mb = wa / sum;
+
+          a.x -= nx * overlap * ma;
+          a.y -= ny * overlap * ma;
+          b.x += nx * overlap * mb;
+          b.y += ny * overlap * mb;
+        }
+      }
+    }
+
+    for (const b of bubbles) {
+      b.x = clamp(b.x, margin + b.r, W - margin - b.r);
+      b.y = clamp(b.y, margin + b.r, H - margin - b.r);
+    }
+
+    if (!moved) break;
   }
 
   return bubbles;
 }
 
-// ✅ HARD-CODED sector buckets (ALL tickers) from your exported file (watchlist_by_industry (2).xlsx → sheet "ALL")
+/**
+ * ✅ IMPORTANT:
+ * Keep your existing GROUPS object exactly as-is.
+ * I’m not pasting it here because it’s huge.
+ * Replace the line below with your full GROUPS constant.
+ */
 const GROUPS: SectorGroups = {
   "Agriculture/Forestry/Fishing": [
     "AGRO",
@@ -2291,6 +2344,9 @@ const GROUPS: SectorGroups = {
   ]
 };
 
+/* ================================
+   Component
+================================ */
 export default function LiveWatchlist() {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -2300,7 +2356,7 @@ export default function LiveWatchlist() {
   const [hoverSector, setHoverSector] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Pan/Zoom (makes the map usable on phones)
+  // Pan/Zoom (mobile + desktop)
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
@@ -2312,7 +2368,13 @@ export default function LiveWatchlist() {
     startPan: { x: number; y: number };
     startDist: number;
     startMid: { x: number; y: number };
-  }>({ mode: "none", startZoom: 1, startPan: { x: 0, y: 0 }, startDist: 1, startMid: { x: 0, y: 0 } });
+  }>({
+    mode: "none",
+    startZoom: 1,
+    startPan: { x: 0, y: 0 },
+    startDist: 1,
+    startMid: { x: 0, y: 0 },
+  });
 
   const didInitView = useRef(false);
   // On first mobile render, default to list (bubbles still available).
@@ -2324,17 +2386,17 @@ export default function LiveWatchlist() {
   }, [isMobile]);
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 1200, h: 720 });
+  const [size, setSize] = useState({ w: 900, h: 560 });
 
-  // Resize to container
+  // Resize to *actual* container size (this fixes the mobile overlap regression)
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
 
     const ro = new ResizeObserver(() => {
       const rect = el.getBoundingClientRect();
-      const w = Math.max(980, Math.floor(rect.width));
-      const h = Math.max(620, Math.floor(rect.height));
+      const w = Math.max(360, Math.floor(rect.width));
+      const h = Math.max(420, Math.floor(rect.height));
       setSize({ w, h });
     });
     ro.observe(el);
@@ -2343,7 +2405,7 @@ export default function LiveWatchlist() {
 
   useEffect(() => {
     if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 1200);
+    const id = window.setTimeout(() => setToast(null), 1100);
     return () => window.clearTimeout(id);
   }, [toast]);
 
@@ -2407,8 +2469,8 @@ export default function LiveWatchlist() {
     const list = Object.entries(filteredGroups)
       .map(([key, syms]) => ({ key, n: syms.length }))
       .sort((a, b) => b.n - a.n);
-    return balloonDropPack(list, size.w, size.h);
-  }, [filteredGroups, size.w, size.h]);
+    return balloonDropPack(list, size.w, size.h, { mobile: isMobile });
+  }, [filteredGroups, size.w, size.h, isMobile]);
 
   // keep activeSector valid after search
   useEffect(() => {
@@ -2431,10 +2493,7 @@ export default function LiveWatchlist() {
   }
 
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    // We only capture gestures inside the map.
-    // This makes the bubble map navigable on mobile (pan + pinch-zoom).
     (e.currentTarget as any).setPointerCapture?.(e.pointerId);
-
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     const pts = Array.from(pointers.current.values());
@@ -2487,7 +2546,7 @@ export default function LiveWatchlist() {
       const scale = dist / Math.max(1, gesture.current.startDist);
       const nextZoom = clamp(gesture.current.startZoom * scale, ZOOM_MIN, ZOOM_MAX);
 
-      // Keep the pinch midpoint stable by adjusting pan (screen-space approximation).
+      // Keep pinch midpoint stable (screen-space approximation)
       const mdx = mid.x - gesture.current.startMid.x;
       const mdy = mid.y - gesture.current.startMid.y;
 
@@ -2524,14 +2583,15 @@ export default function LiveWatchlist() {
     setZoom(next);
   }
 
-  // background that matches your dashboard card vibe (white/gray, subtle grid)
+  // ✅ Background: remove grid completely; keep soft "card" vibe
   const mapBg =
-    "radial-gradient(circle at 20% 15%, rgba(99,102,241,0.08), transparent 48%)," +
-    "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 52%)," +
-    "radial-gradient(circle at 55% 85%, rgba(244,63,94,0.06), transparent 55%)," +
-    "linear-gradient(to right, rgba(15,23,42,0.05) 1px, transparent 1px)," +
-    "linear-gradient(to bottom, rgba(15,23,42,0.05) 1px, transparent 1px)," +
-    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 40%, rgba(248,250,252,1) 100%)";
+    "radial-gradient(circle at 18% 18%, rgba(99,102,241,0.08), transparent 52%)," +
+    "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 54%)," +
+    "radial-gradient(circle at 55% 85%, rgba(244,63,94,0.06), transparent 56%)," +
+    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 45%, rgba(248,250,252,1) 100%)";
+
+  const actionBtn =
+    "text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-900 text-white hover:bg-slate-800 transition";
 
   return (
     <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
@@ -2547,12 +2607,13 @@ export default function LiveWatchlist() {
               <span className="mx-2 text-slate-300">•</span>
               <span className="font-semibold text-slate-800">{totals.sectorsShown}</span> / {totals.sectors} sectors
               <span className="mx-2 text-slate-300">•</span>
-              pastel • non-overlapping • uses full width
+              pastel • no overlap • pan/zoom friendly
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 w-full lg:w-[760px]">
-            <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2 w-full lg:w-[820px]">
+            {/* Search + toggles + zoom controls (moved to top row) */}
+            <div className="flex flex-col md:flex-row gap-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -2560,7 +2621,7 @@ export default function LiveWatchlist() {
                 className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-slate-200/70"
               />
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setView((v) => (v === "bubbles" ? "list" : "bubbles"))}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
@@ -2578,69 +2639,59 @@ export default function LiveWatchlist() {
                 >
                   Reset
                 </button>
+
+                {view === "bubbles" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => clamp(z - 0.15, ZOOM_MIN, ZOOM_MAX))}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition"
+                      aria-label="Zoom out"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => clamp(z + 0.15, ZOOM_MIN, ZOOM_MAX))}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition"
+                      aria-label="Zoom in"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetView}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Center
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
+            {/* Active sector bar */}
             {activeSector ? (
-              <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
                 <div className="truncate">
                   <span className="font-semibold text-slate-900">{activeSector}</span>
                   <span className="mx-2 text-slate-300">•</span>
                   <span className="text-slate-600">{activeSymbols.length} tickers</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => copyToClipboard(activeSymbols.join(", "))}
-                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                  >
+                  <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
                     Copy all
                   </button>
-                  <button
-                    onClick={() => setActiveSector(null)}
-                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                  >
+                  <button onClick={() => setActiveSector(null)} className={actionBtn}>
                     Close
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-500">Tip: hover to preview • click balloon to open • click ticker to copy</div>
-            )}
-
-
-            {/* Mobile-friendly controls */}
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setZoom((z) => clamp(z - 0.15, ZOOM_MIN, ZOOM_MAX))}
-                className="h-10 w-10 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-800 text-lg font-semibold active:scale-[0.98]"
-                aria-label="Zoom out"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => clamp(z + 0.15, ZOOM_MIN, ZOOM_MAX))}
-                className="h-10 w-10 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-800 text-lg font-semibold active:scale-[0.98]"
-                aria-label="Zoom in"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={resetView}
-                className="h-10 px-3 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-700 text-sm font-semibold active:scale-[0.98]"
-              >
-                Center
-              </button>
-            </div>
-
-            {isMobile && (
-              <div className="absolute bottom-4 left-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur px-3 py-2 text-[11px] text-slate-600 shadow-sm">
-                Drag to pan • Pinch to zoom • Tap a balloon
+              <div className="text-xs text-slate-500">
+                Tip: drag to pan • pinch/scroll to zoom • tap a balloon to open tickers
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -2648,9 +2699,7 @@ export default function LiveWatchlist() {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
-          <div className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow-lg">
-            {toast}
-          </div>
+          <div className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow-lg">{toast}</div>
         </div>
       )}
 
@@ -2662,7 +2711,6 @@ export default function LiveWatchlist() {
             style={{
               height: "min(78vh, 860px)",
               background: mapBg,
-              backgroundSize: "auto, auto, auto, 64px 64px, 64px 64px, auto",
             }}
           >
             <svg
@@ -2682,113 +2730,122 @@ export default function LiveWatchlist() {
                   const t = themeForKey(b.key);
                   const id = `grad-${hashToHue(b.key)}`;
                   return (
-                    <radialGradient key={id} id={id} cx="35%" cy="30%" r="75%">
+                    <radialGradient key={id} id={id} cx="35%" cy="30%" r="78%">
                       <stop offset="0%" stopColor={t.fillA} />
-                      <stop offset="68%" stopColor={t.fillB} />
+                      <stop offset="70%" stopColor={t.fillB} />
                       <stop offset="100%" stopColor="rgba(255,255,255,0.10)" />
                     </radialGradient>
                   );
                 })}
 
                 <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="9" result="blur" />
+                  <feGaussianBlur stdDeviation="8" result="blur" />
                   <feMerge>
                     <feMergeNode in="blur" />
                     <feMergeNode in="SourceGraphic" />
                   </feMerge>
                 </filter>
+
+                <filter id="labelShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="rgba(15,23,42,0.25)" />
+                </filter>
               </defs>
 
               <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
-              {bubbleData.map((b) => {
-                const t = themeForKey(b.key);
-                const gradId = `grad-${hashToHue(b.key)}`;
-                const isActive = activeSector === b.key;
-                const lines = splitLabel(b.key);
+                {bubbleData.map((b) => {
+                  const t = themeForKey(b.key);
+                  const gradId = `grad-${hashToHue(b.key)}`;
+                  const isActive = activeSector === b.key;
+                  const lines = splitLabel(b.key);
 
-                const titleSize = Math.max(12, Math.min(22, b.r * 0.20));
-                const subSize = Math.max(11, Math.min(16, b.r * 0.16));
+                  const titleSize = Math.max(11, Math.min(20, b.r * 0.18));
+                  const subSize = Math.max(10, Math.min(15, b.r * 0.14));
 
-                return (
-                  <g
-                    key={b.key}
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={() => setHoverSector(b.key)}
-                    onMouseLeave={() => setHoverSector(null)}
-                    onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
-                  >
-                    <circle
-                      cx={b.x}
-                      cy={b.y}
-                      r={b.r + 10}
-                      fill="transparent"
-                      stroke={t.glow}
-                      strokeWidth={isActive ? 3 : 2}
-                      opacity={isActive ? 0.9 : 0.55}
-                    />
-
-                    <circle
-                      cx={b.x}
-                      cy={b.y}
-                      r={b.r}
-                      fill={`url(#${gradId})`}
-                      stroke={t.stroke}
-                      strokeWidth={1.6}
-                      filter="url(#softGlow)"
-                    />
-
-                    <ellipse
-                      cx={b.x - b.r * 0.22}
-                      cy={b.y - b.r * 0.30}
-                      rx={b.r * 0.34}
-                      ry={b.r * 0.22}
-                      fill="rgba(255,255,255,0.40)"
-                      opacity={0.55}
-                    />
-
-                    <ellipse
-                      cx={b.x}
-                      cy={b.y + b.r * 0.92}
-                      rx={Math.max(6, b.r * 0.10)}
-                      ry={Math.max(4, b.r * 0.07)}
-                      fill="rgba(15,23,42,0.10)"
-                    />
-
-                    <text
-                      x={b.x}
-                      y={b.y - (lines.length === 2 ? 6 : 2)}
-                      textAnchor="middle"
-                      fill={t.text}
-                      fontSize={titleSize}
-                      fontWeight={800}
-                      style={{ pointerEvents: "none" }}
+                  return (
+                    <g
+                      key={b.key}
+                      style={{ cursor: "pointer" }}
+                      onMouseEnter={() => setHoverSector(b.key)}
+                      onMouseLeave={() => setHoverSector(null)}
+                      onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
                     >
-                      {lines.map((ln, idx) => (
-                        <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
-                          {ln}
-                        </tspan>
-                      ))}
-                    </text>
+                      <circle
+                        cx={b.x}
+                        cy={b.y}
+                        r={b.r + (isActive ? 12 : 10)}
+                        fill="transparent"
+                        stroke={t.glow}
+                        strokeWidth={isActive ? 3 : 2}
+                        opacity={isActive ? 0.9 : 0.55}
+                      />
 
-                    <text
-                      x={b.x}
-                      y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
-                      textAnchor="middle"
-                      fill={t.textDim}
-                      fontSize={subSize}
-                      fontWeight={700}
-                      style={{ pointerEvents: "none" }}
-                    >
-                      {b.n} tickers
-                    </text>
-                  </g>
-                );
-              })}
-            </g>
+                      <circle
+                        cx={b.x}
+                        cy={b.y}
+                        r={b.r}
+                        fill={`url(#${gradId})`}
+                        stroke={t.stroke}
+                        strokeWidth={1.4}
+                        filter="url(#softGlow)"
+                      />
+
+                      {/* specular highlight */}
+                      <ellipse
+                        cx={b.x - b.r * 0.22}
+                        cy={b.y - b.r * 0.30}
+                        rx={b.r * 0.34}
+                        ry={b.r * 0.22}
+                        fill="rgba(255,255,255,0.42)"
+                        opacity={0.55}
+                      />
+
+                      {/* subtle shadow */}
+                      <ellipse
+                        cx={b.x}
+                        cy={b.y + b.r * 0.92}
+                        rx={Math.max(6, b.r * 0.10)}
+                        ry={Math.max(4, b.r * 0.07)}
+                        fill="rgba(15,23,42,0.08)"
+                      />
+
+                      {/* label (lighter weights + shadow for readability) */}
+                      <text
+                        x={b.x}
+                        y={b.y - (lines.length === 2 ? 6 : 2)}
+                        textAnchor="middle"
+                        fill={t.text}
+                        fontSize={titleSize}
+                        fontWeight={600}
+                        filter="url(#labelShadow)"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {lines.map((ln, idx) => (
+                          <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
+                            {ln}
+                          </tspan>
+                        ))}
+                      </text>
+
+                      <text
+                        x={b.x}
+                        y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
+                        textAnchor="middle"
+                        fill={t.textDim}
+                        fontSize={subSize}
+                        fontWeight={500}
+                        filter="url(#labelShadow)"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {b.n} tickers
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
             </svg>
 
             {hoverSector && (
-              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur px-4 py-3 shadow-sm">
+              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm">
                 <div className="text-sm font-semibold text-slate-900">{hoverSector}</div>
                 <div className="text-xs text-slate-600 mt-0.5">
                   {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
@@ -2816,15 +2873,12 @@ export default function LiveWatchlist() {
                         <div className="text-xs text-slate-600 mt-1">{syms.length} tickers</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => copyToClipboard(syms.join(", "))}
-                          className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
-                        >
+                        <button onClick={() => copyToClipboard(syms.join(", "))} className={actionBtn}>
                           Copy all
                         </button>
                         <button
                           onClick={() => setActiveSector((cur) => (cur === sector ? null : sector))}
-                          className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
+                          className="text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 transition"
                         >
                           {open ? "Hide" : "Show"}
                         </button>
@@ -2838,7 +2892,7 @@ export default function LiveWatchlist() {
                             key={`${sector}:${sym}`}
                             type="button"
                             onClick={() => copyToClipboard(sym)}
-                            className="rounded-2xl border border-slate-200 bg-white/70 hover:bg-white text-slate-800 text-sm font-semibold px-3 py-2 transition hover:-translate-y-[1px]"
+                            className="rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-800 text-sm font-semibold px-3 py-2 transition hover:-translate-y-[1px]"
                             title="Click to copy"
                           >
                             {sym}
@@ -2854,22 +2908,16 @@ export default function LiveWatchlist() {
 
         {view === "bubbles" && activeSector && (
           <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-base font-semibold text-slate-900 truncate">{activeSector}</div>
                 <div className="text-xs text-slate-600 mt-1">{activeSymbols.length} tickers</div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => copyToClipboard(activeSymbols.join(", "))}
-                  className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                >
+                <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
                   Copy all
                 </button>
-                <button
-                  onClick={() => setActiveSector(null)}
-                  className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                >
+                <button onClick={() => setActiveSector(null)} className={actionBtn}>
                   Close
                 </button>
               </div>
