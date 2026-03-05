@@ -498,8 +498,16 @@ export default function LiveWatchlist() {
     setPan({ x: 0, y: 0 });
   }
 
-  function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+  
+  function isBubbleTarget(e: React.PointerEvent<SVGSVGElement>) {
+    const t = e.target as any;
+    return !!t?.closest?.('g[data-bubble="true"]');
+  }
+
+function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    // If user starts gesture on a bubble, let the bubble receive click/tap.
+    if (isBubbleTarget(e)) return;
+(e.currentTarget as any).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     const pts = Array.from(pointers.current.values());
@@ -758,12 +766,14 @@ export default function LiveWatchlist() {
 
                     return (
                       <g
-                        key={b.key}
-                        style={{ cursor: "pointer" }}
-                        onMouseEnter={() => setHoverSector(b.key)}
-                        onMouseLeave={() => setHoverSector(null)}
-                        onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
-                      >
+                      data-bubble="true"
+                      key={b.key}
+                      style={{ cursor: "pointer" }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseEnter={() => setHoverSector(b.key)}
+                      onMouseLeave={() => setHoverSector(null)}
+                      onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
+                    >
                         <circle
                           cx={b.x}
                           cy={b.y}
