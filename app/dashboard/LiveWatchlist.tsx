@@ -1,4 +1,15 @@
-"use client";
+// save as: prettify_watchlist_groups.js
+const fs = require("fs");
+
+const inputJsonPath = "industry_groups.json";   // your updated file
+const outputTsxPath = "LiveWatchlist.tsx";      // output component
+
+const groups = JSON.parse(fs.readFileSync(inputJsonPath, "utf8"));
+
+// pretty JSON with indentation (tickers will be visible line-by-line)
+const prettyGroups = JSON.stringify(groups, null, 2);
+
+const tsx = `"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -13,11 +24,11 @@ function hashToHue(str: string) {
 function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
   return {
-    bg: `hsla(${hue}, 70%, 96%, 1)`,
-    border: `hsla(${hue}, 55%, 80%, 1)`,
-    chipBg: `hsla(${hue}, 60%, 98%, 1)`,
-    chipBorder: `hsla(${hue}, 45%, 78%, 1)`,
-    chipText: `hsla(${hue}, 30%, 22%, 1)`,
+    bg: \`hsla(\${hue}, 70%, 96%, 1)\`,
+    border: \`hsla(\${hue}, 55%, 80%, 1)\`,
+    chipBg: \`hsla(\${hue}, 60%, 98%, 1)\`,
+    chipBorder: \`hsla(\${hue}, 45%, 78%, 1)\`,
+    chipText: \`hsla(\${hue}, 30%, 22%, 1)\`,
   };
 }
 
@@ -25,27 +36,15 @@ function normalizeSymbol(s: string) {
   return String(s ?? "").trim().toUpperCase();
 }
 
-// ✅ HARD-CODED industry buckets (all tickers) generated from your file.
+// ✅ HARD-CODED industry buckets (ALL tickers) from your UPDATED file.
 // No fetch, no /public json, no 404.
-const GROUPS: IndustryGroups = {
-  "Agriculture/Forestry/Fishing": ["AGRO", "CALM", "VFF"],
-  "Construction": ["AMRC", "BBCP", "BZH", "DHI", "DY", "FIX", "GEO", "GRBK", "GVA", "LEN", "MTZ", "PHM", "STRL", "TOL", "TPC", "TPH"],
-  "Finance/Insurance/Real Estate": ["AAMI","ABCB","ABR","ABTC","ACGL","AEXA","AFL","AFRM","AGNC","AGQ","AIFU","AIG","ALHC","ALRS","ALTS","AMBR","AMH","AMP","AMT","ANY","APO","APPS","ARBK","ARE","ARES","ASB","ASST","AUB","AXP","BAC","BAM","BBAR","BBT","BCS","BDN","BEKE","BFST","BHF","BITF","BK","BKKT","BLK","BLSH","BMNR","BN","BNL","BOIL","BRO","BRR","BSOL","BTBT","BTDR","BULL","BUSE","BWET","BWIN","BX","C","CAN","CATY","CBOE","CBRE","CBSH","CCBG","CDP","CG","CHMI","CHYM","CI","CIA","CIFR","CLDT","CLOV","CLSK","CME","CMTG","CNC","CNO","COF","COIN","COMP","CORZ","CPT","CRCL","CSR","CTBI","CTRE","CUBE","CWK","CZNC","DB","DBRG","DEI","DFDV","DGXX","DLR","DOUG","EBC","ECPG","EGBN","EHTH","EIG","ELME","ELS","EQBK","EQIX","ESNT","ESS","ETH","ETHA","ETHE","ETHZ","EZBC","FBTC","FFBC","FFIN","FG","FGNX","FHN","FIGR","FISI","FLG","FNF","FRGE","FSP","FUTU","FWDI","GBTC","GDOT","GEMI","GGAL","GLD","GLXY","GPMT","GS","HASI","HIVE","HLNE","HOOD","HOPE","HR","HRTG","HSBC","HST","HTBK","HUM","HUT","IAU","IBIT","IBKR","ICE","INVH","IREN","IRM","JEF","JPM","JRVR","KKR","KOLD","LB","LC","LDI","LINE","LMND","LNC","LPRO","LX","LXP","MAC","MARA","MC","MCHB","MIAX","MOH","MRP","MRX","MS","MSTR","MTG","MUFG","NAKA","NDAQ","NLY","NRT","NSA","NTST","NU","OPAD","OPEN","OPRT","ORBS","ORC","OSCR","OWL","PEB","PGR","PGY","PKST","PLD","PNC","PNFP","QFIN","RC","RILY","RIOT","RKT","RYAN","RYN","SAN","SBCF","SBET","SCHW","SIEB","SKYH","SLAI","SLDE","SLG","SLM","SLQT","SLV","SMA","SOFI","SSRM","SUIG","SUPV","SVC","SVIX","TBBK","TFC","TIGR","TPG","TWO","UBSI","UCB","UNG","UNH","UPST","UPXI","USB","USO","UVIX","UVXY","UWMC","VNO","VXX","WFC","WNEB","WRB","WULF","WY","WYFI","XP","YRD"],
-  "Manufacturing": [/* …your full list continues… */],
-  "Mining": [/* … */],
-  "Retail Trade": [/* … */],
-  "Services": [/* … */],
-  "Transportation/Utilities": [/* … */],
-  "Wholesale Trade": [/* … */],
-  "Unknown": [/* … */],
-};
+const GROUPS: IndustryGroups = ${prettyGroups};
 
 export default function LiveWatchlist() {
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [collapseAll, setCollapseAll] = useState(false);
 
-  // sanitize: normalize symbols + dedupe once
   const groups = useMemo(() => {
     const cleaned: IndustryGroups = {};
     for (const [industry, syms] of Object.entries(GROUPS || {})) {
@@ -77,7 +76,6 @@ export default function LiveWatchlist() {
       if (symbols.length) out.push({ industry, symbols });
     }
 
-    // biggest industries first; Unknown last
     out.sort((a, b) => {
       if (a.industry === "Unknown" && b.industry !== "Unknown") return 1;
       if (b.industry === "Unknown" && a.industry !== "Unknown") return -1;
@@ -169,9 +167,7 @@ export default function LiveWatchlist() {
                 </div>
 
                 <button
-                  onClick={() =>
-                    setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
-                  }
+                  onClick={() => setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))}
                   className="text-xs px-3 py-1.5 rounded-xl border bg-white/60 hover:bg-white"
                   style={{ borderColor: theme.border }}
                 >
@@ -183,14 +179,14 @@ export default function LiveWatchlist() {
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                   {g.symbols.map((sym) => (
                     <div
-                      key={`${g.industry}:${sym}`}
+                      key={\`\${g.industry}:\${sym}\`}
                       className="select-none rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide text-center cursor-default hover:shadow-sm"
                       style={{
                         backgroundColor: theme.chipBg,
                         borderColor: theme.chipBorder,
                         color: theme.chipText,
                       }}
-                      title={`${sym} • ${g.industry}`}
+                      title={\`\${sym} • \${g.industry}\`}
                     >
                       {sym}
                     </div>
@@ -204,3 +200,7 @@ export default function LiveWatchlist() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync(outputTsxPath, tsx, "utf8");
+console.log("Wrote:", outputTsxPath);
