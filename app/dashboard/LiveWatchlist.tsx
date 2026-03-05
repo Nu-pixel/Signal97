@@ -22,12 +22,13 @@ function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
   return {
     hue,
-    fillA: `hsla(${hue}, 85%, 55%, 0.55)`,
-    fillB: `hsla(${hue}, 85%, 45%, 0.35)`,
-    stroke: `hsla(${hue}, 85%, 78%, 0.70)`,
-    glow: `hsla(${hue}, 90%, 72%, 0.90)`,
-    text: `hsla(${hue}, 25%, 96%, 0.95)`,
-    textDim: `hsla(${hue}, 20%, 92%, 0.78)`,
+    fillA: `hsla(${hue}, 80%, 62%, 0.35)`,
+    fillB: `hsla(${hue}, 80%, 52%, 0.22)`,
+    stroke: `hsla(${hue}, 85%, 45%, 0.38)`,
+    ring: `hsla(${hue}, 85%, 45%, 0.18)`,
+    glow: `hsla(${hue}, 90%, 52%, 0.35)`,
+    text: `hsla(${hue}, 30%, 18%, 0.92)`,
+    textDim: `hsla(${hue}, 20%, 20%, 0.65)`,
     chipBg: `hsla(${hue}, 55%, 97%, 1)`,
     chipBorder: `hsla(${hue}, 55%, 82%, 1)`,
     chipText: `hsla(${hue}, 35%, 22%, 1)`,
@@ -42,13 +43,20 @@ type Bubble = {
   y: number;
 };
 
-// Simple, fast bubble packing (spiral placement, avoids overlaps)
-function packBubbles(items: Array<{ key: string; n: number }>, W: number, H: number): Bubble[] {
-  const pad = 10;
-  const minR = 42;
-  const maxR = Math.min(W, H) * 0.23;
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+// Non-overlapping bubble layout (fast relaxation).
+function packBubblesRelaxed(items: Array<{ key: string; n: number }>, W: number, H: number): Bubble[] {
+  const pad = 18;
+  const margin = 26;
 
   const nMax = Math.max(1, ...items.map((k) => k.n));
+
+  // radii scale (sqrt) so big categories don't dominate too hard
+  const minR = 48;
+  const maxR = Math.min(W, H) * 0.19;
   const radiusFor = (n: number) => {
     const t = Math.sqrt(n / nMax);
     return minR + t * (maxR - minR);
@@ -58,66 +66,86 @@ function packBubbles(items: Array<{ key: string; n: number }>, W: number, H: num
     .map((k) => ({ key: k.key, n: k.n, r: radiusFor(k.n), x: 0, y: 0 }))
     .sort((a, b) => b.r - a.r);
 
+  // initial positions (sunflower / golden angle) spread across canvas
   const cx = W / 2;
   const cy = H / 2;
-
-  const placed: Bubble[] = [];
-
-  function collides(b: Bubble) {
-    for (const o of placed) {
-      const dx = b.x - o.x;
-      const dy = b.y - o.y;
-      const rr = b.r + o.r + pad;
-      if (dx * dx + dy * dy < rr * rr) return true;
-    }
-    return false;
-  }
-
-  function within(b: Bubble) {
-    return (
-      b.x - b.r > 14 &&
-      b.y - b.r > 14 &&
-      b.x + b.r < W - 14 &&
-      b.y + b.r < H - 14
-    );
-  }
+  const ga = Math.PI * (3 - Math.sqrt(5)); // golden angle
+  const spread = Math.min(W, H) * 0.33;
 
   for (let i = 0; i < bubbles.length; i++) {
-    const b = bubbles[i];
+    const t = i / Math.max(1, bubbles.length - 1);
+    const ang = i * ga;
+    const rad = Math.sqrt(t) * spread;
+    bubbles[i].x = cx + Math.cos(ang) * rad;
+    bubbles[i].y = cy + Math.sin(ang) * rad;
+  }
 
-    if (i === 0) {
-      b.x = cx;
-      b.y = cy;
-      placed.push({ ...b });
-      continue;
+  const iter = 420;
+  for (let step = 0; step < iter; step++) {
+    // gentle pull to center (keeps layout compact)
+    for (const b of bubbles) {
+      b.x += (cx - b.x) * 0.002;
+      b.y += (cy - b.y) * 0.002;
     }
 
-    let angle = 0;
-    let radius = 0;
-    let found = false;
-
-    for (let step = 0; step < 8000; step++) {
-      angle += 0.35;
-      radius += 0.2;
-      b.x = cx + Math.cos(angle) * radius * 11;
-      b.y = cy + Math.sin(angle) * radius * 11;
-
-      if (!within(b)) continue;
-      if (!collides(b)) {
-        found = true;
-        break;
+    // resolve overlaps
+    for (let i = 0; i < bubbles.length; i++) {
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const a = bubbles[i];
+        const b = bubbles[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+        const minDist = a.r + b.r + pad;
+        if (dist < minDist) {
+          const push = (minDist - dist) / dist;
+          const px = dx * push * 0.5;
+          const py = dy * push * 0.5;
+          // heavier bubble moves less
+          const wa = 1 / (a.r * a.r);
+          const wb = 1 / (b.r * b.r);
+          const s = wa + wb;
+          const ma = wb / s;
+          const mb = wa / s;
+          a.x -= px * ma;
+          a.y -= py * ma;
+          b.x += px * mb;
+          b.y += py * mb;
+        }
       }
     }
 
-    if (!found) {
-      b.x = Math.max(b.r + 14, Math.min(W - b.r - 14, b.x));
-      b.y = Math.max(b.r + 14, Math.min(H - b.r - 14, b.y));
+    // keep within bounds
+    for (const b of bubbles) {
+      b.x = clamp(b.x, margin + b.r, W - margin - b.r);
+      b.y = clamp(b.y, margin + b.r, H - margin - b.r);
     }
-
-    placed.push({ ...b });
   }
 
-  return placed;
+  return bubbles;
+}
+
+function splitLabel(label: string): string[] {
+  // two-line labels for better readability inside bubbles
+  if (label.length <= 16) return [label];
+  // prefer split around " (" or " / " or " - " or last space near middle
+  const preferred = [" (", " / ", " - "];
+  for (const p of preferred) {
+    const idx = label.indexOf(p);
+    if (idx > 7 && idx < 22) {
+      return [label.slice(0, idx).trim(), label.slice(idx).trim()];
+    }
+  }
+  const mid = Math.floor(label.length / 2);
+  let best = -1;
+  for (let i = mid; i >= 10; i--) {
+    if (label[i] === " ") {
+      best = i;
+      break;
+    }
+  }
+  if (best === -1) return [label];
+  return [label.slice(0, best).trim(), label.slice(best + 1).trim()];
 }
 
 // ✅ HARD-CODED sector buckets (ALL 2000 tickers) from your exported file
@@ -2186,10 +2214,17 @@ export default function LiveWatchlist() {
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"bubbles" | "list">("bubbles");
   const [activeSector, setActiveSector] = useState<string | null>(null);
+  const [hoverSector, setHoverSector] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  // Zoom + pan for the bubble map
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 1000, h: 560 });
+  const [size, setSize] = useState({ w: 1100, h: 640 });
 
   // Resize to container
   useEffect(() => {
@@ -2198,8 +2233,8 @@ export default function LiveWatchlist() {
 
     const ro = new ResizeObserver(() => {
       const rect = el.getBoundingClientRect();
-      const w = Math.max(760, Math.floor(rect.width));
-      const h = Math.max(520, Math.floor(rect.height));
+      const w = Math.max(820, Math.floor(rect.width));
+      const h = Math.max(560, Math.floor(rect.height));
       setSize({ w, h });
     });
     ro.observe(el);
@@ -2215,7 +2250,7 @@ export default function LiveWatchlist() {
   async function copyToClipboard(text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setToast(`Copied: ${text}`);
+      setToast("Copied");
     } catch {
       const el = document.createElement("textarea");
       el.value = text;
@@ -2223,7 +2258,7 @@ export default function LiveWatchlist() {
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-      setToast(`Copied: ${text}`);
+      setToast("Copied");
     }
   }
 
@@ -2272,7 +2307,7 @@ export default function LiveWatchlist() {
     const list = Object.entries(filteredGroups)
       .map(([key, syms]) => ({ key, n: syms.length }))
       .sort((a, b) => b.n - a.n);
-    return packBubbles(list, size.w, size.h);
+    return packBubblesRelaxed(list, size.w, size.h);
   }, [filteredGroups, size.w, size.h]);
 
   // keep activeSector valid after search
@@ -2287,24 +2322,36 @@ export default function LiveWatchlist() {
     return filteredGroups[activeSector] || groups[activeSector] || [];
   }, [activeSector, filteredGroups, groups]);
 
+  const mapBg =
+    "radial-gradient(circle at 25% 20%, rgba(99,102,241,0.14), transparent 48%)," +
+    "radial-gradient(circle at 70% 25%, rgba(16,185,129,0.12), transparent 52%)," +
+    "radial-gradient(circle at 55% 80%, rgba(244,63,94,0.10), transparent 55%)," +
+    "linear-gradient(to right, rgba(15,23,42,0.04) 1px, transparent 1px)," +
+    "linear-gradient(to bottom, rgba(15,23,42,0.04) 1px, transparent 1px)," +
+    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 40%, rgba(248,250,252,1) 100%)";
+
+  const backgroundSize = "auto, auto, auto, 56px 56px, 56px 56px, auto";
+
   return (
     <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
               Live Watchlist — Sector Bubble Map
             </h1>
             <p className="text-xs text-slate-600 mt-1">
-              {totals.shown} / {totals.total} tickers • {totals.sectorsShown} / {totals.sectors} sectors
+              <span className="font-semibold text-slate-800">{totals.shown}</span> / {totals.total} tickers
               <span className="mx-2 text-slate-300">•</span>
-              <span className="text-slate-500">Click a bubble to open tickers.</span>
+              <span className="font-semibold text-slate-800">{totals.sectorsShown}</span> / {totals.sectors} sectors
+              <span className="mx-2 text-slate-300">•</span>
+              Drag to pan, scroll to zoom, click a bubble to open tickers.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 w-full md:w-[620px]">
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-2 w-full lg:w-[720px]">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -2312,49 +2359,82 @@ export default function LiveWatchlist() {
                 className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-slate-200/70"
               />
 
-              <button
-                onClick={() => setView((v) => (v === "bubbles" ? "list" : "bubbles"))}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                title="Toggle view"
-              >
-                {view === "bubbles" ? "List view" : "Bubble view"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setView((v) => (v === "bubbles" ? "list" : "bubbles"))}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                >
+                  {view === "bubbles" ? "List view" : "Bubble view"}
+                </button>
 
-              <button
-                onClick={() => {
-                  setQuery("");
-                  setActiveSector(null);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                title="Reset"
-              >
-                Reset
-              </button>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setActiveSector(null);
+                    setZoom(1);
+                    setPan({ x: 0, y: 0 });
+                  }}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
 
-            {activeSector && (
-              <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
-                <div className="truncate">
-                  <span className="font-semibold text-slate-900">{activeSector}</span>
-                  <span className="mx-2 text-slate-300">•</span>
-                  <span className="text-slate-600">{activeSymbols.length} tickers</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => copyToClipboard(activeSymbols.join(", "))}
-                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                  >
-                    Copy all
-                  </button>
-                  <button
-                    onClick={() => setActiveSector(null)}
-                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                  >
-                    Close
-                  </button>
-                </div>
+            {/* mini controls row */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 w-12">Zoom</span>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={1.8}
+                  step={0.01}
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="w-[220px]"
+                />
+                <button
+                  onClick={() => {
+                    setZoom(1);
+                    setPan({ x: 0, y: 0 });
+                  }}
+                  className="text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
+                >
+                  Center
+                </button>
               </div>
-            )}
+
+              <div className="flex-1" />
+
+              {activeSector ? (
+                <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm w-full sm:w-auto">
+                  <div className="truncate">
+                    <span className="font-semibold text-slate-900">{activeSector}</span>
+                    <span className="mx-2 text-slate-300">•</span>
+                    <span className="text-slate-600">{activeSymbols.length} tickers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => copyToClipboard(activeSymbols.join(", "))}
+                      className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
+                    >
+                      Copy all
+                    </button>
+                    <button
+                      onClick={() => setActiveSector(null)}
+                      className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500">
+                  Tip: hover a bubble to preview, click to open, then click tickers to copy.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2374,13 +2454,43 @@ export default function LiveWatchlist() {
             ref={wrapRef}
             className="relative w-full rounded-[28px] overflow-hidden border border-slate-200"
             style={{
-              height: 560,
-              background:
-                "radial-gradient(circle at 30% 20%, rgba(99,102,241,0.20), transparent 45%), radial-gradient(circle at 70% 30%, rgba(16,185,129,0.18), transparent 45%), radial-gradient(circle at 55% 80%, rgba(244,63,94,0.14), transparent 45%), linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(180deg, #071821 0%, #0a1f2a 40%, #06151d 100%)",
-              backgroundSize: "auto, auto, auto, 48px 48px, 48px 48px, auto",
+              height: "min(72vh, 760px)",
+              background: mapBg,
+              backgroundSize,
+            }}
+            onWheel={(e) => {
+              // zoom around cursor
+              e.preventDefault();
+              const delta = -e.deltaY;
+              const next = clamp(zoom + (delta > 0 ? 0.06 : -0.06), 0.8, 1.8);
+              setZoom(next);
             }}
           >
-            <svg width={size.w} height={size.h} className="absolute inset-0">
+            <svg
+              width={size.w}
+              height={size.h}
+              viewBox={`0 0 ${size.w} ${size.h}`}
+              className="absolute inset-0"
+              onMouseDown={(e) => {
+                dragging.current = true;
+                dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+              }}
+              onMouseMove={(e) => {
+                if (!dragging.current) return;
+                const dx = e.clientX - dragStart.current.x;
+                const dy = e.clientY - dragStart.current.y;
+                setPan({
+                  x: dragStart.current.panX + dx,
+                  y: dragStart.current.panY + dy,
+                });
+              }}
+              onMouseUp={() => {
+                dragging.current = false;
+              }}
+              onMouseLeave={() => {
+                dragging.current = false;
+              }}
+            >
               <defs>
                 {bubbleData.map((b) => {
                   const t = themeForKey(b.key);
@@ -2388,13 +2498,14 @@ export default function LiveWatchlist() {
                   return (
                     <radialGradient key={id} id={id} cx="35%" cy="30%" r="75%">
                       <stop offset="0%" stopColor={t.fillA} />
-                      <stop offset="65%" stopColor={t.fillB} />
-                      <stop offset="100%" stopColor="rgba(0,0,0,0.10)" />
+                      <stop offset="62%" stopColor={t.fillB} />
+                      <stop offset="100%" stopColor="rgba(255,255,255,0.10)" />
                     </radialGradient>
                   );
                 })}
+
                 <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feGaussianBlur stdDeviation="10" result="blur" />
                   <feMerge>
                     <feMergeNode in="blur" />
                     <feMergeNode in="SourceGraphic" />
@@ -2402,85 +2513,114 @@ export default function LiveWatchlist() {
                 </filter>
               </defs>
 
-              {bubbleData.map((b) => {
-                const t = themeForKey(b.key);
-                const gradId = `grad-${hashToHue(b.key)}`;
-                const isActive = activeSector === b.key;
+              <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
+                {bubbleData.map((b) => {
+                  const t = themeForKey(b.key);
+                  const gradId = `grad-${hashToHue(b.key)}`;
+                  const isActive = activeSector === b.key;
+                  const isHover = hoverSector === b.key;
 
-                const label = b.key.length > 22 ? b.key.slice(0, 22) + "…" : b.key;
-                const titleSize = Math.max(12, Math.min(22, b.r * 0.22));
-                const subSize = Math.max(11, Math.min(18, b.r * 0.18));
+                  const lines = splitLabel(b.key);
+                  const titleSize = Math.max(12, Math.min(22, b.r * 0.20));
+                  const subSize = Math.max(11, Math.min(17, b.r * 0.16));
 
-                return (
-                  <g
-                    key={b.key}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
-                  >
-                    {isActive && (
+                  return (
+                    <g
+                      key={b.key}
+                      style={{ cursor: "pointer" }}
+                      onMouseEnter={() => setHoverSector(b.key)}
+                      onMouseLeave={() => setHoverSector(null)}
+                      onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
+                    >
+                      {/* soft outer ring */}
                       <circle
                         cx={b.x}
                         cy={b.y}
-                        r={b.r + 7}
+                        r={b.r + 10}
                         fill="transparent"
-                        stroke={t.glow}
+                        stroke={t.ring}
                         strokeWidth={2}
-                        opacity={0.9}
+                        opacity={isActive || isHover ? 1 : 0.55}
+                      />
+
+                      {/* glow ring on hover/active */}
+                      {(isActive || isHover) && (
+                        <circle
+                          cx={b.x}
+                          cy={b.y}
+                          r={b.r + 14}
+                          fill="transparent"
+                          stroke={t.glow}
+                          strokeWidth={2.25}
+                          opacity={0.8}
+                          filter="url(#softGlow)"
+                        />
+                      )}
+
+                      <circle
+                        cx={b.x}
+                        cy={b.y}
+                        r={b.r}
+                        fill={`url(#${gradId})`}
+                        stroke={t.stroke}
+                        strokeWidth={1.5}
+                        opacity={0.95}
                         filter="url(#softGlow)"
                       />
-                    )}
 
-                    <circle
-                      cx={b.x}
-                      cy={b.y}
-                      r={b.r}
-                      fill={`url(#${gradId})`}
-                      stroke={t.stroke}
-                      strokeWidth={1.35}
-                      opacity={0.96}
-                      filter="url(#softGlow)"
-                    />
+                      {/* specular highlight */}
+                      <ellipse
+                        cx={b.x - b.r * 0.22}
+                        cy={b.y - b.r * 0.30}
+                        rx={b.r * 0.34}
+                        ry={b.r * 0.22}
+                        fill="rgba(255,255,255,0.22)"
+                        opacity={0.55}
+                      />
 
-                    <ellipse
-                      cx={b.x - b.r * 0.22}
-                      cy={b.y - b.r * 0.28}
-                      rx={b.r * 0.35}
-                      ry={b.r * 0.22}
-                      fill="rgba(255,255,255,0.18)"
-                      opacity={0.75}
-                    />
+                      {/* label */}
+                      <text
+                        x={b.x}
+                        y={b.y - (lines.length === 2 ? 6 : 2)}
+                        textAnchor="middle"
+                        fill={t.text}
+                        fontSize={titleSize}
+                        fontWeight={800}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {lines.map((ln, idx) => (
+                          <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
+                            {ln}
+                          </tspan>
+                        ))}
+                      </text>
 
-                    <text
-                      x={b.x}
-                      y={b.y - 6}
-                      textAnchor="middle"
-                      fill={t.text}
-                      fontSize={titleSize}
-                      fontWeight={800}
-                      style={{ pointerEvents: "none" }}
-                    >
-                      {label}
-                    </text>
-
-                    <text
-                      x={b.x}
-                      y={b.y + 18}
-                      textAnchor="middle"
-                      fill={t.textDim}
-                      fontSize={subSize}
-                      fontWeight={700}
-                      style={{ pointerEvents: "none" }}
-                    >
-                      {b.n} tickers
-                    </text>
-                  </g>
-                );
-              })}
+                      <text
+                        x={b.x}
+                        y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
+                        textAnchor="middle"
+                        fill={t.textDim}
+                        fontSize={subSize}
+                        fontWeight={700}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {b.n} tickers
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
             </svg>
 
-            <div className="absolute bottom-4 left-4 text-xs text-white/80 bg-black/30 backdrop-blur px-3 py-2 rounded-2xl border border-white/10">
-              Tip: Search updates bubble sizes. Click a bubble to open tickers below.
-            </div>
+            {/* hover chip */}
+            {hoverSector && (
+              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur px-4 py-3 shadow-sm">
+                <div className="text-sm font-semibold text-slate-900">{hoverSector}</div>
+                <div className="text-xs text-slate-600 mt-0.5">
+                  {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
