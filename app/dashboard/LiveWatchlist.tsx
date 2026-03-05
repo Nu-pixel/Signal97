@@ -4,10 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type SectorGroups = Record<string, string[]>;
 
-function cn(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
-
 function normalizeSymbol(s: string) {
   return String(s ?? "").trim().toUpperCase();
 }
@@ -18,20 +14,24 @@ function hashToHue(str: string) {
   return h % 360;
 }
 
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
+  // Pastel palette: low saturation, high lightness
   return {
     hue,
-    fillA: `hsla(${hue}, 80%, 62%, 0.35)`,
-    fillB: `hsla(${hue}, 80%, 52%, 0.22)`,
-    stroke: `hsla(${hue}, 85%, 45%, 0.38)`,
-    ring: `hsla(${hue}, 85%, 45%, 0.18)`,
-    glow: `hsla(${hue}, 90%, 52%, 0.35)`,
-    text: `hsla(${hue}, 30%, 18%, 0.92)`,
-    textDim: `hsla(${hue}, 20%, 20%, 0.65)`,
-    chipBg: `hsla(${hue}, 55%, 97%, 1)`,
-    chipBorder: `hsla(${hue}, 55%, 82%, 1)`,
-    chipText: `hsla(${hue}, 35%, 22%, 1)`,
+    fillA: `hsla(${hue}, 55%, 82%, 0.80)`,
+    fillB: `hsla(${hue}, 55%, 74%, 0.65)`,
+    stroke: `hsla(${hue}, 45%, 58%, 0.45)`,
+    glow: `hsla(${hue}, 60%, 70%, 0.35)`,
+    text: `hsla(${hue}, 20%, 18%, 0.92)`,
+    textDim: `hsla(${hue}, 18%, 22%, 0.70)`,
+    chipBg: `hsla(${hue}, 55%, 98%, 1)`,
+    chipBorder: `hsla(${hue}, 35%, 80%, 1)`,
+    chipText: `hsla(${hue}, 30%, 22%, 1)`,
   };
 }
 
@@ -43,52 +43,89 @@ type Bubble = {
   y: number;
 };
 
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
+// Split long labels into 2 lines (helps inside smaller balloons)
+function splitLabel(label: string): string[] {
+  if (label.length <= 16) return [label];
+  const preferred = [" (", " / ", " - "];
+  for (const p of preferred) {
+    const idx = label.indexOf(p);
+    if (idx > 7 && idx < 22) return [label.slice(0, idx).trim(), label.slice(idx).trim()];
+  }
+  const mid = Math.floor(label.length / 2);
+  for (let i = mid; i >= 10; i--) {
+    if (label[i] === " ") return [label.slice(0, i).trim(), label.slice(i + 1).trim()];
+  }
+  return [label];
 }
 
-// Non-overlapping bubble layout (fast relaxation).
-function packBubblesRelaxed(items: Array<{ key: string; n: number }>, W: number, H: number): Bubble[] {
-  const pad = 18;
-  const margin = 26;
+// Deterministic PRNG (so layout doesn't jump every re-render)
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Balloon drop pack: starts above the frame and "falls" down with gravity.
+// We resolve overlaps each step, so final layout is non-overlapping and looks like settled balloons.
+function balloonDropPack(items: Array<{ key: string; n: number }>, W: number, H: number): Bubble[] {
+  const margin = 18;
+  const pad = 10;
 
   const nMax = Math.max(1, ...items.map((k) => k.n));
 
-  // radii scale (sqrt) so big categories don't dominate too hard
-  const minR = 48;
-  const maxR = Math.min(W, H) * 0.19;
-  const radiusFor = (n: number) => {
-    const t = Math.sqrt(n / nMax);
-    return minR + t * (maxR - minR);
-  };
+  // Radius sizing:
+  // 1) proportional to sqrt(count)
+  // 2) then scaled so total area fits ~55% of available area (leaves "gaps" like fallen balloons)
+  const raw = items.map((k) => {
+    const t = Math.sqrt(k.n / nMax);
+    return { key: k.key, n: k.n, r: 46 + t * 150 };
+  });
 
-  const bubbles: Bubble[] = items
-    .map((k) => ({ key: k.key, n: k.n, r: radiusFor(k.n), x: 0, y: 0 }))
+  const areaAvail = (W - margin * 2) * (H - margin * 2);
+  const areaSum = raw.reduce((acc, b) => acc + Math.PI * b.r * b.r, 0);
+  const targetFill = 0.55;
+  const s = Math.sqrt((areaAvail * targetFill) / Math.max(1, areaSum));
+
+  const bubbles: Bubble[] = raw
+    .map((b) => ({ ...b, r: clamp(b.r * s, 34, Math.min(W, H) * 0.22), x: 0, y: 0 }))
     .sort((a, b) => b.r - a.r);
 
-  // initial positions (sunflower / golden angle) spread across canvas
-  const cx = W / 2;
-  const cy = H / 2;
-  const ga = Math.PI * (3 - Math.sqrt(5)); // golden angle
-  const spread = Math.min(W, H) * 0.33;
+  // Init above the top edge, spread across width
+  const rng = mulberry32(Math.floor((W + 31) * 1000 + H));
+  const vx = new Array(bubbles.length).fill(0);
+  const vy = new Array(bubbles.length).fill(0);
 
   for (let i = 0; i < bubbles.length; i++) {
-    const t = i / Math.max(1, bubbles.length - 1);
-    const ang = i * ga;
-    const rad = Math.sqrt(t) * spread;
-    bubbles[i].x = cx + Math.cos(ang) * rad;
-    bubbles[i].y = cy + Math.sin(ang) * rad;
+    const b = bubbles[i];
+    b.x = margin + b.r + rng() * (W - 2 * margin - 2 * b.r);
+    b.y = -margin - b.r - rng() * (H * 0.65);
+    vx[i] = (rng() - 0.5) * 0.55;
+    vy[i] = 0;
   }
 
-  const iter = 420;
-  for (let step = 0; step < iter; step++) {
-    // gentle pull to center (keeps layout compact)
-    for (const b of bubbles) {
-      b.x += (cx - b.x) * 0.002;
-      b.y += (cy - b.y) * 0.002;
+  // Physics-ish params
+  const g = 0.55; // gravity
+  const damp = 0.92; // velocity damping
+  const wallBounce = 0.35;
+  const floorBounce = 0.10;
+
+  // Iterations: enough to settle, still fast (29 bubbles)
+  const steps = 900;
+
+  for (let step = 0; step < steps; step++) {
+    // gravity + integrate
+    for (let i = 0; i < bubbles.length; i++) {
+      vy[i] += g;
+      bubbles[i].x += vx[i];
+      bubbles[i].y += vy[i];
+      vx[i] *= damp;
+      vy[i] *= damp;
     }
 
-    // resolve overlaps
+    // collisions (pairwise)
     for (let i = 0; i < bubbles.length; i++) {
       for (let j = i + 1; j < bubbles.length; j++) {
         const a = bubbles[i];
@@ -98,57 +135,80 @@ function packBubblesRelaxed(items: Array<{ key: string; n: number }>, W: number,
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
         const minDist = a.r + b.r + pad;
         if (dist < minDist) {
-          const push = (minDist - dist) / dist;
-          const px = dx * push * 0.5;
-          const py = dy * push * 0.5;
-          // heavier bubble moves less
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          // Move them apart (bigger bubble moves less)
           const wa = 1 / (a.r * a.r);
           const wb = 1 / (b.r * b.r);
-          const s = wa + wb;
-          const ma = wb / s;
-          const mb = wa / s;
-          a.x -= px * ma;
-          a.y -= py * ma;
-          b.x += px * mb;
-          b.y += py * mb;
+          const sum = wa + wb;
+          const ma = wb / sum;
+          const mb = wa / sum;
+
+          a.x -= nx * overlap * ma;
+          a.y -= ny * overlap * ma;
+          b.x += nx * overlap * mb;
+          b.y += ny * overlap * mb;
+
+          // Small velocity nudge to prevent re-penetration
+          vx[i] -= nx * overlap * 0.02;
+          vy[i] -= ny * overlap * 0.02;
+          vx[j] += nx * overlap * 0.02;
+          vy[j] += ny * overlap * 0.02;
         }
       }
     }
 
-    // keep within bounds
-    for (const b of bubbles) {
-      b.x = clamp(b.x, margin + b.r, W - margin - b.r);
-      b.y = clamp(b.y, margin + b.r, H - margin - b.r);
+    // bounds (walls + floor)
+    for (let i = 0; i < bubbles.length; i++) {
+      const b = bubbles[i];
+
+      const left = margin + b.r;
+      const right = W - margin - b.r;
+      const top = margin + b.r;
+      const bottom = H - margin - b.r;
+
+      if (b.x < left) {
+        b.x = left;
+        vx[i] = Math.abs(vx[i]) * wallBounce;
+      } else if (b.x > right) {
+        b.x = right;
+        vx[i] = -Math.abs(vx[i]) * wallBounce;
+      }
+
+      if (b.y < top) {
+        b.y = top;
+        vy[i] = Math.abs(vy[i]) * wallBounce;
+      } else if (b.y > bottom) {
+        b.y = bottom;
+        vy[i] = -Math.abs(vy[i]) * floorBounce;
+        // friction on floor
+        vx[i] *= 0.85;
+      }
     }
+
+    // stop early if settled
+    if (step > 220) {
+      let maxV = 0;
+      for (let i = 0; i < bubbles.length; i++) {
+        const v = Math.abs(vx[i]) + Math.abs(vy[i]);
+        if (v > maxV) maxV = v;
+      }
+      if (maxV < 0.05) break;
+    }
+  }
+
+  // Final tidy: clamp within bounds
+  for (const b of bubbles) {
+    b.x = clamp(b.x, margin + b.r, W - margin - b.r);
+    b.y = clamp(b.y, margin + b.r, H - margin - b.r);
   }
 
   return bubbles;
 }
 
-function splitLabel(label: string): string[] {
-  // two-line labels for better readability inside bubbles
-  if (label.length <= 16) return [label];
-  // prefer split around " (" or " / " or " - " or last space near middle
-  const preferred = [" (", " / ", " - "];
-  for (const p of preferred) {
-    const idx = label.indexOf(p);
-    if (idx > 7 && idx < 22) {
-      return [label.slice(0, idx).trim(), label.slice(idx).trim()];
-    }
-  }
-  const mid = Math.floor(label.length / 2);
-  let best = -1;
-  for (let i = mid; i >= 10; i--) {
-    if (label[i] === " ") {
-      best = i;
-      break;
-    }
-  }
-  if (best === -1) return [label];
-  return [label.slice(0, best).trim(), label.slice(best + 1).trim()];
-}
-
-// ✅ HARD-CODED sector buckets (ALL 2000 tickers) from your exported file
+// ✅ HARD-CODED sector buckets (ALL tickers) from your exported file (watchlist_by_industry (2).xlsx → sheet "ALL")
 const GROUPS: SectorGroups = {
   "Agriculture/Forestry/Fishing": [
     "AGRO",
@@ -2217,14 +2277,8 @@ export default function LiveWatchlist() {
   const [hoverSector, setHoverSector] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Zoom + pan for the bubble map
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const dragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
-
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 1100, h: 640 });
+  const [size, setSize] = useState({ w: 1200, h: 720 });
 
   // Resize to container
   useEffect(() => {
@@ -2233,8 +2287,8 @@ export default function LiveWatchlist() {
 
     const ro = new ResizeObserver(() => {
       const rect = el.getBoundingClientRect();
-      const w = Math.max(820, Math.floor(rect.width));
-      const h = Math.max(560, Math.floor(rect.height));
+      const w = Math.max(980, Math.floor(rect.width));
+      const h = Math.max(620, Math.floor(rect.height));
       setSize({ w, h });
     });
     ro.observe(el);
@@ -2243,7 +2297,7 @@ export default function LiveWatchlist() {
 
   useEffect(() => {
     if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 1300);
+    const id = window.setTimeout(() => setToast(null), 1200);
     return () => window.clearTimeout(id);
   }, [toast]);
 
@@ -2262,7 +2316,7 @@ export default function LiveWatchlist() {
     }
   }
 
-  // sanitize groups once
+  // sanitize groups once (defensive)
   const groups = useMemo(() => {
     const cleaned: SectorGroups = {};
     for (const [sector, syms] of Object.entries(GROUPS || {})) {
@@ -2307,7 +2361,7 @@ export default function LiveWatchlist() {
     const list = Object.entries(filteredGroups)
       .map(([key, syms]) => ({ key, n: syms.length }))
       .sort((a, b) => b.n - a.n);
-    return packBubblesRelaxed(list, size.w, size.h);
+    return balloonDropPack(list, size.w, size.h);
   }, [filteredGroups, size.w, size.h]);
 
   // keep activeSector valid after search
@@ -2322,15 +2376,14 @@ export default function LiveWatchlist() {
     return filteredGroups[activeSector] || groups[activeSector] || [];
   }, [activeSector, filteredGroups, groups]);
 
+  // background that matches your dashboard card vibe (white/gray, subtle grid)
   const mapBg =
-    "radial-gradient(circle at 25% 20%, rgba(99,102,241,0.14), transparent 48%)," +
-    "radial-gradient(circle at 70% 25%, rgba(16,185,129,0.12), transparent 52%)," +
-    "radial-gradient(circle at 55% 80%, rgba(244,63,94,0.10), transparent 55%)," +
-    "linear-gradient(to right, rgba(15,23,42,0.04) 1px, transparent 1px)," +
-    "linear-gradient(to bottom, rgba(15,23,42,0.04) 1px, transparent 1px)," +
+    "radial-gradient(circle at 20% 15%, rgba(99,102,241,0.08), transparent 48%)," +
+    "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 52%)," +
+    "radial-gradient(circle at 55% 85%, rgba(244,63,94,0.06), transparent 55%)," +
+    "linear-gradient(to right, rgba(15,23,42,0.05) 1px, transparent 1px)," +
+    "linear-gradient(to bottom, rgba(15,23,42,0.05) 1px, transparent 1px)," +
     "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 40%, rgba(248,250,252,1) 100%)";
-
-  const backgroundSize = "auto, auto, auto, 56px 56px, 56px 56px, auto";
 
   return (
     <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
@@ -2339,18 +2392,18 @@ export default function LiveWatchlist() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
-              Live Watchlist — Sector Bubble Map
+              Live Watchlist — Sector Balloons
             </h1>
             <p className="text-xs text-slate-600 mt-1">
               <span className="font-semibold text-slate-800">{totals.shown}</span> / {totals.total} tickers
               <span className="mx-2 text-slate-300">•</span>
               <span className="font-semibold text-slate-800">{totals.sectorsShown}</span> / {totals.sectors} sectors
               <span className="mx-2 text-slate-300">•</span>
-              Drag to pan, scroll to zoom, click a bubble to open tickers.
+              pastel • non-overlapping • uses full width
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 w-full lg:w-[720px]">
+          <div className="flex flex-col gap-2 w-full lg:w-[760px]">
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={query}
@@ -2364,15 +2417,13 @@ export default function LiveWatchlist() {
                   onClick={() => setView((v) => (v === "bubbles" ? "list" : "bubbles"))}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
                 >
-                  {view === "bubbles" ? "List view" : "Bubble view"}
+                  {view === "bubbles" ? "List view" : "Balloon view"}
                 </button>
 
                 <button
                   onClick={() => {
                     setQuery("");
                     setActiveSector(null);
-                    setZoom(1);
-                    setPan({ x: 0, y: 0 });
                   }}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
                 >
@@ -2381,60 +2432,31 @@ export default function LiveWatchlist() {
               </div>
             </div>
 
-            {/* mini controls row */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-500 w-12">Zoom</span>
-                <input
-                  type="range"
-                  min={0.8}
-                  max={1.8}
-                  step={0.01}
-                  value={zoom}
-                  onChange={(e) => setZoom(parseFloat(e.target.value))}
-                  className="w-[220px]"
-                />
-                <button
-                  onClick={() => {
-                    setZoom(1);
-                    setPan({ x: 0, y: 0 });
-                  }}
-                  className="text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
-                >
-                  Center
-                </button>
+            {activeSector ? (
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
+                <div className="truncate">
+                  <span className="font-semibold text-slate-900">{activeSector}</span>
+                  <span className="mx-2 text-slate-300">•</span>
+                  <span className="text-slate-600">{activeSymbols.length} tickers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => copyToClipboard(activeSymbols.join(", "))}
+                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
+                  >
+                    Copy all
+                  </button>
+                  <button
+                    onClick={() => setActiveSector(null)}
+                    className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-
-              <div className="flex-1" />
-
-              {activeSector ? (
-                <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm w-full sm:w-auto">
-                  <div className="truncate">
-                    <span className="font-semibold text-slate-900">{activeSector}</span>
-                    <span className="mx-2 text-slate-300">•</span>
-                    <span className="text-slate-600">{activeSymbols.length} tickers</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => copyToClipboard(activeSymbols.join(", "))}
-                      className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                    >
-                      Copy all
-                    </button>
-                    <button
-                      onClick={() => setActiveSector(null)}
-                      className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-xs text-slate-500">
-                  Tip: hover a bubble to preview, click to open, then click tickers to copy.
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="text-xs text-slate-500">Tip: hover to preview • click balloon to open • click ticker to copy</div>
+            )}
           </div>
         </div>
       </div>
@@ -2454,43 +2476,12 @@ export default function LiveWatchlist() {
             ref={wrapRef}
             className="relative w-full rounded-[28px] overflow-hidden border border-slate-200"
             style={{
-              height: "min(72vh, 760px)",
+              height: "min(78vh, 860px)",
               background: mapBg,
-              backgroundSize,
-            }}
-            onWheel={(e) => {
-              // zoom around cursor
-              e.preventDefault();
-              const delta = -e.deltaY;
-              const next = clamp(zoom + (delta > 0 ? 0.06 : -0.06), 0.8, 1.8);
-              setZoom(next);
+              backgroundSize: "auto, auto, auto, 64px 64px, 64px 64px, auto",
             }}
           >
-            <svg
-              width={size.w}
-              height={size.h}
-              viewBox={`0 0 ${size.w} ${size.h}`}
-              className="absolute inset-0"
-              onMouseDown={(e) => {
-                dragging.current = true;
-                dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-              }}
-              onMouseMove={(e) => {
-                if (!dragging.current) return;
-                const dx = e.clientX - dragStart.current.x;
-                const dy = e.clientY - dragStart.current.y;
-                setPan({
-                  x: dragStart.current.panX + dx,
-                  y: dragStart.current.panY + dy,
-                });
-              }}
-              onMouseUp={() => {
-                dragging.current = false;
-              }}
-              onMouseLeave={() => {
-                dragging.current = false;
-              }}
-            >
+            <svg width={size.w} height={size.h} className="absolute inset-0">
               <defs>
                 {bubbleData.map((b) => {
                   const t = themeForKey(b.key);
@@ -2498,14 +2489,14 @@ export default function LiveWatchlist() {
                   return (
                     <radialGradient key={id} id={id} cx="35%" cy="30%" r="75%">
                       <stop offset="0%" stopColor={t.fillA} />
-                      <stop offset="62%" stopColor={t.fillB} />
+                      <stop offset="68%" stopColor={t.fillB} />
                       <stop offset="100%" stopColor="rgba(255,255,255,0.10)" />
                     </radialGradient>
                   );
                 })}
 
                 <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="10" result="blur" />
+                  <feGaussianBlur stdDeviation="9" result="blur" />
                   <feMerge>
                     <feMergeNode in="blur" />
                     <feMergeNode in="SourceGraphic" />
@@ -2513,108 +2504,94 @@ export default function LiveWatchlist() {
                 </filter>
               </defs>
 
-              <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
-                {bubbleData.map((b) => {
-                  const t = themeForKey(b.key);
-                  const gradId = `grad-${hashToHue(b.key)}`;
-                  const isActive = activeSector === b.key;
-                  const isHover = hoverSector === b.key;
+              {bubbleData.map((b) => {
+                const t = themeForKey(b.key);
+                const gradId = `grad-${hashToHue(b.key)}`;
+                const isActive = activeSector === b.key;
+                const lines = splitLabel(b.key);
 
-                  const lines = splitLabel(b.key);
-                  const titleSize = Math.max(12, Math.min(22, b.r * 0.20));
-                  const subSize = Math.max(11, Math.min(17, b.r * 0.16));
+                const titleSize = Math.max(12, Math.min(22, b.r * 0.20));
+                const subSize = Math.max(11, Math.min(16, b.r * 0.16));
 
-                  return (
-                    <g
-                      key={b.key}
-                      style={{ cursor: "pointer" }}
-                      onMouseEnter={() => setHoverSector(b.key)}
-                      onMouseLeave={() => setHoverSector(null)}
-                      onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
+                return (
+                  <g
+                    key={b.key}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setHoverSector(b.key)}
+                    onMouseLeave={() => setHoverSector(null)}
+                    onClick={() => setActiveSector((cur) => (cur === b.key ? null : b.key))}
+                  >
+                    <circle
+                      cx={b.x}
+                      cy={b.y}
+                      r={b.r + 10}
+                      fill="transparent"
+                      stroke={t.glow}
+                      strokeWidth={isActive ? 3 : 2}
+                      opacity={isActive ? 0.9 : 0.55}
+                    />
+
+                    <circle
+                      cx={b.x}
+                      cy={b.y}
+                      r={b.r}
+                      fill={`url(#${gradId})`}
+                      stroke={t.stroke}
+                      strokeWidth={1.6}
+                      filter="url(#softGlow)"
+                    />
+
+                    <ellipse
+                      cx={b.x - b.r * 0.22}
+                      cy={b.y - b.r * 0.30}
+                      rx={b.r * 0.34}
+                      ry={b.r * 0.22}
+                      fill="rgba(255,255,255,0.40)"
+                      opacity={0.55}
+                    />
+
+                    <ellipse
+                      cx={b.x}
+                      cy={b.y + b.r * 0.92}
+                      rx={Math.max(6, b.r * 0.10)}
+                      ry={Math.max(4, b.r * 0.07)}
+                      fill="rgba(15,23,42,0.10)"
+                    />
+
+                    <text
+                      x={b.x}
+                      y={b.y - (lines.length === 2 ? 6 : 2)}
+                      textAnchor="middle"
+                      fill={t.text}
+                      fontSize={titleSize}
+                      fontWeight={800}
+                      style={{ pointerEvents: "none" }}
                     >
-                      {/* soft outer ring */}
-                      <circle
-                        cx={b.x}
-                        cy={b.y}
-                        r={b.r + 10}
-                        fill="transparent"
-                        stroke={t.ring}
-                        strokeWidth={2}
-                        opacity={isActive || isHover ? 1 : 0.55}
-                      />
+                      {lines.map((ln, idx) => (
+                        <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
+                          {ln}
+                        </tspan>
+                      ))}
+                    </text>
 
-                      {/* glow ring on hover/active */}
-                      {(isActive || isHover) && (
-                        <circle
-                          cx={b.x}
-                          cy={b.y}
-                          r={b.r + 14}
-                          fill="transparent"
-                          stroke={t.glow}
-                          strokeWidth={2.25}
-                          opacity={0.8}
-                          filter="url(#softGlow)"
-                        />
-                      )}
-
-                      <circle
-                        cx={b.x}
-                        cy={b.y}
-                        r={b.r}
-                        fill={`url(#${gradId})`}
-                        stroke={t.stroke}
-                        strokeWidth={1.5}
-                        opacity={0.95}
-                        filter="url(#softGlow)"
-                      />
-
-                      {/* specular highlight */}
-                      <ellipse
-                        cx={b.x - b.r * 0.22}
-                        cy={b.y - b.r * 0.30}
-                        rx={b.r * 0.34}
-                        ry={b.r * 0.22}
-                        fill="rgba(255,255,255,0.22)"
-                        opacity={0.55}
-                      />
-
-                      {/* label */}
-                      <text
-                        x={b.x}
-                        y={b.y - (lines.length === 2 ? 6 : 2)}
-                        textAnchor="middle"
-                        fill={t.text}
-                        fontSize={titleSize}
-                        fontWeight={800}
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {lines.map((ln, idx) => (
-                          <tspan key={idx} x={b.x} dy={idx === 0 ? 0 : titleSize * 1.05}>
-                            {ln}
-                          </tspan>
-                        ))}
-                      </text>
-
-                      <text
-                        x={b.x}
-                        y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
-                        textAnchor="middle"
-                        fill={t.textDim}
-                        fontSize={subSize}
-                        fontWeight={700}
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {b.n} tickers
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
+                    <text
+                      x={b.x}
+                      y={b.y + (lines.length === 2 ? titleSize * 1.35 : titleSize * 1.05)}
+                      textAnchor="middle"
+                      fill={t.textDim}
+                      fontSize={subSize}
+                      fontWeight={700}
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {b.n} tickers
+                    </text>
+                  </g>
+                );
+              })}
             </svg>
 
-            {/* hover chip */}
             {hoverSector && (
-              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur px-4 py-3 shadow-sm">
+              <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur px-4 py-3 shadow-sm">
                 <div className="text-sm font-semibold text-slate-900">{hoverSector}</div>
                 <div className="text-xs text-slate-600 mt-0.5">
                   {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
@@ -2634,7 +2611,7 @@ export default function LiveWatchlist() {
                   <div
                     key={sector}
                     className="rounded-[28px] border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
-                    style={{ backgroundColor: `hsla(${t.hue}, 70%, 97%, 1)` }}
+                    style={{ backgroundColor: `hsla(${t.hue}, 45%, 97%, 1)` }}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
