@@ -54,6 +54,17 @@ function themeForKey(key: string) {
   };
 }
 
+// Display labels (keep GROUPS keys unchanged; only change what user sees)
+const DISPLAY_NAME: Record<string, string> = {
+  "Unknown": "Misc / Funds",
+  "Agriculture/Forestry/Fishing": "Ag / Forestry / Fishing",
+  "Media/Publishing": "Media / Publishing",
+};
+
+function displaySectorName(key: string) {
+  return DISPLAY_NAME[key] ?? key;
+}
+
 type Bubble = {
   key: string;
   n: number;
@@ -64,17 +75,32 @@ type Bubble = {
 
 // Split long labels into 2 lines (helps inside smaller balloons)
 function splitLabel(label: string): string[] {
-  if (label.length <= 16) return [label];
-  const preferred = [" (", " / ", " - "];
+  const s = String(label ?? "").trim();
+  if (s.length <= 16) return [s];
+
+  // Try "nice" splits first
+  const preferred = [" (", " / ", " - ", " — "];
   for (const p of preferred) {
-    const idx = label.indexOf(p);
-    if (idx > 7 && idx < 22) return [label.slice(0, idx).trim(), label.slice(idx).trim()];
+    const idx = s.indexOf(p);
+    if (idx > 7 && idx < 26) return [s.slice(0, idx).trim(), s.slice(idx).trim()];
   }
-  const mid = Math.floor(label.length / 2);
+
+  // Handle slash-delimited labels without spaces (e.g., Agriculture/Forestry/Fishing)
+  if (s.includes("/") && !s.includes(" / ")) {
+    const parts = s.split("/").map((x) => x.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      // Prefer 2 lines; if 3 parts, combine 2+1
+      if (parts.length === 2) return [parts[0], parts[1]];
+      return [`${parts[0]} / ${parts[1]}`, parts.slice(2).join(" / ")];
+    }
+  }
+
+  // Fall back: split on last space near the middle
+  const mid = Math.floor(s.length / 2);
   for (let i = mid; i >= 10; i--) {
-    if (label[i] === " ") return [label.slice(0, i).trim(), label.slice(i + 1).trim()];
+    if (s[i] === " ") return [s.slice(0, i).trim(), s.slice(i + 1).trim()];
   }
-  return [label];
+  return [s];
 }
 
 // Deterministic PRNG (so layout doesn't jump every re-render)
@@ -2674,7 +2700,7 @@ export default function LiveWatchlist() {
             {activeSector ? (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
                 <div className="truncate">
-                  <span className="font-semibold text-slate-900">{activeSector}</span>
+                  <span className="font-semibold text-slate-900">{displaySectorName(activeSector)}</span>
                   <span className="mx-2 text-slate-300">•</span>
                   <span className="text-slate-600">{activeSymbols.length} tickers</span>
                 </div>
@@ -2756,7 +2782,7 @@ export default function LiveWatchlist() {
                   const t = themeForKey(b.key);
                   const gradId = `grad-${hashToHue(b.key)}`;
                   const isActive = activeSector === b.key;
-                  const lines = splitLabel(b.key);
+                  const lines = splitLabel(displaySectorName(b.key));
 
                   const titleSize = Math.max(11, Math.min(20, b.r * 0.18));
                   const subSize = Math.max(10, Math.min(15, b.r * 0.14));
@@ -2846,7 +2872,7 @@ export default function LiveWatchlist() {
 
             {hoverSector && (
               <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm">
-                <div className="text-sm font-semibold text-slate-900">{hoverSector}</div>
+                <div className="text-sm font-semibold text-slate-900">{displaySectorName(hoverSector)}</div>
                 <div className="text-xs text-slate-600 mt-0.5">
                   {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
                 </div>
@@ -2863,13 +2889,13 @@ export default function LiveWatchlist() {
 
                 return (
                   <div
-                    key={sector}
+                    key={displaySectorName(sector)}
                     className="rounded-[28px] border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
                     style={{ backgroundColor: `hsla(${t.hue}, 45%, 97%, 1)` }}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-900 truncate">{sector}</div>
+                        <div className="text-sm font-semibold text-slate-900 truncate">{displaySectorName(sector)}</div>
                         <div className="text-xs text-slate-600 mt-1">{syms.length} tickers</div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2889,7 +2915,7 @@ export default function LiveWatchlist() {
                       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-2">
                         {syms.map((sym) => (
                           <button
-                            key={`${sector}:${sym}`}
+                            key={`${displaySectorName(sector)}:${sym}`}
                             type="button"
                             onClick={() => copyToClipboard(sym)}
                             className="rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-800 text-sm font-semibold px-3 py-2 transition hover:-translate-y-[1px]"
@@ -2910,7 +2936,7 @@ export default function LiveWatchlist() {
           <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-base font-semibold text-slate-900 truncate">{activeSector}</div>
+                <div className="text-base font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
                 <div className="text-xs text-slate-600 mt-1">{activeSymbols.length} tickers</div>
               </div>
               <div className="flex items-center gap-2">
@@ -2928,7 +2954,7 @@ export default function LiveWatchlist() {
                 const t = themeForKey(activeSector);
                 return (
                   <button
-                    key={`${activeSector}:${sym}`}
+                    key={`${displaySectorName(activeSector)}:${sym}`}
                     type="button"
                     onClick={() => copyToClipboard(sym)}
                     className="rounded-2xl border px-3 py-2 text-sm font-semibold text-center transition hover:-translate-y-[1px] hover:shadow-sm"
