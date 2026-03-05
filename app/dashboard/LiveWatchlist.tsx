@@ -18,6 +18,27 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia(query);
+    const onChange = () => setMatches(!!mql.matches);
+    onChange();
+    if (mql.addEventListener) mql.addEventListener("change", onChange);
+    else (mql as any).addListener(onChange);
+    return () => {
+      if (mql.removeEventListener) mql.removeEventListener("change", onChange);
+      else (mql as any).removeListener(onChange);
+    };
+  }, [query]);
+
+  return matches;
+}
+
+
 function themeForKey(key: string) {
   const hue = hashToHue(key.toLowerCase());
   // Pastel palette: low saturation, high lightness
@@ -2271,11 +2292,36 @@ const GROUPS: SectorGroups = {
 };
 
 export default function LiveWatchlist() {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"bubbles" | "list">("bubbles");
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const [hoverSector, setHoverSector] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Pan/Zoom (makes the map usable on phones)
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Pointer gesture state (supports: 1-finger pan, 2-finger pinch-zoom)
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{
+    mode: "none" | "pan" | "pinch";
+    startZoom: number;
+    startPan: { x: number; y: number };
+    startDist: number;
+    startMid: { x: number; y: number };
+  }>({ mode: "none", startZoom: 1, startPan: { x: 0, y: 0 }, startDist: 1, startMid: { x: 0, y: 0 } });
+
+  const didInitView = useRef(false);
+  // On first mobile render, default to list (bubbles still available).
+  useEffect(() => {
+    if (!isMobile) return;
+    if (didInitView.current) return;
+    didInitView.current = true;
+    setView("list");
+  }, [isMobile]);
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 1200, h: 720 });
@@ -2376,6 +2422,108 @@ export default function LiveWatchlist() {
     return filteredGroups[activeSector] || groups[activeSector] || [];
   }, [activeSector, filteredGroups, groups]);
 
+  const ZOOM_MIN = 0.75;
+  const ZOOM_MAX = 2.25;
+
+  function resetView() {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }
+
+  function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    // We only capture gestures inside the map.
+    // This makes the bubble map navigable on mobile (pan + pinch-zoom).
+    (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    const pts = Array.from(pointers.current.values());
+    if (pts.length === 1) {
+      gesture.current = {
+        mode: "pan",
+        startZoom: zoom,
+        startPan: { ...pan },
+        startDist: 1,
+        startMid: { x: pts[0].x, y: pts[0].y },
+      };
+    } else if (pts.length >= 2) {
+      const a = pts[0];
+      const b = pts[1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      gesture.current = {
+        mode: "pinch",
+        startZoom: zoom,
+        startPan: { ...pan },
+        startDist: dist,
+        startMid: mid,
+      };
+    }
+  }
+
+  function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (!pointers.current.has(e.pointerId)) return;
+
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pts = Array.from(pointers.current.values());
+
+    if (gesture.current.mode === "pan" && pts.length === 1) {
+      const cur = pts[0];
+      const dx = cur.x - gesture.current.startMid.x;
+      const dy = cur.y - gesture.current.startMid.y;
+      setPan({ x: gesture.current.startPan.x + dx, y: gesture.current.startPan.y + dy });
+    }
+
+    if (pts.length >= 2) {
+      const a = pts[0];
+      const b = pts[1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+
+      const scale = dist / Math.max(1, gesture.current.startDist);
+      const nextZoom = clamp(gesture.current.startZoom * scale, ZOOM_MIN, ZOOM_MAX);
+
+      // Keep the pinch midpoint stable by adjusting pan (screen-space approximation).
+      const mdx = mid.x - gesture.current.startMid.x;
+      const mdy = mid.y - gesture.current.startMid.y;
+
+      setZoom(nextZoom);
+      setPan({
+        x: gesture.current.startPan.x + mdx,
+        y: gesture.current.startPan.y + mdy,
+      });
+    }
+  }
+
+  function onPointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    pointers.current.delete(e.pointerId);
+    const pts = Array.from(pointers.current.values());
+    if (pts.length === 1) {
+      gesture.current = {
+        mode: "pan",
+        startZoom: zoom,
+        startPan: { ...pan },
+        startDist: 1,
+        startMid: { x: pts[0].x, y: pts[0].y },
+      };
+    } else {
+      gesture.current.mode = "none";
+    }
+  }
+
+  function onWheel(e: React.WheelEvent<SVGSVGElement>) {
+    // Desktop zoom (trackpads / mouse wheels)
+    if (isMobile) return;
+    e.preventDefault();
+    const delta = -e.deltaY;
+    const next = clamp(zoom + (delta > 0 ? 0.08 : -0.08), ZOOM_MIN, ZOOM_MAX);
+    setZoom(next);
+  }
+
   // background that matches your dashboard card vibe (white/gray, subtle grid)
   const mapBg =
     "radial-gradient(circle at 20% 15%, rgba(99,102,241,0.08), transparent 48%)," +
@@ -2424,6 +2572,7 @@ export default function LiveWatchlist() {
                   onClick={() => {
                     setQuery("");
                     setActiveSector(null);
+                    resetView();
                   }}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
                 >
@@ -2457,6 +2606,41 @@ export default function LiveWatchlist() {
             ) : (
               <div className="text-xs text-slate-500">Tip: hover to preview • click balloon to open • click ticker to copy</div>
             )}
+
+
+            {/* Mobile-friendly controls */}
+            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setZoom((z) => clamp(z - 0.15, ZOOM_MIN, ZOOM_MAX))}
+                className="h-10 w-10 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-800 text-lg font-semibold active:scale-[0.98]"
+                aria-label="Zoom out"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => clamp(z + 0.15, ZOOM_MIN, ZOOM_MAX))}
+                className="h-10 w-10 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-800 text-lg font-semibold active:scale-[0.98]"
+                aria-label="Zoom in"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={resetView}
+                className="h-10 px-3 rounded-2xl border border-slate-200 bg-white/85 backdrop-blur shadow-sm text-slate-700 text-sm font-semibold active:scale-[0.98]"
+              >
+                Center
+              </button>
+            </div>
+
+            {isMobile && (
+              <div className="absolute bottom-4 left-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur px-3 py-2 text-[11px] text-slate-600 shadow-sm">
+                Drag to pan • Pinch to zoom • Tap a balloon
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -2481,7 +2665,18 @@ export default function LiveWatchlist() {
               backgroundSize: "auto, auto, auto, 64px 64px, 64px 64px, auto",
             }}
           >
-            <svg width={size.w} height={size.h} className="absolute inset-0">
+            <svg
+              width={size.w}
+              height={size.h}
+              viewBox={`0 0 ${size.w} ${size.h}`}
+              className="absolute inset-0"
+              style={{ touchAction: "none" }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              onWheel={onWheel}
+            >
               <defs>
                 {bubbleData.map((b) => {
                   const t = themeForKey(b.key);
@@ -2504,6 +2699,7 @@ export default function LiveWatchlist() {
                 </filter>
               </defs>
 
+              <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
               {bubbleData.map((b) => {
                 const t = themeForKey(b.key);
                 const gradId = `grad-${hashToHue(b.key)}`;
@@ -2588,6 +2784,7 @@ export default function LiveWatchlist() {
                   </g>
                 );
               })}
+            </g>
             </svg>
 
             {hoverSector && (
