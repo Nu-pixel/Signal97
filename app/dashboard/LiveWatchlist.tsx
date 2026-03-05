@@ -58,6 +58,38 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={cn("h-4 w-4 transition-transform", open ? "rotate-180" : "rotate-0")}
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 7.5l5 5 5-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function useScrollTopButton() {
+  const [show, setShow] = React.useState(false);
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 700);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return show;
+}
+
+
+
 // ✅ HARD-CODED industry buckets (ALL 2000 tickers) generated from your uploaded Excel:
 // watchlist_by_industry (2).xlsx → sheet "ALL"
 // No fetch, no /public json, no 404.
@@ -2133,6 +2165,9 @@ export default function LiveWatchlist() {
   const [activeOnly, setActiveOnly] = useState(false); // optional future use
   const [toast, setToast] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ symbol: string; industry: string } | null>(null);
+  const showTop = useScrollTopButton();
+  const [etfOnly, setEtfOnly] = useState(false);
+  const [sortMode, setSortMode] = useState<"size" | "az">("size");
 
   useEffect(() => {
     if (!toast) return;
@@ -2184,6 +2219,7 @@ export default function LiveWatchlist() {
     const out: { industry: string; symbols: string[] }[] = [];
 
     for (const [industry, syms] of Object.entries(groups)) {
+      if (etfOnly && !(industry.startsWith("ETF") || industry.startsWith("ETP"))) continue;
       if (quickIndustry && industry !== quickIndustry) continue;
 
       const industryMatch = !q || industry.toUpperCase().includes(q);
@@ -2192,15 +2228,16 @@ export default function LiveWatchlist() {
       if (symbols.length) out.push({ industry, symbols });
     }
 
-    // biggest industries first; keep Unknown near bottom
+    // sort: size or A→Z; keep Unknown near bottom
     out.sort((a, b) => {
       if (a.industry === "Unknown" && b.industry !== "Unknown") return 1;
       if (b.industry === "Unknown" && a.industry !== "Unknown") return -1;
+      if (sortMode === "az") return a.industry.localeCompare(b.industry);
       return b.symbols.length - a.symbols.length || a.industry.localeCompare(b.industry);
     });
 
     return out;
-  }, [groups, query, quickIndustry]);
+  }, [groups, query, quickIndustry, etfOnly, sortMode]);
 
   const topIndustries = useMemo(() => {
     const arr = Object.entries(groups)
@@ -2227,7 +2264,7 @@ export default function LiveWatchlist() {
       {/* Top gradient header */}
       <div className="relative p-6 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50">
         <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
-             style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(99,102,241,0.18), transparent 45%), radial-gradient(circle at 80% 30%, rgba(16,185,129,0.16), transparent 42%), radial-gradient(circle at 60% 80%, rgba(244,63,94,0.12), transparent 45%)" }} />
+             style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(99,102,241,0.18), transparent 45%), radial-gradient(circle at 80% 30%, rgba(16,185,129,0.16), transparent 42%), radial-gradient(circle at 60% 80%, rgba(244,63,94,0.12), transparent 45%), linear-gradient(to right, rgba(15,23,42,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.04) 1px, transparent 1px)" , backgroundSize: "auto, auto, auto, 48px 48px, 48px 48px" }} />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 mb-1 tracking-tight">Live Watchlist</h1>
@@ -2265,6 +2302,42 @@ export default function LiveWatchlist() {
               >
                 {view === "comfortable" ? "Compact" : "Comfort"}
               </button>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => { setQuery(""); setQuickIndustry(null); setEtfOnly(false); }}
+                  className="text-[12px] px-3 py-1.5 rounded-full border border-slate-200 bg-white/80 hover:bg-white transition"
+                  title="Clear filters"
+                >
+                  Reset
+                </button>
+
+                <button
+                  onClick={() => setEtfOnly((v) => !v)}
+                  className={cn(
+                    "text-[12px] px-3 py-1.5 rounded-full border transition",
+                    etfOnly ? "bg-slate-900 text-white border-slate-900" : "bg-white/80 text-slate-700 border-slate-200 hover:bg-white"
+                  )}
+                  title="Show only ETF/ETP groups"
+                >
+                  {etfOnly ? "ETFs: On" : "ETFs: Off"}
+                </button>
+
+                <button
+                  onClick={() => setSortMode((v) => (v === "size" ? "az" : "size"))}
+                  className="text-[12px] px-3 py-1.5 rounded-full border border-slate-200 bg-white/80 hover:bg-white transition"
+                  title="Toggle sorting"
+                >
+                  Sort: {sortMode === "size" ? "Size" : "A→Z"}
+                </button>
+              </div>
+
+              <div className="text-[11px] text-slate-600">
+                Tip: right‑click a ticker to pin it without copying.
+              </div>
+            </div>
+
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full">
@@ -2328,72 +2401,55 @@ export default function LiveWatchlist() {
       {/* Selected ticker mini-panel */}
       {selected && (
         <div className="px-6 py-3 border-b border-slate-100 bg-white">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-slate-700">
-              <span className="font-semibold text-slate-900">{selected.symbol}</span>
-              <span className="mx-2 text-slate-300">•</span>
-              <span className="text-slate-600">{selected.industry}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => copyToClipboard(selected.symbol)}
-                className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="p-6">
-        <div className="space-y-4">
-        {groupedFiltered.length === 0 && (
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 text-sm text-slate-600">
-            No symbols to show.
-          </div>
-        )}
-
-        {groupedFiltered.map((g) => {
-          const theme = themeForKey(g.industry);
-          const isCollapsed = collapsed[g.industry] ?? false;
-
-          return (
-            <section
-              key={g.industry}
-              className="rounded-3xl border p-4 shadow-sm hover:shadow-md transition-shadow"
-              style={{ backgroundColor: theme.bg, borderColor: theme.border }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-slate-900"><Highlight text={g.industry} query={query} /></h2>
-                  <span
-                    className="text-[11px] px-2 py-0.5 rounded-full border"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.6)",
-                      borderColor: theme.border,
-                      color: "rgba(15,23,42,0.75)",
-                    }}
-                  >
-                    {g.symbols.length}
-                  </span>
+          <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="mt-0.5 h-10 w-1.5 rounded-full"
+                       style={{ backgroundColor: theme.border }} />
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold text-slate-900 leading-5">
+                      <Highlight text={g.industry} query={query} />
+                    </h2>
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                      <span
+                        className="px-2 py-0.5 rounded-full border"
+                        style={{
+                          backgroundColor: "rgba(255,255,255,0.6)",
+                          borderColor: theme.border,
+                          color: "rgba(15,23,42,0.75)",
+                        }}
+                      >
+                        {g.symbols.length} tickers
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="truncate">
+                        Click to copy • Right‑click to pin
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <button
-                  onClick={() =>
-                    setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
-                  }
-                  className="text-xs px-3 py-1.5 rounded-xl border bg-white/70 hover:bg-white transition"
-                  style={{ borderColor: theme.border }}
-                >
-                  {isCollapsed ? "Show" : "Hide"}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => copyToClipboard(g.symbols.join(", "))}
+                    className="text-xs px-3 py-1.5 rounded-xl border bg-white/70 hover:bg-white transition"
+                    style={{ borderColor: theme.border }}
+                    title="Copy all tickers in this group"
+                  >
+                    Copy all
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setCollapsed((prev) => ({ ...prev, [g.industry]: !isCollapsed }))
+                    }
+                    className="text-xs px-3 py-1.5 rounded-xl border bg-white/70 hover:bg-white transition flex items-center gap-2"
+                    style={{ borderColor: theme.border }}
+                    aria-expanded={!isCollapsed}
+                  >
+                    {isCollapsed ? "Show" : "Hide"}
+                    <Chevron open={!isCollapsed} />
+                  </button>
+                </div>
               </div>
 
               {!isCollapsed && (
@@ -2404,7 +2460,7 @@ export default function LiveWatchlist() {
                       type="button"
                       onClick={() => { setSelected({ symbol: sym, industry: g.industry }); copyToClipboard(sym); }}
                       onContextMenu={(e) => { e.preventDefault(); setSelected({ symbol: sym, industry: g.industry }); }}
-                      className={cn("select-none rounded-2xl border px-3 py-2 text-sm font-semibold tracking-wide text-center transition will-change-transform", view === "compact" ? "py-1.5 text-[13px]" : "py-2 text-sm", "hover:shadow-sm hover:-translate-y-[1px] active:translate-y-0")}
+                      className={cn("select-none rounded-[18px] border px-3 py-2 text-sm font-semibold tracking-wide text-center transition will-change-transform", view === "compact" ? "py-1.5 text-[13px]" : "py-2 text-sm", "hover:shadow-sm hover:-translate-y-[1px] active:translate-y-0")}
                       style={{
                         backgroundColor: theme.chipBg,
                         borderColor: theme.chipBorder,
@@ -2420,7 +2476,18 @@ export default function LiveWatchlist() {
             </section>
           );
         })}
-      </div>
+      
+      {showTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-5 right-5 z-50 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 text-sm text-slate-800 shadow-lg hover:shadow-xl transition"
+          title="Back to top"
+        >
+          ↑ Top
+        </button>
+      )}
+
+</div>
     </div>
   );
 }
