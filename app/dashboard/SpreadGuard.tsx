@@ -305,6 +305,8 @@ function evaluateSpread(params: {
 }
 
 export default function SpreadGuard() {
+  const [hasCompared, setHasCompared] = useState(false);
+
   const [ticker, setTicker] = useState("TSM");
   const [direction, setDirection] = useState<Direction>("UP");
   const [stockPrice, setStockPrice] = useState("403.27");
@@ -356,6 +358,11 @@ export default function SpreadGuard() {
       theta: "0.6507",
     },
   });
+
+  const updateTopInput = (setter: (v: string) => void, value: string) => {
+    setter(value);
+    setHasCompared(false);
+  };
 
   const candidates = useMemo(() => {
     const price = n(stockPrice);
@@ -443,9 +450,11 @@ export default function SpreadGuard() {
     if (!validA && !validB) {
       return {
         decision: "SKIP BOTH",
-        action: "Do not use either spread right now.",
-        why: "Both candidates failed the safety checks. The common reasons are weak liquidity, bad size, expensive debit, or weak expected profit.",
-        next: "Check nearby strikes with stronger volume/open interest and tighter bid/ask spreads.",
+        action: "Skip both spreads for now.",
+        why:
+          "Both candidates failed safety checks. The usual causes are weak liquidity, bad size, expensive debit, or weak expected profit.",
+        next:
+          "Check nearby strikes with stronger volume/open interest and tighter bid/ask spreads.",
         winner: null as any,
       };
     }
@@ -459,14 +468,19 @@ export default function SpreadGuard() {
         ? resultA
         : resultB;
 
+    const loser = winner.name === "Candidate A" ? resultB : resultA;
+
     return {
       decision: winner.decision,
-      action: `${winner.decision}: Buy ${winner.buyStrike} ${winner.optionWord} / Sell ${winner.sellStrike} ${winner.optionWord}`,
-      why: `${winner.name} is stronger based on breakeven, liquidity, contract size, theta, slippage, and reward/risk.`,
+      action: `${winner.name} wins: Buy ${winner.buyStrike} ${winner.optionWord} / Sell ${winner.sellStrike} ${winner.optionWord}`,
+      why:
+        `${winner.name} scored better overall. ` +
+        `Winner score: ${winner.score}. Other score: ${loser.score}. ` +
+        `It was compared using breakeven, bid/ask width, volume, open interest, theta, slippage, expected profit, and contract-size safety.`,
       next:
         winner.decision === "EXECUTE"
           ? "Use a limit order only. Do not use a market order."
-          : "Small size only. Use a limit order and do not scale aggressively.",
+          : "This is not a clean full-size trade. Use small size only or keep checking better strikes.",
       winner,
     };
   }, [resultA, resultB]);
@@ -477,7 +491,9 @@ export default function SpreadGuard() {
     key: keyof Leg,
     value: string
   ) => {
+    setHasCompared(false);
     const setter = candidate === "A" ? setSpreadA : setSpreadB;
+
     setter((p) => ({
       ...p,
       [side]: {
@@ -488,91 +504,143 @@ export default function SpreadGuard() {
   };
 
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-5 shadow-sm space-y-5">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-        <div>
-          <div className="text-xl font-semibold text-slate-950">SpreadGuard</div>
-          <p className="text-xs text-slate-600 max-w-2xl">
-            Fast debit-spread safety checker for Signal 97. It compares two spread choices side-by-side and explains whether to use one, use small size, or skip both.
-          </p>
-        </div>
-        <div className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-semibold">
-          {final.decision}
-        </div>
-      </div>
-
-      <div className="rounded-2xl bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
-        <b>Simple rule:</b> Step 1 only finds strike pairs worth checking. It does not approve the trade. Final approval happens after you enter bid, ask, volume, open interest, IV, and theta for both candidates.
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-        <Input label="Ticker" value={ticker} onChange={setTicker} />
-        <Select label="Direction" value={direction} onChange={(v) => setDirection(v as Direction)} />
-        <Input label="Stock price" value={stockPrice} onChange={setStockPrice} />
-        <Input label="Target %" value={targetPct} onChange={setTargetPct} />
-        <Input label="Expiration" value={expiration} onChange={setExpiration} />
-        <Input label="Contracts" value={contracts} onChange={setContracts} />
-      </div>
-
-      <label className="block text-xs">
-        <span className="font-medium text-slate-600">Visible strikes, comma separated</span>
-        <textarea
-          value={strikes}
-          onChange={(e) => setStrikes(e.target.value)}
-          className="mt-1 w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-200"
-        />
-      </label>
-
-      <div className="rounded-2xl bg-white/80 border border-slate-200 p-4 text-xs">
-        <div className="font-semibold text-slate-900 mb-1">Step 1 — Top 2 strike pairs to check</div>
-        <div className="text-slate-500 mb-3">
-          These are not approved trades yet. They are only chosen from your strike list using current price, direction, target %, and sell-strike target zone.
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          {candidates.map((c, i) => (
-            <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <div className="font-semibold text-slate-900">
-                Candidate {i + 1}: Buy {c.buy} / Sell {c.sell}
-              </div>
-              <div className="text-slate-600">Width: {c.width} · Target: ${c.target}</div>
-              <div className="text-slate-500">Sell zone: {c.zone}</div>
+    <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-1 shadow-xl">
+      <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-slate-50 to-blue-50 p-5 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <div className="text-2xl font-bold text-slate-950 tracking-tight">
+              SpreadGuard
             </div>
-          ))}
-        </div>
-      </div>
+            <p className="text-sm text-slate-600 max-w-2xl mt-1">
+              Compare two debit spreads side-by-side before risking real money.
+              Enter both choices, then press Compare Spreads.
+            </p>
+          </div>
 
-      <div className="rounded-2xl bg-slate-950 text-white p-4 space-y-1">
-        <div className="text-xs uppercase tracking-wide text-slate-300">Final action</div>
-        <div className="text-lg font-semibold">{final.action}</div>
-        <div className="text-sm text-slate-200">{final.why}</div>
-        <div className="text-sm text-slate-300"><b>Next:</b> {final.next}</div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        <SpreadEditor
-          title="Candidate A"
-          result={resultA}
-          spread={spreadA}
-          onChange={(side, key, value) => setLeg("A", side, key, value)}
-        />
-        <SpreadEditor
-          title="Candidate B"
-          result={resultB}
-          spread={spreadB}
-          onChange={(side, key, value) => setLeg("B", side, key, value)}
-        />
-      </div>
-
-      <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 text-xs text-yellow-900 space-y-2">
-        <div className="font-semibold">Beginner liquidity reminder</div>
-        <div>
-          Volume is today’s activity. Open interest is currently open contracts. Low volume/OI does not prove you cannot exit later, but it means the option is less active and your exit price may be worse.
+          <div className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-semibold shadow-sm">
+            {hasCompared ? final.decision : "WAITING TO COMPARE"}
+          </div>
         </div>
-        <div>
-          Because this is a spread, risk is more controlled than buying one single option, but both legs still need a fair fill. Use limit orders only.
+
+        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-900">
+          <b>Beginner rule:</b> Stage 1 only suggests strike pairs. It does not approve the trade.
+          The final decision happens only after you enter data for both Candidate A and Candidate B and click Compare Spreads.
         </div>
-        <div>
-          Profit numbers are estimates after theta and estimated slippage. They are not guaranteed because the exit bid/ask can change.
+
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <Input label="Ticker" value={ticker} onChange={(v) => updateTopInput(setTicker, v)} />
+          <Select label="Direction" value={direction} onChange={(v) => updateTopInput((x) => setDirection(x as Direction), v)} />
+          <Input label="Stock price" value={stockPrice} onChange={(v) => updateTopInput(setStockPrice, v)} />
+          <Input label="Target %" value={targetPct} onChange={(v) => updateTopInput(setTargetPct, v)} />
+          <Input label="Expiration" value={expiration} onChange={(v) => updateTopInput(setExpiration, v)} />
+          <Input label="Contracts" value={contracts} onChange={(v) => updateTopInput(setContracts, v)} />
+        </div>
+
+        <label className="block text-sm">
+          <span className="font-semibold text-slate-700">
+            Visible strikes, comma separated
+          </span>
+          <textarea
+            value={strikes}
+            onChange={(e) => updateTopInput(setStrikes, e.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
+          />
+        </label>
+
+        <div className="rounded-3xl bg-white/90 border border-slate-200 p-4 shadow-sm">
+          <div className="font-bold text-slate-950 mb-1">
+            Step 1 — Two strike ideas to check
+          </div>
+          <div className="text-sm text-slate-500 mb-3">
+            These are only generated from stock price, direction, target %, and visible strikes.
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            {candidates.map((c, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm"
+              >
+                <div className="text-xs uppercase tracking-wide text-slate-400">
+                  Suggested Candidate {i + 1}
+                </div>
+                <div className="text-lg font-bold text-slate-950 mt-1">
+                  Buy {c.buy} / Sell {c.sell}
+                </div>
+                <div className="text-sm text-slate-600 mt-1">
+                  Width {c.width} · Target ${c.target}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Sell zone: {c.zone}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-5">
+          <SpreadEditor
+            title="Candidate A"
+            subtitle="Example: Buy 402.5 / Sell 415"
+            result={resultA}
+            spread={spreadA}
+            onChange={(side, key, value) => setLeg("A", side, key, value)}
+          />
+
+          <SpreadEditor
+            title="Candidate B"
+            subtitle="Example: Buy 405 / Sell 415"
+            result={resultB}
+            spread={spreadB}
+            onChange={(side, key, value) => setLeg("B", side, key, value)}
+          />
+        </div>
+
+        {!hasCompared ? (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-6 text-center shadow-sm">
+            <div className="text-xl font-bold text-slate-950">
+              Enter both spread choices, then compare.
+            </div>
+            <p className="mt-2 text-sm text-slate-500 max-w-2xl mx-auto">
+              SpreadGuard will compare breakeven, liquidity, bid/ask width, theta,
+              estimated slippage, estimated profit, and whether your contract size is safe.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setHasCompared(true)}
+              className="mt-5 rounded-2xl bg-slate-950 px-7 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 active:scale-[0.99]"
+            >
+              Compare Spreads
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-slate-950 text-white p-6 space-y-3 shadow-xl">
+            <div className="text-xs uppercase tracking-wide text-blue-200">
+              Final comparison result
+            </div>
+            <div className="text-2xl font-bold">{final.action}</div>
+            <div className="text-sm text-slate-200">{final.why}</div>
+            <div className="text-sm text-slate-300">
+              <b>Next:</b> {final.next}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 text-sm text-yellow-900 space-y-2">
+          <div className="font-bold">Liquidity reminder for beginners</div>
+          <div>
+            Volume is today’s activity. Open interest is currently open contracts.
+            Low volume/OI does not prove you cannot exit later, but it means the option is less active and your exit price may be worse.
+          </div>
+          <div>
+            Because this is a spread, risk is more controlled than buying one single option,
+            but both legs still need a fair fill. Use limit orders only.
+          </div>
+          <div>
+            Profit numbers are estimates after theta and estimated slippage.
+            They are not guaranteed because the exit bid/ask can change.
+          </div>
         </div>
       </div>
     </div>
@@ -581,32 +649,51 @@ export default function SpreadGuard() {
 
 function SpreadEditor({
   title,
+  subtitle,
   spread,
   result,
   onChange,
 }: {
   title: string;
+  subtitle: string;
   spread: SpreadInput;
   result: any;
   onChange: (side: "buyLeg" | "sellLeg", key: keyof Leg, value: string) => void;
 }) {
+  const decisionClass =
+    result.decision === "EXECUTE"
+      ? "bg-emerald-100 text-emerald-700"
+      : result.decision.includes("WATCH")
+      ? "bg-amber-100 text-amber-700"
+      : "bg-rose-100 text-rose-700";
+
   return (
-    <div className="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="rounded-3xl bg-white border border-slate-200 p-5 shadow-sm space-y-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-semibold text-slate-950">{title}</div>
-          <div className="text-xs text-slate-500">
+          <div className="text-lg font-bold text-slate-950">{title}</div>
+          <div className="text-xs text-slate-500">{subtitle}</div>
+          <div className="text-sm font-semibold text-slate-700 mt-1">
             Buy {result.buyStrike} / Sell {result.sellStrike}
           </div>
         </div>
-        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+
+        <div className={`rounded-full px-3 py-1 text-xs font-bold ${decisionClass}`}>
           {result.decision}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <LegBox title="Buy leg" leg={spread.buyLeg} onChange={(k, v) => onChange("buyLeg", k, v)} />
-        <LegBox title="Sell leg" leg={spread.sellLeg} onChange={(k, v) => onChange("sellLeg", k, v)} />
+      <div className="grid md:grid-cols-2 gap-4">
+        <LegBox
+          title="Buy leg"
+          leg={spread.buyLeg}
+          onChange={(k, v) => onChange("buyLeg", k, v)}
+        />
+        <LegBox
+          title="Sell leg"
+          leg={spread.sellLeg}
+          onChange={(k, v) => onChange("sellLeg", k, v)}
+        />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -620,12 +707,22 @@ function SpreadEditor({
         <Stat label="Slow profit" value={`$${money(result.slowProfit)}`} />
       </div>
 
-      <div className="rounded-2xl bg-slate-50 p-3 text-xs space-y-1">
-        <div><b>Buy liquidity:</b> {result.buyLiq.grade} · spread {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume {result.buyLiq.volume}</div>
-        <div><b>Sell liquidity:</b> {result.sellLiq.grade} · spread {result.sellLiq.spreadPct}% · OI {result.sellLiq.openInterest} · volume {result.sellLiq.volume}</div>
-        <div><b>Size safety:</b> {result.sizeCheck.status} — suggested max {result.sizeCheck.maxSuggested}</div>
-        <div><b>IV:</b> {result.ivStatus} — {result.ivNote}</div>
-        <div><b>Notes:</b> {result.notes.join(" ")}</div>
+      <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs space-y-1">
+        <div>
+          <b>Buy liquidity:</b> {result.buyLiq.grade} · spread {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume {result.buyLiq.volume}
+        </div>
+        <div>
+          <b>Sell liquidity:</b> {result.sellLiq.grade} · spread {result.sellLiq.spreadPct}% · OI {result.sellLiq.openInterest} · volume {result.sellLiq.volume}
+        </div>
+        <div>
+          <b>Size safety:</b> {result.sizeCheck.status} — suggested max {result.sizeCheck.maxSuggested}
+        </div>
+        <div>
+          <b>IV:</b> {result.ivStatus} — {result.ivNote}
+        </div>
+        <div>
+          <b>Notes:</b> {result.notes.join(" ")}
+        </div>
       </div>
     </div>
   );
@@ -641,12 +738,18 @@ function LegBox({
   onChange: (key: keyof Leg, value: string) => void;
 }) {
   const keys = Object.keys(leg) as (keyof Leg)[];
+
   return (
     <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-      <div className="text-xs font-semibold text-slate-700 mb-2">{title}</div>
+      <div className="text-xs font-bold text-slate-700 mb-2">{title}</div>
       <div className="grid grid-cols-2 gap-2">
         {keys.map((k) => (
-          <Input key={k} label={k} value={leg[k]} onChange={(v) => onChange(k, v)} />
+          <Input
+            key={k}
+            label={k}
+            value={leg[k]}
+            onChange={(v) => onChange(k, v)}
+          />
         ))}
       </div>
     </div>
@@ -664,11 +767,11 @@ function Input({
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="text-[10px] font-medium text-slate-500">{label}</span>
+      <span className="text-[10px] font-semibold text-slate-500">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
       />
     </label>
   );
@@ -685,11 +788,11 @@ function Select({
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="text-[10px] font-medium text-slate-500">{label}</span>
+      <span className="text-[10px] font-semibold text-slate-500">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
       >
         <option value="UP">UP</option>
         <option value="DOWN">DOWN</option>
@@ -700,9 +803,9 @@ function Select({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-2">
-      <div className="text-[10px] text-slate-500">{label}</div>
-      <div className="text-sm font-semibold text-slate-950">{value}</div>
+    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+      <div className="text-[10px] font-medium text-slate-500">{label}</div>
+      <div className="text-sm font-bold text-slate-950">{value}</div>
     </div>
   );
 }
