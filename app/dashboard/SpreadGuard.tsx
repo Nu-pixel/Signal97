@@ -78,6 +78,57 @@ function liquidityGrade(volume: number, openInterest: number, bid: number, ask: 
   };
 }
 
+function contractSizeCheck(
+  desiredContracts: number,
+  buyVolume: number,
+  buyOpenInterest: number,
+  sellVolume: number,
+  sellOpenInterest: number,
+  buyGrade: string,
+  sellGrade: string
+) {
+  const weakestVolume = Math.min(buyVolume, sellVolume);
+  const weakestOI = Math.min(buyOpenInterest, sellOpenInterest);
+
+  let status = "SAFE SMALL SIZE";
+  let maxSuggested = 1;
+  let explanation = "";
+
+  if (buyGrade === "BAD" || sellGrade === "BAD") {
+    maxSuggested = 1;
+    status = desiredContracts <= 1 ? "TEST SIZE ONLY" : "TOO LARGE";
+    explanation =
+      "One leg has weak liquidity. This does not mean nobody can buy from you later, but it means your exit price is less predictable. Use 0–1 contract only or skip.";
+  } else if (buyGrade.includes("SMALL") || sellGrade.includes("SMALL")) {
+    maxSuggested = 5;
+    status = desiredContracts <= 5 ? "SMALL SIZE OK" : "TOO LARGE";
+    explanation =
+      "Liquidity is usable, but not strong enough for large size. 1–5 contracts is the safer range.";
+  } else {
+    maxSuggested = 20;
+    status = desiredContracts <= 20 ? "SIZE OK" : "CHECK BEFORE SCALING";
+    explanation =
+      "Liquidity looks acceptable, but still use limit orders. For larger size, split orders and check live fills.";
+  }
+
+  if (weakestVolume < desiredContracts) {
+    status = "TOO LARGE";
+    explanation +=
+      " Your desired contracts are larger than today’s weakest-leg volume, so fills may be slow or expensive.";
+  }
+
+  return {
+    status,
+    desiredContracts,
+    maxSuggested,
+    weakestVolume,
+    weakestOpenInterest: weakestOI,
+    explanation,
+    beginnerNote:
+      "Volume is today’s activity. Open interest is currently open contracts. Low volume/OI does not prove you cannot exit later, but it means the contract is less active and exit pricing may be worse.",
+  };
+}
+
 export default function SpreadGuard() {
   const [ticker, setTicker] = useState("TSM");
   const [direction, setDirection] = useState<Direction>("UP");
@@ -110,7 +161,11 @@ export default function SpreadGuard() {
   const candidates = useMemo(() => {
     const price = n(stockPrice);
     const pct = n(targetPct) > 1 ? n(targetPct) / 100 : n(targetPct);
-    const list = strikes.split(",").map((x) => Number(x.trim())).filter(Boolean).sort((a, b) => a - b);
+    const list = strikes
+      .split(",")
+      .map((x) => Number(x.trim()))
+      .filter(Boolean)
+      .sort((a, b) => a - b);
 
     const target = direction === "UP" ? price * (1 + pct) : price * (1 - pct);
     const move = Math.abs(target - price);
@@ -139,7 +194,7 @@ export default function SpreadGuard() {
           target: money(target),
           zone: `${money(low)} to ${money(high)}`,
           note:
-            "Fast pick: sell strike captures 70%–90% of the model move, while buy strike stays close to current price.",
+            "Not approved yet. This is only a strike pair worth checking because the sell strike is inside the safer 70%–90% target zone.",
         });
       }
     }
@@ -158,7 +213,8 @@ export default function SpreadGuard() {
 
   const result = useMemo(() => {
     const price = n(stockPrice);
-    const pct = n(targetPct) > 1 ? n(targetPct) / 100 : n(targetPct);
+    const pctRaw = n(targetPct);
+    const pct = pctRaw > 1 ? pctRaw / 100 : pctRaw;
     const c = n(contracts);
 
     const target = direction === "UP" ? price * (1 + pct) : price * (1 - pct);
@@ -182,9 +238,33 @@ export default function SpreadGuard() {
 
     const [ivStatus, ivNote] = ivGrade((n(buyLeg.iv) + n(sellLeg.iv)) / 2);
 
-    const buyLiq = liquidityGrade(n(buyLeg.volume), n(buyLeg.openInterest), n(buyLeg.bid), n(buyLeg.ask), c);
-    const sellLiq = liquidityGrade(n(sellLeg.volume), n(sellLeg.openInterest), n(sellLeg.bid), n(sellLeg.ask), c);
+    const buyLiq = liquidityGrade(
+      n(buyLeg.volume),
+      n(buyLeg.openInterest),
+      n(buyLeg.bid),
+      n(buyLeg.ask),
+      c
+    );
+
+    const sellLiq = liquidityGrade(
+      n(sellLeg.volume),
+      n(sellLeg.openInterest),
+      n(sellLeg.bid),
+      n(sellLeg.ask),
+      c
+    );
+
     const totalSlip = buyLiq.totalSlip + sellLiq.totalSlip;
+
+    const sizeCheck = contractSizeCheck(
+      c,
+      buyLiq.volume,
+      buyLiq.openInterest,
+      sellLiq.volume,
+      sellLiq.openInterest,
+      buyLiq.grade,
+      sellLiq.grade
+    );
 
     const intrinsicAtTarget =
       direction === "UP"
@@ -203,31 +283,60 @@ export default function SpreadGuard() {
     const rewardRisk = maxLoss > 0 ? maxProfit / maxLoss : 0;
 
     let decision = "EXECUTE";
+    let finalAction = `APPROVED: Buy ${buyStrike} ${direction === "UP" ? "Call" : "Put"} / Sell ${sellStrike} ${direction === "UP" ? "Call" : "Put"}`;
+    let why = "Breakeven, liquidity, theta, contract size, and reward/risk are acceptable.";
+    let nextStep = "Use a limit order only. Do not use market order.";
     const notes: string[] = [];
 
     if (debit <= 0) {
       decision = "SKIP";
+      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = "The debit is invalid. The option bid/ask numbers are probably entered wrong.";
+      nextStep = "Recheck the bid and ask values.";
       notes.push("Invalid debit. Check bid/ask values.");
-    } else if (breakevenMovePct > n(targetPct) + 0.5) {
+    } else if (breakevenMovePct > pctRaw + 0.5) {
       decision = "SKIP";
-      notes.push("Breakeven is beyond your model target. This option structure asks for too much movement.");
-    } else if (breakevenMovePct > 4.5) {
-      decision = "WATCH";
-      notes.push("Breakeven needs more than ~4.5% move. That is stretched for your model.");
+      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = `Breakeven needs ${money(breakevenMovePct)}%, which is beyond your model target.`;
+      nextStep = "Pick a lower breakeven spread closer to the current price.";
+      notes.push("Breakeven is beyond your model target.");
     } else if (debit > width * 0.65) {
       decision = "SKIP";
+      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = "The spread costs too much compared with the max profit available.";
+      nextStep = "Try a cheaper spread or a closer sell strike.";
       notes.push("Debit is too expensive compared with spread width.");
     } else if (buyLiq.grade === "BAD" || sellLiq.grade === "BAD") {
       decision = "SKIP";
+      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = `Breakeven is ${money(breakevenMovePct)}%, which is good, but liquidity is too weak. You may still exit later, but the exit price is less predictable.`;
+      nextStep = candidates[1]
+        ? `Try candidate #2: Buy ${candidates[1].buy} / Sell ${candidates[1].sell}. Enter that option data next.`
+        : "Try a nearby strike with better volume, open interest, and tighter bid/ask.";
       notes.push("Liquidity is too weak. You may overpay entering and get underpaid exiting.");
+    } else if (sizeCheck.status === "TOO LARGE") {
+      decision = "SKIP";
+      finalAction = `SKIP SIZE: Do not use ${c} contracts on Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = sizeCheck.explanation;
+      nextStep = `Reduce size to ${sizeCheck.maxSuggested} contract(s) or choose strikes with stronger volume/open interest.`;
+      notes.push("Your selected contract size is too large for current liquidity.");
     } else if (buyLiq.grade.includes("SMALL") || sellLiq.grade.includes("SMALL")) {
       decision = "WATCH / SMALL SIZE ONLY";
+      finalAction = `CAREFUL: Buy ${buyStrike} / Sell ${sellStrike} only with small size`;
+      why = "The spread is usable, but liquidity is not strong enough for aggressive size.";
+      nextStep = "Use 1–5 contracts max and limit order only.";
       notes.push("Liquidity is usable, but only for small size.");
     } else if (expectedProfit <= 0) {
       decision = "SKIP";
-      notes.push("Expected profit after theta and slippage is weak.");
+      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
+      why = "Estimated profit after theta and estimated slippage is weak.";
+      nextStep = "Try another candidate spread.";
+      notes.push("Estimated profit after theta and estimated slippage is weak.");
     } else if (rewardRisk < 0.75) {
       decision = "WATCH";
+      finalAction = `WATCH: Buy ${buyStrike} / Sell ${sellStrike} is possible, but not ideal`;
+      why = "Reward/risk is not strong enough.";
+      nextStep = "Use smaller size or compare with candidate #2.";
       notes.push("Reward/risk is not ideal.");
     } else {
       notes.push("Trade structure is valid. Use limit order only.");
@@ -250,10 +359,16 @@ export default function SpreadGuard() {
       ivNote,
       buyLiq,
       sellLiq,
+      sizeCheck,
       decision,
       notes,
+      finalAction,
+      why,
+      nextStep,
+      buyStrike,
+      sellStrike,
     };
-  }, [direction, stockPrice, targetPct, contracts, buyLeg, sellLeg]);
+  }, [direction, stockPrice, targetPct, contracts, buyLeg, sellLeg, candidates]);
 
   const setLeg = (which: "buy" | "sell", key: keyof Leg, value: string) => {
     if (which === "buy") setBuyLeg((p) => ({ ...p, [key]: value }));
@@ -265,14 +380,13 @@ export default function SpreadGuard() {
       <div>
         <div className="text-sm font-semibold text-slate-900">SpreadGuard</div>
         <p className="text-[10px] text-slate-500">
-          Fast debit spread checker. Only enter the few numbers that prevent the biggest mistakes:
-          bad liquidity, high theta decay, weak open interest, and breakeven beyond your model move.
+          Fast debit spread checker. Stage 1 only finds strikes worth checking. Stage 2 decides if the trade is actually usable.
         </p>
       </div>
 
       <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-3 text-[10px]">
-        Rule of thumb: for a 4% Signal 97 alert, prefer spreads where breakeven needs about 4.5% move or less.
-        Lower breakeven is better because the trade can profit before the full target.
+        Stage 1 is NOT a trade approval. It only uses stock price, direction, target %, and visible strikes.
+        For a 4% Signal 97 alert, prefer final spreads where breakeven needs about 4.5% move or less.
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-[10px]">
@@ -294,24 +408,34 @@ export default function SpreadGuard() {
       </label>
 
       <div className="bg-slate-50 rounded-2xl p-3 text-[10px]">
-        <div className="font-semibold mb-2">Stage 1 — Top 2 candidate spreads</div>
+        <div className="font-semibold mb-1">Step 1 — Top 2 spreads to investigate, not approved yet</div>
+        <div className="text-slate-500 mb-2">
+          This step does not use bid/ask, IV, theta, volume, or open interest yet.
+        </div>
+
         {candidates.map((c, i) => (
           <div key={i} className="border-b border-slate-200 py-1">
-            {i + 1}) Buy {c.buy} / Sell {c.sell} | Width {c.width} | Target ${c.target} | Sell zone {c.zone}
+            {i + 1}) Check: Buy {c.buy} / Sell {c.sell} | Width {c.width} | Target ${c.target} | Sell zone {c.zone}
             <div className="text-slate-500">{c.note}</div>
           </div>
         ))}
       </div>
 
       <div className="grid md:grid-cols-2 gap-3">
-        <LegBox title="Buy Leg" leg={buyLeg} onChange={(k, v) => setLeg("buy", k, v)} />
-        <LegBox title="Sell Leg" leg={sellLeg} onChange={(k, v) => setLeg("sell", k, v)} />
+        <LegBox title="Step 2 — Buy Leg Data" leg={buyLeg} onChange={(k, v) => setLeg("buy", k, v)} />
+        <LegBox title="Step 2 — Sell Leg Data" leg={sellLeg} onChange={(k, v) => setLeg("sell", k, v)} />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 p-4 text-[10px] space-y-2">
+      <div className="rounded-2xl border border-slate-200 p-4 text-[10px] space-y-3">
         <div className="flex items-center justify-between">
-          <div className="font-semibold text-slate-900">Final Decision</div>
+          <div className="font-semibold text-slate-900">Final Action</div>
           <div className="px-3 py-1 rounded-full bg-slate-900 text-white text-[10px]">{result.decision}</div>
+        </div>
+
+        <div className="bg-slate-900 text-white rounded-xl p-3 space-y-1">
+          <div><b>Action:</b> {result.finalAction}</div>
+          <div><b>Why:</b> {result.why}</div>
+          <div><b>Next:</b> {result.nextStep}</div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -331,18 +455,28 @@ export default function SpreadGuard() {
           <Stat label="Slow Profit" value={`$${money(result.slowProfit)}`} />
         </div>
 
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-amber-800">
-          <b>Liquidity:</b> This affects both entry and exit. Weak liquidity means you may overpay when buying and get underpaid when selling.
-        </div>
-
         <div className="grid md:grid-cols-2 gap-2">
           <LiquidityCard title="Buy Leg Liquidity" data={result.buyLiq} />
           <LiquidityCard title="Sell Leg Liquidity" data={result.sellLiq} />
         </div>
 
-        <div className="bg-slate-50 rounded-xl p-3">
+        <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 text-yellow-900 space-y-1">
+          <div className="font-semibold">Contract Size Safety: {result.sizeCheck.status}</div>
+          <div>
+            You entered <b>{result.sizeCheck.desiredContracts}</b> contract(s).
+            Suggested max for this liquidity: <b>{result.sizeCheck.maxSuggested}</b>.
+          </div>
+          <div>{result.sizeCheck.explanation}</div>
+          <div className="text-yellow-800">{result.sizeCheck.beginnerNote}</div>
+        </div>
+
+        <div className="bg-slate-50 rounded-xl p-3 space-y-1">
           <div><b>IV:</b> {result.ivStatus} — {result.ivNote}</div>
           <div><b>Notes:</b> {result.notes.join(" ")}</div>
+          <div>
+            <b>Important:</b> Profit numbers are estimates after theta and estimated slippage.
+            They are not guaranteed because the exit bid/ask can change.
+          </div>
         </div>
       </div>
     </div>
