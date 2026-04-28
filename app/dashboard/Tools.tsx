@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import SpreadGuard from "./SpreadGuard";
 import DistanceFromHitCalculator from "./DistanceFromHitCalculator";
 
 
@@ -16,6 +17,9 @@ const Tools: React.FC = () => {
           Demo logic only; wire to live data later.
         </p>
       </div>
+
+      {/* SpreadGuard should be the first calculator shown */}
+      <SpreadGuard />
 
       <div className="grid lg:grid-cols-2 gap-6">
         <OptionRiskCard />
