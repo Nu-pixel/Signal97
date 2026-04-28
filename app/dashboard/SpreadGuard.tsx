@@ -14,6 +14,12 @@ type Leg = {
   theta: string;
 };
 
+type SpreadInput = {
+  name: string;
+  buyLeg: Leg;
+  sellLeg: Leg;
+};
+
 const n = (v: string | number) => Number(v) || 0;
 const money = (v: number) => Math.round(v * 100) / 100;
 
@@ -98,7 +104,7 @@ function contractSizeCheck(
     maxSuggested = 1;
     status = desiredContracts <= 1 ? "TEST SIZE ONLY" : "TOO LARGE";
     explanation =
-      "One leg has weak liquidity. This does not mean nobody can buy from you later, but it means your exit price is less predictable. Use 0–1 contract only or skip.";
+      "One leg has weak liquidity. That does not mean nobody can buy from you later, but your exit price is less predictable.";
   } else if (buyGrade.includes("SMALL") || sellGrade.includes("SMALL")) {
     maxSuggested = 5;
     status = desiredContracts <= 5 ? "SMALL SIZE OK" : "TOO LARGE";
@@ -129,6 +135,175 @@ function contractSizeCheck(
   };
 }
 
+function evaluateSpread(params: {
+  name: string;
+  direction: Direction;
+  stockPrice: number;
+  targetPct: number;
+  contracts: number;
+  buyLeg: Leg;
+  sellLeg: Leg;
+}) {
+  const { name, direction, stockPrice, targetPct, contracts, buyLeg, sellLeg } = params;
+
+  const pctRaw = targetPct;
+  const pct = pctRaw > 1 ? pctRaw / 100 : pctRaw;
+  const target = direction === "UP" ? stockPrice * (1 + pct) : stockPrice * (1 - pct);
+
+  const buyStrike = n(buyLeg.strike);
+  const sellStrike = n(sellLeg.strike);
+  const width = Math.abs(sellStrike - buyStrike);
+
+  const debit = n(buyLeg.ask) - n(sellLeg.bid);
+  const maxLoss = debit * 100 * contracts;
+  const maxProfit = (width - debit) * 100 * contracts;
+
+  const breakeven = direction === "UP" ? buyStrike + debit : buyStrike - debit;
+  const breakevenMovePct =
+    direction === "UP"
+      ? ((breakeven - stockPrice) / stockPrice) * 100
+      : ((stockPrice - breakeven) / stockPrice) * 100;
+
+  const netTheta = n(buyLeg.theta) + n(sellLeg.theta);
+  const thetaDaily = netTheta * 100 * contracts;
+
+  const [ivStatus, ivNote] = ivGrade((n(buyLeg.iv) + n(sellLeg.iv)) / 2);
+
+  const buyLiq = liquidityGrade(
+    n(buyLeg.volume),
+    n(buyLeg.openInterest),
+    n(buyLeg.bid),
+    n(buyLeg.ask),
+    contracts
+  );
+
+  const sellLiq = liquidityGrade(
+    n(sellLeg.volume),
+    n(sellLeg.openInterest),
+    n(sellLeg.bid),
+    n(sellLeg.ask),
+    contracts
+  );
+
+  const totalSlip = buyLiq.totalSlip + sellLiq.totalSlip;
+
+  const sizeCheck = contractSizeCheck(
+    contracts,
+    buyLiq.volume,
+    buyLiq.openInterest,
+    sellLiq.volume,
+    sellLiq.openInterest,
+    buyLiq.grade,
+    sellLiq.grade
+  );
+
+  const intrinsicAtTarget =
+    direction === "UP"
+      ? Math.max(0, Math.min(target - buyStrike, width))
+      : Math.max(0, Math.min(buyStrike - target, width));
+
+  const fastValue = Math.min(width, intrinsicAtTarget * 0.95);
+  const normalValue = Math.min(width, intrinsicAtTarget * 0.8);
+  const slowValue = Math.min(width, intrinsicAtTarget * 0.65);
+
+  const fastProfit = (fastValue - debit) * 100 * contracts + thetaDaily * 2 - totalSlip;
+  const normalProfit = (normalValue - debit) * 100 * contracts + thetaDaily * 4 - totalSlip;
+  const slowProfit = (slowValue - debit) * 100 * contracts + thetaDaily * 6 - totalSlip;
+  const expectedProfit = fastProfit * 0.3 + normalProfit * 0.5 + slowProfit * 0.2;
+
+  const rewardRisk = maxLoss > 0 ? maxProfit / maxLoss : 0;
+
+  let decision = "EXECUTE";
+  let score = 100;
+  const notes: string[] = [];
+
+  if (debit <= 0) {
+    decision = "SKIP";
+    score -= 100;
+    notes.push("Invalid debit. Recheck bid/ask.");
+  }
+
+  if (breakevenMovePct > pctRaw + 0.5) {
+    decision = "SKIP";
+    score -= 40;
+    notes.push("Breakeven is beyond the model target.");
+  } else if (breakevenMovePct > 4.5) {
+    decision = decision === "EXECUTE" ? "WATCH" : decision;
+    score -= 15;
+    notes.push("Breakeven needs more than about 4.5% move.");
+  } else {
+    score += 10;
+    notes.push("Breakeven is inside the model move.");
+  }
+
+  if (debit > width * 0.65) {
+    decision = "SKIP";
+    score -= 30;
+    notes.push("Debit is too expensive compared with spread width.");
+  }
+
+  if (buyLiq.grade === "BAD" || sellLiq.grade === "BAD") {
+    decision = "SKIP";
+    score -= 35;
+    notes.push("Liquidity is too weak. Exit price may be worse than expected.");
+  } else if (buyLiq.grade.includes("SMALL") || sellLiq.grade.includes("SMALL")) {
+    decision = decision === "EXECUTE" ? "WATCH / SMALL SIZE ONLY" : decision;
+    score -= 15;
+    notes.push("Liquidity is usable, but only for small size.");
+  } else {
+    score += 10;
+    notes.push("Liquidity looks tradable with limit orders.");
+  }
+
+  if (sizeCheck.status === "TOO LARGE") {
+    decision = "SKIP";
+    score -= 25;
+    notes.push("Your selected contract size is too large for current liquidity.");
+  }
+
+  if (expectedProfit <= 0) {
+    decision = "SKIP";
+    score -= 25;
+    notes.push("Estimated profit after theta and slippage is weak.");
+  }
+
+  if (rewardRisk < 0.75) {
+    decision = decision === "EXECUTE" ? "WATCH" : decision;
+    score -= 10;
+    notes.push("Reward/risk is not ideal.");
+  }
+
+  return {
+    name,
+    direction,
+    optionWord: direction === "UP" ? "Call" : "Put",
+    buyStrike,
+    sellStrike,
+    width,
+    target,
+    debit,
+    breakeven,
+    breakevenMovePct,
+    maxLoss,
+    maxProfit,
+    totalSlip,
+    fastProfit,
+    normalProfit,
+    slowProfit,
+    expectedProfit,
+    thetaDaily,
+    ivStatus,
+    ivNote,
+    buyLiq,
+    sellLiq,
+    sizeCheck,
+    decision,
+    score,
+    notes,
+    rewardRisk,
+  };
+}
+
 export default function SpreadGuard() {
   const [ticker, setTicker] = useState("TSM");
   const [direction, setDirection] = useState<Direction>("UP");
@@ -138,24 +313,48 @@ export default function SpreadGuard() {
   const [contracts, setContracts] = useState("1");
   const [strikes, setStrikes] = useState("397.5,400,402.5,405,407.5,410,412.5,415,420");
 
-  const [buyLeg, setBuyLeg] = useState<Leg>({
-    strike: "402.5",
-    bid: "14.80",
-    ask: "15.80",
-    volume: "56",
-    openInterest: "25",
-    iv: "0.5179",
-    theta: "-0.6699",
+  const [spreadA, setSpreadA] = useState<SpreadInput>({
+    name: "Candidate A",
+    buyLeg: {
+      strike: "402.5",
+      bid: "14.80",
+      ask: "15.80",
+      volume: "56",
+      openInterest: "25",
+      iv: "0.5179",
+      theta: "-0.6699",
+    },
+    sellLeg: {
+      strike: "415",
+      bid: "9.65",
+      ask: "10.25",
+      volume: "386",
+      openInterest: "274",
+      iv: "0.5216",
+      theta: "0.6507",
+    },
   });
 
-  const [sellLeg, setSellLeg] = useState<Leg>({
-    strike: "415",
-    bid: "9.65",
-    ask: "10.25",
-    volume: "386",
-    openInterest: "274",
-    iv: "0.5216",
-    theta: "0.6507",
+  const [spreadB, setSpreadB] = useState<SpreadInput>({
+    name: "Candidate B",
+    buyLeg: {
+      strike: "405",
+      bid: "13.40",
+      ask: "14.30",
+      volume: "0",
+      openInterest: "0",
+      iv: "0.52",
+      theta: "-0.65",
+    },
+    sellLeg: {
+      strike: "415",
+      bid: "9.65",
+      ask: "10.25",
+      volume: "386",
+      openInterest: "274",
+      iv: "0.5216",
+      theta: "0.6507",
+    },
   });
 
   const candidates = useMemo(() => {
@@ -193,8 +392,6 @@ export default function SpreadGuard() {
           width: Math.abs(sell - buy),
           target: money(target),
           zone: `${money(low)} to ${money(high)}`,
-          note:
-            "Not approved yet. This is only a strike pair worth checking because the sell strike is inside the safer 70%–90% target zone.",
         });
       }
     }
@@ -211,185 +408,104 @@ export default function SpreadGuard() {
       .slice(0, 2);
   }, [direction, stockPrice, targetPct, strikes]);
 
-  const result = useMemo(() => {
-    const price = n(stockPrice);
-    const pctRaw = n(targetPct);
-    const pct = pctRaw > 1 ? pctRaw / 100 : pctRaw;
-    const c = n(contracts);
+  const resultA = useMemo(
+    () =>
+      evaluateSpread({
+        name: "Candidate A",
+        direction,
+        stockPrice: n(stockPrice),
+        targetPct: n(targetPct),
+        contracts: n(contracts),
+        buyLeg: spreadA.buyLeg,
+        sellLeg: spreadA.sellLeg,
+      }),
+    [direction, stockPrice, targetPct, contracts, spreadA]
+  );
 
-    const target = direction === "UP" ? price * (1 + pct) : price * (1 - pct);
+  const resultB = useMemo(
+    () =>
+      evaluateSpread({
+        name: "Candidate B",
+        direction,
+        stockPrice: n(stockPrice),
+        targetPct: n(targetPct),
+        contracts: n(contracts),
+        buyLeg: spreadB.buyLeg,
+        sellLeg: spreadB.sellLeg,
+      }),
+    [direction, stockPrice, targetPct, contracts, spreadB]
+  );
 
-    const buyStrike = n(buyLeg.strike);
-    const sellStrike = n(sellLeg.strike);
-    const width = Math.abs(sellStrike - buyStrike);
+  const final = useMemo(() => {
+    const validA = resultA.decision !== "SKIP";
+    const validB = resultB.decision !== "SKIP";
 
-    const debit = n(buyLeg.ask) - n(sellLeg.bid);
-    const maxLoss = debit * 100 * c;
-    const maxProfit = (width - debit) * 100 * c;
-
-    const breakeven = direction === "UP" ? buyStrike + debit : buyStrike - debit;
-    const breakevenMovePct =
-      direction === "UP"
-        ? ((breakeven - price) / price) * 100
-        : ((price - breakeven) / price) * 100;
-
-    const netTheta = n(buyLeg.theta) + n(sellLeg.theta);
-    const thetaDaily = netTheta * 100 * c;
-
-    const [ivStatus, ivNote] = ivGrade((n(buyLeg.iv) + n(sellLeg.iv)) / 2);
-
-    const buyLiq = liquidityGrade(
-      n(buyLeg.volume),
-      n(buyLeg.openInterest),
-      n(buyLeg.bid),
-      n(buyLeg.ask),
-      c
-    );
-
-    const sellLiq = liquidityGrade(
-      n(sellLeg.volume),
-      n(sellLeg.openInterest),
-      n(sellLeg.bid),
-      n(sellLeg.ask),
-      c
-    );
-
-    const totalSlip = buyLiq.totalSlip + sellLiq.totalSlip;
-
-    const sizeCheck = contractSizeCheck(
-      c,
-      buyLiq.volume,
-      buyLiq.openInterest,
-      sellLiq.volume,
-      sellLiq.openInterest,
-      buyLiq.grade,
-      sellLiq.grade
-    );
-
-    const intrinsicAtTarget =
-      direction === "UP"
-        ? Math.max(0, Math.min(target - buyStrike, width))
-        : Math.max(0, Math.min(buyStrike - target, width));
-
-    const fastValue = Math.min(width, intrinsicAtTarget * 0.95);
-    const normalValue = Math.min(width, intrinsicAtTarget * 0.8);
-    const slowValue = Math.min(width, intrinsicAtTarget * 0.65);
-
-    const fastProfit = (fastValue - debit) * 100 * c + thetaDaily * 2 - totalSlip;
-    const normalProfit = (normalValue - debit) * 100 * c + thetaDaily * 4 - totalSlip;
-    const slowProfit = (slowValue - debit) * 100 * c + thetaDaily * 6 - totalSlip;
-    const expectedProfit = fastProfit * 0.3 + normalProfit * 0.5 + slowProfit * 0.2;
-
-    const rewardRisk = maxLoss > 0 ? maxProfit / maxLoss : 0;
-
-    let decision = "EXECUTE";
-    let finalAction = `APPROVED: Buy ${buyStrike} ${direction === "UP" ? "Call" : "Put"} / Sell ${sellStrike} ${direction === "UP" ? "Call" : "Put"}`;
-    let why = "Breakeven, liquidity, theta, contract size, and reward/risk are acceptable.";
-    let nextStep = "Use a limit order only. Do not use market order.";
-    const notes: string[] = [];
-
-    if (debit <= 0) {
-      decision = "SKIP";
-      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = "The debit is invalid. The option bid/ask numbers are probably entered wrong.";
-      nextStep = "Recheck the bid and ask values.";
-      notes.push("Invalid debit. Check bid/ask values.");
-    } else if (breakevenMovePct > pctRaw + 0.5) {
-      decision = "SKIP";
-      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = `Breakeven needs ${money(breakevenMovePct)}%, which is beyond your model target.`;
-      nextStep = "Pick a lower breakeven spread closer to the current price.";
-      notes.push("Breakeven is beyond your model target.");
-    } else if (debit > width * 0.65) {
-      decision = "SKIP";
-      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = "The spread costs too much compared with the max profit available.";
-      nextStep = "Try a cheaper spread or a closer sell strike.";
-      notes.push("Debit is too expensive compared with spread width.");
-    } else if (buyLiq.grade === "BAD" || sellLiq.grade === "BAD") {
-      decision = "SKIP";
-      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = `Breakeven is ${money(breakevenMovePct)}%, which is good, but liquidity is too weak. You may still exit later, but the exit price is less predictable.`;
-      nextStep = candidates[1]
-        ? `Try candidate #2: Buy ${candidates[1].buy} / Sell ${candidates[1].sell}. Enter that option data next.`
-        : "Try a nearby strike with better volume, open interest, and tighter bid/ask.";
-      notes.push("Liquidity is too weak. You may overpay entering and get underpaid exiting.");
-    } else if (sizeCheck.status === "TOO LARGE") {
-      decision = "SKIP";
-      finalAction = `SKIP SIZE: Do not use ${c} contracts on Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = sizeCheck.explanation;
-      nextStep = `Reduce size to ${sizeCheck.maxSuggested} contract(s) or choose strikes with stronger volume/open interest.`;
-      notes.push("Your selected contract size is too large for current liquidity.");
-    } else if (buyLiq.grade.includes("SMALL") || sellLiq.grade.includes("SMALL")) {
-      decision = "WATCH / SMALL SIZE ONLY";
-      finalAction = `CAREFUL: Buy ${buyStrike} / Sell ${sellStrike} only with small size`;
-      why = "The spread is usable, but liquidity is not strong enough for aggressive size.";
-      nextStep = "Use 1–5 contracts max and limit order only.";
-      notes.push("Liquidity is usable, but only for small size.");
-    } else if (expectedProfit <= 0) {
-      decision = "SKIP";
-      finalAction = `SKIP: Do not use Buy ${buyStrike} / Sell ${sellStrike}`;
-      why = "Estimated profit after theta and estimated slippage is weak.";
-      nextStep = "Try another candidate spread.";
-      notes.push("Estimated profit after theta and estimated slippage is weak.");
-    } else if (rewardRisk < 0.75) {
-      decision = "WATCH";
-      finalAction = `WATCH: Buy ${buyStrike} / Sell ${sellStrike} is possible, but not ideal`;
-      why = "Reward/risk is not strong enough.";
-      nextStep = "Use smaller size or compare with candidate #2.";
-      notes.push("Reward/risk is not ideal.");
-    } else {
-      notes.push("Trade structure is valid. Use limit order only.");
+    if (!validA && !validB) {
+      return {
+        decision: "SKIP BOTH",
+        action: "Do not use either spread right now.",
+        why: "Both candidates failed the safety checks. The common reasons are weak liquidity, bad size, expensive debit, or weak expected profit.",
+        next: "Check nearby strikes with stronger volume/open interest and tighter bid/ask spreads.",
+        winner: null as any,
+      };
     }
 
-    return {
-      target,
-      debit,
-      breakeven,
-      breakevenMovePct,
-      maxLoss,
-      maxProfit,
-      totalSlip,
-      fastProfit,
-      normalProfit,
-      slowProfit,
-      expectedProfit,
-      thetaDaily,
-      ivStatus,
-      ivNote,
-      buyLiq,
-      sellLiq,
-      sizeCheck,
-      decision,
-      notes,
-      finalAction,
-      why,
-      nextStep,
-      buyStrike,
-      sellStrike,
-    };
-  }, [direction, stockPrice, targetPct, contracts, buyLeg, sellLeg, candidates]);
+    const winner =
+      validA && validB
+        ? resultA.score >= resultB.score
+          ? resultA
+          : resultB
+        : validA
+        ? resultA
+        : resultB;
 
-  const setLeg = (which: "buy" | "sell", key: keyof Leg, value: string) => {
-    if (which === "buy") setBuyLeg((p) => ({ ...p, [key]: value }));
-    else setSellLeg((p) => ({ ...p, [key]: value }));
+    return {
+      decision: winner.decision,
+      action: `${winner.decision}: Buy ${winner.buyStrike} ${winner.optionWord} / Sell ${winner.sellStrike} ${winner.optionWord}`,
+      why: `${winner.name} is stronger based on breakeven, liquidity, contract size, theta, slippage, and reward/risk.`,
+      next:
+        winner.decision === "EXECUTE"
+          ? "Use a limit order only. Do not use a market order."
+          : "Small size only. Use a limit order and do not scale aggressively.",
+      winner,
+    };
+  }, [resultA, resultB]);
+
+  const setLeg = (
+    candidate: "A" | "B",
+    side: "buyLeg" | "sellLeg",
+    key: keyof Leg,
+    value: string
+  ) => {
+    const setter = candidate === "A" ? setSpreadA : setSpreadB;
+    setter((p) => ({
+      ...p,
+      [side]: {
+        ...p[side],
+        [key]: value,
+      },
+    }));
   };
 
   return (
-    <div className="rounded-3xl bg-white shadow-sm border border-slate-100 p-5 space-y-4">
-      <div>
-        <div className="text-sm font-semibold text-slate-900">SpreadGuard</div>
-        <p className="text-[10px] text-slate-500">
-          Fast debit spread checker. Stage 1 only finds strikes worth checking. Stage 2 decides if the trade is actually usable.
-        </p>
+    <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-5 shadow-sm space-y-5">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+        <div>
+          <div className="text-xl font-semibold text-slate-950">SpreadGuard</div>
+          <p className="text-xs text-slate-600 max-w-2xl">
+            Fast debit-spread safety checker for Signal 97. It compares two spread choices side-by-side and explains whether to use one, use small size, or skip both.
+          </p>
+        </div>
+        <div className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-semibold">
+          {final.decision}
+        </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-3 text-[10px]">
-        Stage 1 is NOT a trade approval. It only uses stock price, direction, target %, and visible strikes.
-        For a 4% Signal 97 alert, prefer final spreads where breakeven needs about 4.5% move or less.
+      <div className="rounded-2xl bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
+        <b>Simple rule:</b> Step 1 only finds strike pairs worth checking. It does not approve the trade. Final approval happens after you enter bid, ask, volume, open interest, IV, and theta for both candidates.
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-[10px]">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         <Input label="Ticker" value={ticker} onChange={setTicker} />
         <Select label="Direction" value={direction} onChange={(v) => setDirection(v as Direction)} />
         <Input label="Stock price" value={stockPrice} onChange={setStockPrice} />
@@ -398,117 +514,136 @@ export default function SpreadGuard() {
         <Input label="Contracts" value={contracts} onChange={setContracts} />
       </div>
 
-      <label className="block text-[10px]">
-        <span className="text-slate-500">Visible strikes, comma separated</span>
+      <label className="block text-xs">
+        <span className="font-medium text-slate-600">Visible strikes, comma separated</span>
         <textarea
           value={strikes}
           onChange={(e) => setStrikes(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[10px]"
+          className="mt-1 w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-200"
         />
       </label>
 
-      <div className="bg-slate-50 rounded-2xl p-3 text-[10px]">
-        <div className="font-semibold mb-1">Step 1 — Top 2 spreads to investigate, not approved yet</div>
-        <div className="text-slate-500 mb-2">
-          This step does not use bid/ask, IV, theta, volume, or open interest yet.
+      <div className="rounded-2xl bg-white/80 border border-slate-200 p-4 text-xs">
+        <div className="font-semibold text-slate-900 mb-1">Step 1 — Top 2 strike pairs to check</div>
+        <div className="text-slate-500 mb-3">
+          These are not approved trades yet. They are only chosen from your strike list using current price, direction, target %, and sell-strike target zone.
         </div>
-
-        {candidates.map((c, i) => (
-          <div key={i} className="border-b border-slate-200 py-1">
-            {i + 1}) Check: Buy {c.buy} / Sell {c.sell} | Width {c.width} | Target ${c.target} | Sell zone {c.zone}
-            <div className="text-slate-500">{c.note}</div>
-          </div>
-        ))}
+        <div className="grid md:grid-cols-2 gap-3">
+          {candidates.map((c, i) => (
+            <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div className="font-semibold text-slate-900">
+                Candidate {i + 1}: Buy {c.buy} / Sell {c.sell}
+              </div>
+              <div className="text-slate-600">Width: {c.width} · Target: ${c.target}</div>
+              <div className="text-slate-500">Sell zone: {c.zone}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-3">
-        <LegBox title="Step 2 — Buy Leg Data" leg={buyLeg} onChange={(k, v) => setLeg("buy", k, v)} />
-        <LegBox title="Step 2 — Sell Leg Data" leg={sellLeg} onChange={(k, v) => setLeg("sell", k, v)} />
+      <div className="rounded-2xl bg-slate-950 text-white p-4 space-y-1">
+        <div className="text-xs uppercase tracking-wide text-slate-300">Final action</div>
+        <div className="text-lg font-semibold">{final.action}</div>
+        <div className="text-sm text-slate-200">{final.why}</div>
+        <div className="text-sm text-slate-300"><b>Next:</b> {final.next}</div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 p-4 text-[10px] space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold text-slate-900">Final Action</div>
-          <div className="px-3 py-1 rounded-full bg-slate-900 text-white text-[10px]">{result.decision}</div>
-        </div>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <SpreadEditor
+          title="Candidate A"
+          result={resultA}
+          spread={spreadA}
+          onChange={(side, key, value) => setLeg("A", side, key, value)}
+        />
+        <SpreadEditor
+          title="Candidate B"
+          result={resultB}
+          spread={spreadB}
+          onChange={(side, key, value) => setLeg("B", side, key, value)}
+        />
+      </div>
 
-        <div className="bg-slate-900 text-white rounded-xl p-3 space-y-1">
-          <div><b>Action:</b> {result.finalAction}</div>
-          <div><b>Why:</b> {result.why}</div>
-          <div><b>Next:</b> {result.nextStep}</div>
+      <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 text-xs text-yellow-900 space-y-2">
+        <div className="font-semibold">Beginner liquidity reminder</div>
+        <div>
+          Volume is today’s activity. Open interest is currently open contracts. Low volume/OI does not prove you cannot exit later, but it means the option is less active and your exit price may be worse.
         </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Stat label="Target" value={`$${money(result.target)}`} />
-          <Stat label="Breakeven" value={`$${money(result.breakeven)}`} />
-          <Stat label="Breakeven Move" value={`${money(result.breakevenMovePct)}%`} />
-          <Stat label="Cost / Max Loss" value={`$${money(result.maxLoss)}`} />
-          <Stat label="Max Profit" value={`$${money(result.maxProfit)}`} />
-          <Stat label="Est. Slippage" value={`$${money(result.totalSlip)}`} />
-          <Stat label="Theta / Day" value={`$${money(result.thetaDaily)}`} />
-          <Stat label="Expected Profit" value={`$${money(result.expectedProfit)}`} />
+        <div>
+          Because this is a spread, risk is more controlled than buying one single option, but both legs still need a fair fill. Use limit orders only.
         </div>
-
-        <div className="grid md:grid-cols-3 gap-2">
-          <Stat label="Fast Profit" value={`$${money(result.fastProfit)}`} />
-          <Stat label="Normal Profit" value={`$${money(result.normalProfit)}`} />
-          <Stat label="Slow Profit" value={`$${money(result.slowProfit)}`} />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-2">
-          <LiquidityCard title="Buy Leg Liquidity" data={result.buyLiq} />
-          <LiquidityCard title="Sell Leg Liquidity" data={result.sellLiq} />
-        </div>
-
-        <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 text-yellow-900 space-y-1">
-          <div className="font-semibold">Contract Size Safety: {result.sizeCheck.status}</div>
-          <div>
-            You entered <b>{result.sizeCheck.desiredContracts}</b> contract(s).
-            Suggested max for this liquidity: <b>{result.sizeCheck.maxSuggested}</b>.
-          </div>
-          <div>{result.sizeCheck.explanation}</div>
-          <div className="text-yellow-800">{result.sizeCheck.beginnerNote}</div>
-        </div>
-
-        <div className="bg-slate-50 rounded-xl p-3 space-y-1">
-          <div><b>IV:</b> {result.ivStatus} — {result.ivNote}</div>
-          <div><b>Notes:</b> {result.notes.join(" ")}</div>
-          <div>
-            <b>Important:</b> Profit numbers are estimates after theta and estimated slippage.
-            They are not guaranteed because the exit bid/ask can change.
-          </div>
+        <div>
+          Profit numbers are estimates after theta and estimated slippage. They are not guaranteed because the exit bid/ask can change.
         </div>
       </div>
     </div>
   );
 }
 
-function Input({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function SpreadEditor({
+  title,
+  spread,
+  result,
+  onChange,
+}: {
+  title: string;
+  spread: SpreadInput;
+  result: any;
+  onChange: (side: "buyLeg" | "sellLeg", key: keyof Leg, value: string) => void;
+}) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[9px] text-slate-500">{label}</span>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-[10px]" />
-    </label>
+    <div className="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-semibold text-slate-950">{title}</div>
+          <div className="text-xs text-slate-500">
+            Buy {result.buyStrike} / Sell {result.sellStrike}
+          </div>
+        </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+          {result.decision}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <LegBox title="Buy leg" leg={spread.buyLeg} onChange={(k, v) => onChange("buyLeg", k, v)} />
+        <LegBox title="Sell leg" leg={spread.sellLeg} onChange={(k, v) => onChange("sellLeg", k, v)} />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Stat label="Breakeven move" value={`${money(result.breakevenMovePct)}%`} />
+        <Stat label="Cost / max loss" value={`$${money(result.maxLoss)}`} />
+        <Stat label="Max profit" value={`$${money(result.maxProfit)}`} />
+        <Stat label="Expected profit" value={`$${money(result.expectedProfit)}`} />
+        <Stat label="Theta/day" value={`$${money(result.thetaDaily)}`} />
+        <Stat label="Est. slippage" value={`$${money(result.totalSlip)}`} />
+        <Stat label="Fast profit" value={`$${money(result.fastProfit)}`} />
+        <Stat label="Slow profit" value={`$${money(result.slowProfit)}`} />
+      </div>
+
+      <div className="rounded-2xl bg-slate-50 p-3 text-xs space-y-1">
+        <div><b>Buy liquidity:</b> {result.buyLiq.grade} · spread {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume {result.buyLiq.volume}</div>
+        <div><b>Sell liquidity:</b> {result.sellLiq.grade} · spread {result.sellLiq.spreadPct}% · OI {result.sellLiq.openInterest} · volume {result.sellLiq.volume}</div>
+        <div><b>Size safety:</b> {result.sizeCheck.status} — suggested max {result.sizeCheck.maxSuggested}</div>
+        <div><b>IV:</b> {result.ivStatus} — {result.ivNote}</div>
+        <div><b>Notes:</b> {result.notes.join(" ")}</div>
+      </div>
+    </div>
   );
 }
 
-function Select({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[9px] text-slate-500">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-[10px]">
-        <option value="UP">UP</option>
-        <option value="DOWN">DOWN</option>
-      </select>
-    </label>
-  );
-}
-
-function LegBox({ title, leg, onChange }: { title: string; leg: Leg; onChange: (k: keyof Leg, v: string) => void }) {
+function LegBox({
+  title,
+  leg,
+  onChange,
+}: {
+  title: string;
+  leg: Leg;
+  onChange: (key: keyof Leg, value: string) => void;
+}) {
   const keys = Object.keys(leg) as (keyof Leg)[];
   return (
-    <div className="bg-slate-50 rounded-2xl p-3 text-[10px]">
-      <div className="font-semibold mb-2">{title}</div>
+    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+      <div className="text-xs font-semibold text-slate-700 mb-2">{title}</div>
       <div className="grid grid-cols-2 gap-2">
         {keys.map((k) => (
           <Input key={k} label={k} value={leg[k]} onChange={(v) => onChange(k, v)} />
@@ -518,24 +653,56 @@ function LegBox({ title, leg, onChange }: { title: string; leg: Leg; onChange: (
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Input({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
-    <div className="bg-slate-50 rounded-xl p-2">
-      <div className="text-slate-500">{label}</div>
-      <div className="font-semibold text-slate-900">{value}</div>
-    </div>
+    <label className="flex flex-col gap-1 text-xs">
+      <span className="text-[10px] font-medium text-slate-500">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
+      />
+    </label>
   );
 }
 
-function LiquidityCard({ title, data }: { title: string; data: any }) {
+function Select({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
-    <div className="bg-slate-50 rounded-xl p-3 space-y-1">
-      <div className="font-semibold">{title}: {data.grade}</div>
-      <div>Suggested size: {data.contractRange}</div>
-      <div>Bid/ask spread: {data.spread} ({data.spreadPct}%)</div>
-      <div>Entry slippage estimate: ${data.entrySlip}</div>
-      <div>Exit slippage estimate: ${data.exitSlip}</div>
-      <div className="text-slate-600">{data.action}</div>
+    <label className="flex flex-col gap-1 text-xs">
+      <span className="text-[10px] font-medium text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
+      >
+        <option value="UP">UP</option>
+        <option value="DOWN">DOWN</option>
+      </select>
+    </label>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-2">
+      <div className="text-[10px] text-slate-500">{label}</div>
+      <div className="text-sm font-semibold text-slate-950">{value}</div>
     </div>
   );
 }
