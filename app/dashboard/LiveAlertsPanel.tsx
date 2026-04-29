@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 // This matches the columns coming from forecast_scored.csv / /alerts/live
 type RawAlert = {
+  alert_key?: string;
+
   symbol?: string;
   direction?: string;
   direction_rule_direction?: string;
@@ -109,12 +111,15 @@ async function postJson(url: string, body: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
   });
+
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
+
+  if (!res.ok || (data as any)?.ok === false) {
     const msg =
       (data as any)?.error || (data as any)?.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
+
   return data;
 }
 
@@ -129,6 +134,7 @@ function deduceTone(
   direction?: string
 ): DirectionTone {
   const d = (directionRuleDirection || direction || "").toUpperCase();
+
   if (
     d.includes("UP") ||
     d.includes("CALL") ||
@@ -137,6 +143,7 @@ function deduceTone(
   ) {
     return "up";
   }
+
   if (
     d.includes("DOWN") ||
     d.includes("PUT") ||
@@ -145,6 +152,7 @@ function deduceTone(
   ) {
     return "down";
   }
+
   return "flat";
 }
 
@@ -153,20 +161,25 @@ function prettyDirection(
   direction?: string
 ): string {
   const d = (directionRuleDirection || direction || "").toUpperCase();
+
   if (d.includes("UP") || d.includes("CALL") || d.includes("SUNRISE")) {
     return "Up move (CALL / Sunrise bias)";
   }
+
   if (d.includes("DOWN") || d.includes("PUT") || d.includes("SNOWFALL")) {
     return "Down move (PUT / Snowfall bias)";
   }
+
   return directionRuleDirection || direction || "Neutral / not set";
 }
 
 function formatTimeLabel(t12h?: string, iso?: string): string {
   if (t12h && t12h.trim().length > 0) return t12h;
   if (!iso) return "";
+
   const dt = new Date(iso);
   if (Number.isNaN(dt.getTime())) return "";
+
   return dt.toLocaleString();
 }
 
@@ -228,20 +241,40 @@ export default function LiveAlertsPanel() {
   const [alerts, setAlerts] = useState<{ raw: RawAlert; card: AlertCardData }[]>(
     []
   );
+
   const [loading, setLoading] = useState(true);
 
-  // key for "button busy" so users can't double-click Take/Snooze/Dismiss
+  // key for "button busy" so users can't double-click Take/Dismiss/Star
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
+  // pinned alerts only affect UI order
+  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(new Set());
+
   function makeKey(a: RawAlert) {
-    // best-effort stable key across refreshes
+    // Prefer VM-generated key. Fallback is kept for older rows.
+    if (a.alert_key) return String(a.alert_key);
+
     return [
       a.symbol || "",
+      a.direction_rule_direction || a.direction || "",
       a.forecast_time || a.forecast_time_12h_ct || "",
       a.entry_time_12h_ct || "",
-      a.direction_rule_direction || a.direction || "",
       String(a.forecast_pct ?? ""),
     ].join("|");
+  }
+
+  function togglePin(key: string) {
+    setPinnedKeys((old) => {
+      const next = new Set(old);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
   }
 
   async function loadAlerts() {
@@ -249,7 +282,31 @@ export default function LiveAlertsPanel() {
       const res = await fetch("/api/live-alerts", { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       const rawAlerts: RawAlert[] = data.alerts ?? [];
-      const mapped = rawAlerts.map((r) => ({ raw: r, card: mapRawToCard(r) }));
+
+      const mapped = rawAlerts
+        .map((r) => ({ raw: r, card: mapRawToCard(r) }))
+        .sort((a, b) => {
+          const ak = makeKey(a.raw);
+          const bk = makeKey(b.raw);
+
+          const ap = pinnedKeys.has(ak) ? 1 : 0;
+          const bp = pinnedKeys.has(bk) ? 1 : 0;
+
+          // Pinned alerts first
+          if (bp !== ap) return bp - ap;
+
+          // Newest alerts first
+          const at = new Date(
+            a.raw.forecast_time || a.raw.forecast_time_12h_ct || 0
+          ).getTime();
+
+          const bt = new Date(
+            b.raw.forecast_time || b.raw.forecast_time_12h_ct || 0
+          ).getTime();
+
+          return bt - at;
+        });
+
       setAlerts(mapped);
     } catch (err) {
       console.error("Failed to load alerts", err);
@@ -258,45 +315,34 @@ export default function LiveAlertsPanel() {
     }
   }
 
-  // ✅ FIX: Take should also remove the alert from this page
-  // We do: take -> then dismiss -> then reload
+  // Take = move to Active Trades and remove from Signal97 Alerts
   async function onTake(rawAlert: RawAlert) {
     const key = makeKey(rawAlert);
     setBusyKey(key);
+
     try {
       await postJson("/api/take-alert", { alert: rawAlert });
 
-      // Remove it from alerts list (most backends implement this)
-      // If your backend ignores dismiss, we still reload and it won’t break.
-      try {
-        await postJson("/api/dismiss-alert", { alert: rawAlert });
-      } catch {
-        // ignore dismiss errors; take is more important
-      }
-
-      await loadAlerts();
+      // Immediately remove from this page
+      setAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
     } finally {
       setBusyKey(null);
     }
   }
 
+  // Dismiss = move to Dismissed Alerts and remove from Signal97 Alerts
   async function onDismiss(rawAlert: RawAlert) {
     const key = makeKey(rawAlert);
     setBusyKey(key);
-    try {
-      await postJson("/api/dismiss-alert", { alert: rawAlert });
-      await loadAlerts();
-    } finally {
-      setBusyKey(null);
-    }
-  }
 
-  async function onSnooze(rawAlert: RawAlert, minutes = 30) {
-    const key = makeKey(rawAlert);
-    setBusyKey(key);
     try {
-      await postJson("/api/snooze-alert", { alert: rawAlert, minutes });
-      await loadAlerts();
+      await postJson("/api/dismiss-alert", {
+        alert: rawAlert,
+        reason: "manual",
+      });
+
+      // Immediately remove from this page
+      setAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
     } finally {
       setBusyKey(null);
     }
@@ -306,7 +352,8 @@ export default function LiveAlertsPanel() {
     loadAlerts();
     const id = setInterval(loadAlerts, 15000);
     return () => clearInterval(id);
-  }, []);
+    // pinnedKeys is included so Star/Pin re-sorts alerts
+  }, [pinnedKeys]);
 
   if (loading) {
     return (
@@ -339,8 +386,8 @@ export default function LiveAlertsPanel() {
             Signal 97 Alerts
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Only alerts that pass your Signal 97 rules appear here. No random
-            call-outs.
+            Only fresh, actionable alerts that pass Signal 97 + Probability
+            appear here.
           </p>
         </div>
 
@@ -352,9 +399,10 @@ export default function LiveAlertsPanel() {
           alert={sample}
           rawAlert={{}}
           busy={false}
+          pinned={false}
           onTake={async () => window.alert("No live alerts yet.")}
           onDismiss={async () => window.alert("No live alerts yet.")}
-          onSnooze={async () => window.alert("No live alerts yet.")}
+          onTogglePin={() => window.alert("No live alerts yet.")}
         />
       </div>
     );
@@ -367,29 +415,29 @@ export default function LiveAlertsPanel() {
           Signal 97 Alerts
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Only alerts that pass your Signal 97 + Probability rules appear here.
+          Only fresh, actionable alerts that pass Signal 97 + Probability rules
+          appear here.
         </p>
       </div>
 
       <div className="space-y-4">
-        {alerts
-          .slice()
-          .reverse()
-          .map((a, idx) => {
-            const key = makeKey(a.raw);
-            const busy = busyKey === key;
-            return (
-              <AlertBubble
-                key={key || idx}
-                alert={a.card}
-                rawAlert={a.raw}
-                busy={busy}
-                onTake={onTake}
-                onDismiss={onDismiss}
-                onSnooze={onSnooze}
-              />
-            );
-          })}
+        {alerts.map((a, idx) => {
+          const key = makeKey(a.raw);
+          const busy = busyKey === key;
+
+          return (
+            <AlertBubble
+              key={key || idx}
+              alert={a.card}
+              rawAlert={a.raw}
+              busy={busy}
+              pinned={pinnedKeys.has(key)}
+              onTake={onTake}
+              onDismiss={onDismiss}
+              onTogglePin={() => togglePin(key)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -399,16 +447,18 @@ function AlertBubble({
   alert,
   rawAlert,
   busy,
+  pinned,
   onTake,
   onDismiss,
-  onSnooze,
+  onTogglePin,
 }: {
   alert: AlertCardData;
   rawAlert: RawAlert;
   busy: boolean;
+  pinned: boolean;
   onTake: (a: RawAlert) => Promise<void>;
   onDismiss: (a: RawAlert) => Promise<void>;
-  onSnooze: (a: RawAlert, minutes?: number) => Promise<void>;
+  onTogglePin: () => void;
 }) {
   return (
     <div
@@ -421,11 +471,18 @@ function AlertBubble({
             <div className="text-xl font-semibold text-slate-900">
               {alert.symbol}
             </div>
+
             <span
               className={`px-3 py-1 rounded-full text-[10px] font-semibold ${toneLabelClass[alert.tone]}`}
             >
               {toneLabel[alert.tone]}
             </span>
+
+            {pinned && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                ★ Pinned
+              </span>
+            )}
           </div>
 
           <div className="text-[11px] leading-relaxed text-slate-700 space-y-0.5">
@@ -465,6 +522,7 @@ function AlertBubble({
               <span className="font-semibold">Entry time:</span>{" "}
               {alert.entryTime || "—"}
             </div>
+
             <div className="text-slate-500">
               <span className="font-semibold">Forecast time:</span>{" "}
               {alert.forecastTime || "—"}
@@ -486,17 +544,23 @@ function AlertBubble({
         <button
           className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
           disabled={busy}
-          onClick={() => onSnooze(rawAlert, 30)}
-        >
-          Snooze 30m
-        </button>
-
-        <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
-          disabled={busy}
           onClick={() => onDismiss(rawAlert)}
         >
           Dismiss
+        </button>
+
+        <button
+          className={
+            "px-3 py-1.5 rounded-md border text-sm disabled:opacity-50 " +
+            (pinned
+              ? "bg-yellow-100 border-yellow-300 text-yellow-800"
+              : "hover:bg-black/5")
+          }
+          disabled={busy}
+          onClick={onTogglePin}
+          title="Pin this alert to the top"
+        >
+          {pinned ? "★ Pinned" : "☆ Star"}
         </button>
       </div>
 
@@ -514,6 +578,7 @@ function AlertBubble({
               value={alert.rule_label}
             />
           )}
+
           {alert.direction_rule_view && (
             <InfoRow
               label="Direction rule"
@@ -529,36 +594,43 @@ function AlertBubble({
             explain="How strong the short-term flow/momentum looks here."
             value={fmt(alert.flow_score)}
           />
+
           <InfoRow
             label="Edge z"
             explain="How far this setup is from the average (std devs)."
             value={fmt(alert.edge_z)}
           />
+
           <InfoRow
             label="Edge p"
             explain="Probability this pattern is part of a profitable cluster (0–1)."
             value={fmt(alert.edge_p)}
           />
+
           <InfoRow
             label="Sub-4 risk"
             explain="Risk that price fails to clear the 4% region (0–1)."
             value={fmt(alert.sub4_risk)}
           />
+
           <InfoRow
             label="LDA edge p"
             explain="Probability from LDA model that this looks like past wins."
             value={fmt(alert.lda_edge_p)}
           />
+
           <InfoRow
             label="LDA sub4 p"
             explain="Probability from LDA that this stalls under 4%."
             value={fmt(alert.lda_sub4_p)}
           />
+
           <InfoRow
             label="Tail concord (3 / X)"
             explain="How well this matches strong winners."
             value={fmtPair(alert.tail_concord3, alert.tail_concordX)}
           />
+
           <InfoRow
             label="Tail guard score"
             explain="Guardrail score (high = more cautious)."
@@ -572,6 +644,7 @@ function AlertBubble({
             explain="Estimated chance this succeeds within 7 days."
             value={fmt(alert.success7d_prob, true)}
           />
+
           <InfoRow
             label="Success range (low–high)"
             explain="Confidence interval for 7-day success."
@@ -584,16 +657,19 @@ function AlertBubble({
                 : "—"
             }
           />
+
           <InfoRow
             label="Effective samples"
             explain="Number of past similar alerts used."
             value={fmt(alert.success7d_n_eff, false)}
           />
+
           <InfoRow
             label="Calibrated success"
             explain="Final calibrated success probability."
             value={fmt(alert.success7d_cal, true)}
           />
+
           <InfoRow
             label="Direction score"
             explain="Confidence the move is in this direction."
@@ -607,11 +683,13 @@ function AlertBubble({
             explain="Suggested take-profit levels."
             value={fmtPair(alert.tp1_pct, alert.tp2_pct, true)}
           />
+
           <InfoRow
             label="Stop loss"
             explain="Suggested max loss."
             value={fmt(alert.stop_pct, true)}
           />
+
           <InfoRow
             label="Trail trigger"
             explain="Where trailing stop may start."
@@ -660,6 +738,8 @@ function fmt(v?: number, asPercent = false): string {
 function fmtPair(a?: number, b?: number, asPercent = false): string {
   const va = fmt(a, asPercent);
   const vb = fmt(b, asPercent);
+
   if (va === "—" && vb === "—") return "—";
+
   return `${va} / ${vb}`;
 }
