@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import CommandCenter from "./CommandCenter";
 import LiveWatchlist from "./LiveWatchlist";
-import ProbabilityLab from "./ProbabilityLab";
 import ActiveTrades from "./ActiveTrades";
 import Performance from "./Performance";
 import Tools from "./Tools";
@@ -22,7 +21,6 @@ const TABS = [
   "Taken / Closed Alerts",
   "Dismissed Alerts",
   "P&L / Performance",
-  "Probability Lab",
   "Tools",
   "Settings",
 ] as const;
@@ -125,7 +123,6 @@ function DashboardInner() {
         {activeTab === "Command Center" && <CommandCenter />}
         {activeTab === "Live Watchlist" && <LiveWatchlist />}
         {activeTab === "Signal 97 Alerts" && <LiveAlertsPanel />}
-        {activeTab === "Probability Lab" && <ProbabilityLab />}
         {activeTab === "Active Trades" && <ActiveTrades />}
         {activeTab === "P&L / Performance" && <Performance />}
         {activeTab === "Tools" && <Tools />}
