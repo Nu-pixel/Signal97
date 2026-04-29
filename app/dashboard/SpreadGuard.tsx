@@ -311,6 +311,7 @@ function evaluateSpread(params: {
 
 export default function SpreadGuard() {
   const [hasCompared, setHasCompared] = useState(false);
+  const [candidateMode, setCandidateMode] = useState<"STRICT" | "FLEXIBLE">("STRICT");
 
   const [ticker, setTicker] = useState("TSM");
   const [direction, setDirection] = useState<Direction>("UP");
@@ -369,9 +370,10 @@ export default function SpreadGuard() {
     setHasCompared(false);
   };
 
-  const candidates = useMemo(() => {
+  const candidateInfo = useMemo(() => {
     const price = n(stockPrice);
     const pct = n(targetPct) > 1 ? n(targetPct) / 100 : n(targetPct);
+
     const list = strikes
       .split(",")
       .map((x) => Number(x.trim()))
@@ -383,8 +385,10 @@ export default function SpreadGuard() {
 
     const low = direction === "UP" ? price + move * 0.7 : price - move * 0.9;
     const high = direction === "UP" ? price + move * 0.9 : price - move * 0.7;
+    const targetSell = (low + high) / 2;
 
-    const out: any[] = [];
+    const strictOut: any[] = [];
+    const flexibleOut: any[] = [];
 
     for (let i = 0; i < list.length; i++) {
       for (let j = i + 1; j < list.length; j++) {
@@ -394,31 +398,75 @@ export default function SpreadGuard() {
         const buy = direction === "UP" ? a : b;
         const sell = direction === "UP" ? b : a;
 
+        // Buy leg should stay reasonably close to current price.
         if (direction === "UP" && buy > price * 1.03) continue;
         if (direction === "DOWN" && buy < price * 0.97) continue;
-        if (!(sell >= low && sell <= high)) continue;
 
-        out.push({
+        const sellInsideTargetZone = sell >= low && sell <= high;
+
+        const candidate = {
           buy,
           sell,
           width: Math.abs(sell - buy),
           target: money(target),
           zone: `${money(low)} to ${money(high)}`,
-        });
+          strict: sellInsideTargetZone,
+          distanceFromZone: sellInsideTargetZone
+            ? 0
+            : direction === "UP"
+            ? sell < low
+              ? low - sell
+              : sell - high
+            : sell > high
+            ? sell - low
+            : high - sell,
+          label: sellInsideTargetZone
+            ? "Strict target-zone fit"
+            : "Flexible / aggressive",
+        };
+
+        if (sellInsideTargetZone) {
+          strictOut.push(candidate);
+        }
+
+        // Flexible allows sell strikes outside the target zone,
+        // but still ranks closest-to-zone first.
+        flexibleOut.push(candidate);
       }
     }
 
-    return out
-      .sort((x, y) => {
-        const targetSell = (low + high) / 2;
-        const xSellFit = Math.abs(x.sell - targetSell);
-        const ySellFit = Math.abs(y.sell - targetSell);
-        const xBuyFit = Math.abs(x.buy - price);
-        const yBuyFit = Math.abs(y.buy - price);
-        return xSellFit - ySellFit || xBuyFit - yBuyFit;
-      })
-      .slice(0, 2);
-  }, [direction, stockPrice, targetPct, strikes]);
+    const sorter = (x: any, y: any) => {
+      const xSellFit = Math.abs(x.sell - targetSell);
+      const ySellFit = Math.abs(y.sell - targetSell);
+      const xBuyFit = Math.abs(x.buy - price);
+      const yBuyFit = Math.abs(y.buy - price);
+
+      return xSellFit - ySellFit || xBuyFit - yBuyFit;
+    };
+
+    const strictSorted = strictOut.sort(sorter);
+    const flexibleSorted = flexibleOut.sort((x, y) => {
+      // Prefer strict candidates first, then closest flexible candidates.
+      if (x.strict !== y.strict) return x.strict ? -1 : 1;
+      return sorter(x, y);
+    });
+
+    const shown =
+      candidateMode === "STRICT"
+        ? strictSorted.slice(0, 2)
+        : flexibleSorted.slice(0, 2);
+
+    return {
+      candidates: shown,
+      strictCount: strictSorted.length,
+      flexibleCount: flexibleSorted.length,
+      target: money(target),
+      zone: `${money(low)} to ${money(high)}`,
+      mode: candidateMode,
+    };
+  }, [direction, stockPrice, targetPct, strikes, candidateMode]);
+
+  const candidates = candidateInfo.candidates;
 
   const resultA = useMemo(
     () =>
@@ -570,13 +618,81 @@ export default function SpreadGuard() {
         </label>
 
         <div className="rounded-3xl bg-white/90 border border-sky-100 p-4 shadow-sm">
-          <div className="font-black text-slate-950 mb-1">
-            Step 1 — Two strike ideas to check
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+            <div>
+              <div className="font-black text-slate-950 mb-1">
+                Step 1 — Two strike ideas to check
+              </div>
+
+              <div className="text-sm text-slate-500">
+                These are only suggestions from price, direction, target %, and strike list.
+                They are not approved trades yet.
+              </div>
+
+              <div className="text-xs text-slate-400 mt-1">
+                Target ${candidateInfo.target} · Strict sell zone: ${candidateInfo.zone}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setCandidateMode("STRICT")}
+                className={
+                  "px-3 py-1.5 rounded-xl text-xs font-black transition " +
+                  (candidateMode === "STRICT"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800")
+                }
+              >
+                Strict
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCandidateMode("FLEXIBLE")}
+                className={
+                  "px-3 py-1.5 rounded-xl text-xs font-black transition " +
+                  (candidateMode === "FLEXIBLE"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800")
+                }
+              >
+                Flexible
+              </button>
+            </div>
           </div>
-          <div className="text-sm text-slate-500 mb-3">
-            These are only suggestions from price, direction, target %, and strike list.
-            They are not approved trades yet.
-          </div>
+
+          {candidateMode === "STRICT" && candidateInfo.strictCount === 0 && (
+            <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-black">No strict candidates found.</div>
+              <div className="mt-1 text-xs leading-relaxed">
+                Your sell strikes are outside the current target zone. Try adding strikes near{" "}
+                ${candidateInfo.zone}, or switch to <b>Flexible</b> mode to see more aggressive ideas.
+              </div>
+            </div>
+          )}
+
+          {candidateMode === "FLEXIBLE" &&
+            candidateInfo.strictCount === 0 &&
+            candidateInfo.flexibleCount > 0 && (
+              <div className="mb-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                <div className="font-black">Flexible mode is showing aggressive ideas.</div>
+                <div className="mt-1 text-xs leading-relaxed">
+                  These candidates may be outside the strict target zone, so they may need a larger
+                  move than the model target. Use this only when you intentionally want more upside risk.
+                </div>
+              </div>
+            )}
+
+          {candidateInfo.flexibleCount === 0 && (
+            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <div className="font-black">No candidates found from this strike list.</div>
+              <div className="mt-1 text-xs leading-relaxed">
+                Add more strikes around the current price and the target price, then try again.
+              </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-3">
             {candidates.map((c, i) => (
@@ -588,17 +704,39 @@ export default function SpreadGuard() {
                     : "bg-gradient-to-br from-emerald-50 to-white border-emerald-100"
                 }`}
               >
-                <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Suggested Candidate {i + 1}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">
+                    Suggested Candidate {i + 1}
+                  </div>
+
+                  <div
+                    className={
+                      "rounded-full px-2 py-0.5 text-[9px] font-black border " +
+                      (c.strict
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-amber-50 text-amber-700 border-amber-100")
+                    }
+                  >
+                    {c.strict ? "STRICT" : "FLEXIBLE"}
+                  </div>
                 </div>
+
                 <div className="text-xl font-black text-slate-950 mt-1">
                   Buy {c.buy} / Sell {c.sell}
                 </div>
+
                 <div className="text-sm text-slate-600 mt-1">
                   Width {c.width} · Target ${c.target}
                 </div>
+
                 <div className="text-xs text-slate-500 mt-1">
                   Sell zone: {c.zone}
+                </div>
+
+                <div className="text-[10px] text-slate-400 mt-1">
+                  {c.label}
+                  {!c.strict &&
+                    ` · ${money(c.distanceFromZone)} away from strict zone`}
                 </div>
               </div>
             ))}
