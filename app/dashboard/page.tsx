@@ -11,14 +11,18 @@ import Performance from "./Performance";
 import Tools from "./Tools";
 import Settings from "./Settings";
 import LiveAlertsPanel from "./LiveAlertsPanel";
+import TakenClosedAlerts from "./TakenClosedAlerts";
+import DismissedAlerts from "./DismissedAlerts";
 
 const TABS = [
   "Command Center",
   "Live Watchlist",
   "Signal 97 Alerts",
-  "Probability Lab",
   "Active Trades",
+  "Taken / Closed Alerts",
+  "Dismissed Alerts",
   "P&L / Performance",
+  "Probability Lab",
   "Tools",
   "Settings",
 ] as const;
@@ -126,6 +130,8 @@ function DashboardInner() {
         {activeTab === "P&L / Performance" && <Performance />}
         {activeTab === "Tools" && <Tools />}
         {activeTab === "Settings" && <Settings />}
+        {activeTab === "Taken / Closed Alerts" && <TakenClosedAlerts />}
+        {activeTab === "Dismissed Alerts" && <DismissedAlerts />}  
       </section>
     </main>
   );
