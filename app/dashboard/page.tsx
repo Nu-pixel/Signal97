@@ -120,7 +120,7 @@ function DashboardInner() {
 
       {/* Tab content */}
       <section className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {activeTab === "Command Center" && <CommandCenter />}
+        {activeTab === "Command Center" && <CommandCenter onNavigate={setActiveTab} />}
         {activeTab === "Live Watchlist" && <LiveWatchlist />}
         {activeTab === "Signal 97 Alerts" && <LiveAlertsPanel />}
         {activeTab === "Active Trades" && <ActiveTrades />}
