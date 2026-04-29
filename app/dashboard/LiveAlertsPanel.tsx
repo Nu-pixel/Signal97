@@ -44,6 +44,12 @@ type RawAlert = {
 };
 
 type DirectionTone = "up" | "down" | "flat";
+type ConfidenceTier = {
+  tier: "Tier 1" | "Tier 2" | "Tier 3" | "Standard";
+  title: string;
+  description: string;
+  className: string;
+};
 
 interface AlertCardData {
   symbol: string;
@@ -55,8 +61,8 @@ interface AlertCardData {
   signal?: string;
   rawHitPrice?: number;
   forecastConfidence?: number;
+  confidenceTier: ConfidenceTier;
   directionRuleDirection?: string;
-
   // All extra fields:
   rule_label?: string;
   direction_rule?: string;
@@ -128,7 +134,63 @@ function asNumber(v: unknown): number | undefined {
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 }
+function getConfidenceTier(raw: RawAlert): ConfidenceTier {
+  const directionRule = String(raw.direction_rule || "");
+  const directionRuleView = String(raw.direction_rule_view || "");
+  const forecastConfidence = String(raw.forecast_confidence || "");
+  const ruleLabel = String(raw.rule_label || "");
+  const signal = String(raw.signal || "");
 
+  const text = [
+    directionRule,
+    directionRuleView,
+    forecastConfidence,
+    ruleLabel,
+    signal,
+  ].join(" ");
+
+  const hasDart = text.includes("🎯");
+  const hasSunrise = text.includes("🌅");
+  const hasSnowfall = text.includes("❄");
+  const hasChick = text.includes("🐣");
+
+  // Tier 1: top confidence marker, like "🎯🌅 FJ1" or "🎯❄️ ..."
+  if (hasDart && (hasSunrise || hasSnowfall)) {
+    return {
+      tier: "Tier 1",
+      title: "Top Confidence",
+      description: "Top Signal97 confidence tier based on probability rule marker.",
+      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    };
+  }
+
+  // Tier 2: Sunrise/Snowfall marker without dart
+  if (hasSunrise || hasSnowfall) {
+    return {
+      tier: "Tier 2",
+      title: "Strong Confidence",
+      description: "Strong Signal97 confidence tier based on probability rule marker.",
+      className: "bg-blue-50 text-blue-700 border-blue-200",
+    };
+  }
+
+  // Tier 3: chick marker, riskier setup
+  if (hasChick) {
+    return {
+      tier: "Tier 3",
+      title: "Speculative",
+      description: "Riskier Signal97 confidence tier. Use more caution.",
+      className: "bg-amber-50 text-amber-700 border-amber-200",
+    };
+  }
+
+  return {
+    tier: "Standard",
+    title: "Standard Alert",
+    description: "No Signal97 tier marker detected.",
+    className: "bg-slate-50 text-slate-700 border-slate-200",
+  };
+}
 function deduceTone(
   directionRuleDirection?: string,
   direction?: string
@@ -194,7 +256,7 @@ function mapRawToCard(raw: RawAlert): AlertCardData {
   const forecastPct = asNumber(raw.forecast_pct);
   const rawHitPrice = asNumber(raw.raw_hit_price);
   const forecastConfidence = asNumber(raw.forecast_confidence);
-
+  const confidenceTier = getConfidenceTier(raw);
   return {
     symbol,
     tone,
@@ -205,6 +267,7 @@ function mapRawToCard(raw: RawAlert): AlertCardData {
     signal: raw.signal,
     rawHitPrice,
     forecastConfidence,
+    confidenceTier,
     directionRuleDirection: raw.direction_rule_direction,
 
     rule_label: raw.rule_label,
@@ -371,6 +434,12 @@ export default function LiveAlertsPanel() {
       entryTime: "12/09/2025 9:40 AM CT",
       forecastTime: "12/09/2025 9:45 AM CT",
       forecastPct: 5,
+      confidenceTier: {
+        tier: "Tier 1",
+        title: "Top Confidence",
+        description: "Top Signal97 confidence tier based on probability rule marker.",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      },
       signal: "0.6% → 1.5% breakout",
       rawHitPrice: 195.25,
       forecastConfidence: 5,
@@ -498,12 +567,16 @@ function AlertBubble({
               </div>
             )}
 
-            {alert.forecastConfidence != null && (
-              <div>
-                <span className="font-semibold">Confidence tier:</span>{" "}
-                {alert.forecastConfidence}%
-              </div>
-            )}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="font-semibold">Confidence tier:</span>
+
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${alert.confidenceTier.className}`}
+                title={alert.confidenceTier.description}
+              >
+                {alert.confidenceTier.tier} · {alert.confidenceTier.title}
+              </span>
+            </div>
 
             {alert.rawHitPrice != null && (
               <div>
@@ -571,6 +644,12 @@ function AlertBubble({
         </summary>
 
         <div className="mt-2 space-y-2">
+          <InfoRow
+            label="Clean confidence tier"
+            explain="Professional tier label translated from the Signal97 probability rule marker."
+            value={`${alert.confidenceTier.tier} — ${alert.confidenceTier.title}. ${alert.confidenceTier.description}`}
+          />
+
           {alert.rule_label && (
             <InfoRow
               label="Rule label"
