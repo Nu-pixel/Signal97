@@ -8,20 +8,20 @@ type VmTrade = {
   alert_key?: string;
   taken_at?: number;
   status?: string;
+  symbol?: string;
+  side?: string;
+  entry_price?: string | number;
+  exit_price?: string | number;
+  quantity?: string | number;
+  contracts?: string | number;
+  instrument_type?: string;
+  notes?: string;
+  pnl?: number | null;
+  pnl_pct?: number | null;
   alert?: Record<string, any>;
 };
 
-type TradesResp = {
-  ok?: boolean;
-  trades: VmTrade[];
-  error?: string;
-};
-
-const SAMPLE_ROWS = [
-  { symbol: "PLTR", side: "Call", size: "5 contracts", entry: "$24.50", current: "$25.60", pnl: "+4.5%" },
-  { symbol: "LCID", side: "Call", size: "10 contracts", entry: "$3.20", current: "$3.33", pnl: "+4.1%" },
-  { symbol: "NIO", side: "Call", size: "8 contracts", entry: "$6.80", current: "$7.05", pnl: "+3.7%" },
-];
+type TradesResp = { ok?: boolean; trades: VmTrade[]; error?: string };
 
 async function postJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -29,12 +29,35 @@ async function postJson(url: string, body: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
   });
+
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = (data as any)?.error || (data as any)?.detail || `HTTP ${res.status}`;
+
+  if (!res.ok || data?.ok === false) {
+    const msg = data?.error || data?.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
+
   return data;
+}
+
+function money(v: any) {
+  const n = Number(v);
+  return Number.isFinite(n) ? `$${n.toFixed(2)}` : "—";
+}
+
+function prettySide(t: VmTrade) {
+  const a = t.alert || {};
+  const raw = String(t.side || a.direction_rule_direction || a.direction || a.side || "").toUpperCase();
+
+  if (raw.includes("UP") || raw.includes("CALL") || raw.includes("SUNRISE")) return "Call";
+  if (raw.includes("DOWN") || raw.includes("PUT") || raw.includes("SNOWFALL")) return "Put";
+
+  return raw || "—";
+}
+
+function symbolOf(t: VmTrade) {
+  const a = t.alert || {};
+  return String(t.symbol || a.symbol || a.ticker || "—").toUpperCase();
 }
 
 const ActiveTrades: React.FC = () => {
@@ -42,6 +65,7 @@ const ActiveTrades: React.FC = () => {
   const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
 
   const [trades, setTrades] = useState<VmTrade[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, VmTrade>>({});
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(!isDemo);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -53,10 +77,23 @@ const ActiveTrades: React.FC = () => {
     if (!res.ok || data.ok === false) {
       setErr(data.error || "Failed to load active trades");
       setTrades([]);
-    } else {
-      setErr(null);
-      setTrades(Array.isArray(data.trades) ? data.trades : []);
+      return;
     }
+
+    const next = Array.isArray(data.trades) ? data.trades : [];
+    setErr(null);
+    setTrades(next);
+
+    setDrafts((old) => {
+      const copy = { ...old };
+
+      for (const t of next) {
+        const id = t.trade_id || t.alert_key || symbolOf(t);
+        copy[id] = { ...t, ...(copy[id] || {}) };
+      }
+
+      return copy;
+    });
   };
 
   useEffect(() => {
@@ -79,7 +116,9 @@ const ActiveTrades: React.FC = () => {
     };
 
     run();
+
     const id = window.setInterval(run, 15000);
+
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -87,48 +126,83 @@ const ActiveTrades: React.FC = () => {
   }, [isDemo]);
 
   const rows = useMemo(() => {
-    if (isDemo) {
-      return SAMPLE_ROWS.map((r, i) => ({
-        id: `demo-${i}`,
-        ...r,
-        note: "Demo row",
-        trade_id: undefined,
-        alert_key: undefined,
-      }));
-    }
-
     return (trades || []).map((t) => {
-      const a = t.alert || {};
-      const symbol = String(a.symbol || a.ticker || "").toUpperCase() || "—";
-      const sideRaw = String(a.direction || a.side || "").toUpperCase();
-      const prettySide =
-        sideRaw === "CALL" ? "Call" : sideRaw === "PUT" ? "Put" : sideRaw ? sideRaw : "—";
+      const id = t.trade_id || t.alert_key || symbolOf(t);
+      const d = drafts[id] || t;
 
       return {
-        id: t.trade_id || t.alert_key || symbol,
+        id,
         trade_id: t.trade_id,
         alert_key: t.alert_key,
-        symbol,
-        side: prettySide,
-        size: "—",
-        entry: a.entry_price ? `$${Number(a.entry_price).toFixed(2)}` : "—",
-        current: "—",
-        pnl: "—",
+        symbol: symbolOf(t),
+        side: prettySide(t),
+        draft: d,
         note: t.taken_at ? `Taken ${new Date(t.taken_at * 1000).toLocaleString()}` : "Active",
       };
     });
-  }, [isDemo, trades]);
+  }, [trades, drafts]);
+
+  const updateDraft = (id: string, field: keyof VmTrade, value: any) => {
+    setDrafts((old) => ({
+      ...old,
+      [id]: {
+        ...(old[id] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const onSave = async (row: any) => {
+    const id = row.id;
+
+    try {
+      setBusyKey(id);
+
+      await postJson("/api/update-trade", {
+        trade_id: row.trade_id,
+        alert_key: row.alert_key,
+        ...drafts[id],
+      });
+
+      await loadTrades();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to save trade");
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const onBackToAlerts = async (row: any) => {
+    const id = row.id;
+
+    try {
+      setBusyKey(id);
+
+      await postJson("/api/restore-trade", {
+        trade_id: row.trade_id,
+        alert_key: row.alert_key,
+      });
+
+      await loadTrades();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to restore trade to alerts");
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   const onClose = async (row: any) => {
-    const key = row.id;
+    const id = row.id;
+
     try {
-      setBusyKey(key);
-      // best effort: send both ids, VM can choose
+      setBusyKey(id);
+
       await postJson("/api/close-trade", {
         trade_id: row.trade_id,
         alert_key: row.alert_key,
-        symbol: row.symbol,
+        ...drafts[id],
       });
+
       await loadTrades();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to close trade");
@@ -142,71 +216,155 @@ const ActiveTrades: React.FC = () => {
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Active Trades</h1>
         <p className="text-xs text-slate-500">
-          {isDemo
-            ? "Based only on trades you marked as taken. Sample data."
-            : loading
+          {loading
             ? "Loading active trades..."
             : err
             ? `Active trades error: ${err}`
             : `Live active trades loaded (${rows.length}).`}
         </p>
+        <p className="text-[11px] text-slate-500 mt-1">
+          Enter your real fill price, shares/contracts, notes, and exit price before closing.
+        </p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[1100px]">
           <thead className="text-[11px] text-slate-500 border-b border-slate-100">
             <tr>
               <th className="py-2 text-left">Symbol</th>
               <th className="py-2 text-left">Side</th>
-              <th className="py-2 text-left">Size</th>
-              <th className="py-2 text-left">Entry</th>
-              <th className="py-2 text-left">Current</th>
-              <th className="py-2 text-left">P&amp;L</th>
-              <th className="py-2 text-left">Note</th>
+              <th className="py-2 text-left">Type</th>
+              <th className="py-2 text-left">Entry price</th>
+              <th className="py-2 text-left">Shares / units</th>
+              <th className="py-2 text-left">Contracts</th>
+              <th className="py-2 text-left">Exit price</th>
+              <th className="py-2 text-left">Est. P&amp;L</th>
+              <th className="py-2 text-left">Notes</th>
               <th className="py-2 text-left">Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {rows.map((r: any) => (
-              <tr key={r.id} className="border-b border-slate-50">
-                <td className="py-2 font-semibold text-slate-900">{r.symbol}</td>
-                <td className="py-2">
-                  <span
-                    className={
-                      "px-2 py-0.5 rounded-full text-[9px] " +
-                      (r.side === "Call"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : r.side === "Put"
-                        ? "bg-orange-50 text-orange-700"
-                        : "bg-slate-100 text-slate-700")
-                    }
-                  >
-                    {r.side}
-                  </span>
-                </td>
-                <td className="py-2 text-slate-700">{r.size}</td>
-                <td className="py-2 text-slate-700">{r.entry}</td>
-                <td className="py-2 text-slate-700">{r.current}</td>
-                <td className="py-2 text-emerald-600 font-semibold">{r.pnl}</td>
-                <td className="py-2 text-slate-500 text-[10px]">{r.note}</td>
-                <td className="py-2">
-                  <button
-                    className="px-3 py-1.5 rounded-md border text-xs hover:bg-black/5 disabled:opacity-50"
-                    disabled={isDemo || busyKey === r.id}
-                    onClick={() => onClose(r)}
-                    title="Close/remove from Active Trades"
-                  >
-                    {busyKey === r.id ? "Closing..." : "Close"}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r: any) => {
+              const d = r.draft || {};
+
+              return (
+                <tr key={r.id} className="border-b border-slate-50 align-top">
+                  <td className="py-2 font-semibold text-slate-900">
+                    {r.symbol}
+                    <div className="text-[9px] text-slate-400 font-normal">{r.note}</div>
+                  </td>
+
+                  <td className="py-2">
+                    <span
+                      className={
+                        "px-2 py-0.5 rounded-full text-[9px] " +
+                        (r.side === "Call"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : r.side === "Put"
+                          ? "bg-orange-50 text-orange-700"
+                          : "bg-slate-100 text-slate-700")
+                      }
+                    >
+                      {r.side}
+                    </span>
+                  </td>
+
+                  <td className="py-2">
+                    <select
+                      value={String(d.instrument_type || "stock")}
+                      onChange={(e) => updateDraft(r.id, "instrument_type", e.target.value)}
+                      className="w-24 rounded-md border px-2 py-1 text-xs"
+                    >
+                      <option value="stock">Stock</option>
+                      <option value="option">Option</option>
+                    </select>
+                  </td>
+
+                  <td className="py-2">
+                    <input
+                      value={String(d.entry_price ?? "")}
+                      onChange={(e) => updateDraft(r.id, "entry_price", e.target.value)}
+                      placeholder="ex: 1.25"
+                      className="w-24 rounded-md border px-2 py-1 text-xs"
+                    />
+                  </td>
+
+                  <td className="py-2">
+                    <input
+                      value={String(d.quantity ?? "")}
+                      onChange={(e) => updateDraft(r.id, "quantity", e.target.value)}
+                      placeholder="shares"
+                      className="w-24 rounded-md border px-2 py-1 text-xs"
+                    />
+                  </td>
+
+                  <td className="py-2">
+                    <input
+                      value={String(d.contracts ?? "")}
+                      onChange={(e) => updateDraft(r.id, "contracts", e.target.value)}
+                      placeholder="contracts"
+                      className="w-24 rounded-md border px-2 py-1 text-xs"
+                    />
+                  </td>
+
+                  <td className="py-2">
+                    <input
+                      value={String(d.exit_price ?? "")}
+                      onChange={(e) => updateDraft(r.id, "exit_price", e.target.value)}
+                      placeholder="when sold"
+                      className="w-24 rounded-md border px-2 py-1 text-xs"
+                    />
+                  </td>
+
+                  <td className="py-2 text-emerald-600 font-semibold">
+                    {d.pnl != null ? `${money(d.pnl)} (${d.pnl_pct ?? "—"}%)` : "—"}
+                  </td>
+
+                  <td className="py-2">
+                    <input
+                      value={String(d.notes ?? "")}
+                      onChange={(e) => updateDraft(r.id, "notes", e.target.value)}
+                      placeholder="notes"
+                      className="w-44 rounded-md border px-2 py-1 text-xs"
+                    />
+                  </td>
+
+                  <td className="py-2">
+                    <div className="flex flex-col gap-1">
+                      <button
+                        className="px-3 py-1.5 rounded-md border text-xs hover:bg-black/5 disabled:opacity-50"
+                        disabled={busyKey === r.id}
+                        onClick={() => onSave(r)}
+                      >
+                        {busyKey === r.id ? "Saving..." : "Save"}
+                      </button>
+
+                      <button
+                        className="px-3 py-1.5 rounded-md border text-xs hover:bg-black/5 disabled:opacity-50"
+                        disabled={busyKey === r.id}
+                        onClick={() => onBackToAlerts(r)}
+                      >
+                        Back to alerts
+                      </button>
+
+                      <button
+                        className="px-3 py-1.5 rounded-md border text-xs hover:bg-black/5 disabled:opacity-50"
+                        disabled={busyKey === r.id}
+                        onClick={() => onClose(r)}
+                      >
+                        {busyKey === r.id ? "Working..." : "Close"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
             {!rows.length && (
               <tr>
-                <td className="py-4 text-xs text-slate-500" colSpan={8}>
-                  No active trades yet. (Use “Take” on an alert to create one.)
+                <td className="py-4 text-xs text-slate-500" colSpan={10}>
+                  No active trades yet. Use “Take” on an alert to create one.
                 </td>
               </tr>
             )}
@@ -216,8 +374,8 @@ const ActiveTrades: React.FC = () => {
 
       <div className="grid md:grid-cols-3 gap-4 text-sm">
         <Summary label="Active trades" value={String(rows.length)} />
-        <Summary label="Closed trades" value="—" />
-        <Summary label="P&amp;L" value="—" />
+        <Summary label="Closed trades" value="See Taken / Closed Alerts" />
+        <Summary label="P&L" value="Calculated after close" />
       </div>
     </div>
   );
