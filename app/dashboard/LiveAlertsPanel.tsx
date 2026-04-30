@@ -531,114 +531,173 @@ function AlertBubble({
 }) {
   return (
     <div
-      className={`${toneBg[alert.tone]} rounded-3xl px-6 py-5 flex flex-col gap-4`}
+      className={`${toneBg[alert.tone]} rounded-3xl border px-5 py-5 shadow-sm`}
     >
-      {/* Top row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3 mb-1.5">
-            <div className="text-xl font-semibold text-slate-900">
-              {alert.symbol}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.45fr_0.9fr] gap-5 lg:items-stretch">
+        {/* COLUMN 1 — identity / direction / tier */}
+        <div className="flex flex-col justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-2xl font-bold tracking-tight text-slate-950">
+                {alert.symbol}
+              </div>
+
+              <span
+                className={`px-3 py-1 rounded-full text-[10px] font-bold ${toneLabelClass[alert.tone]}`}
+              >
+                {toneLabel[alert.tone]}
+              </span>
+
+              {pinned && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                  ★ Pinned
+                </span>
+              )}
             </div>
 
-            <span
-              className={`px-3 py-1 rounded-full text-[10px] font-semibold ${toneLabelClass[alert.tone]}`}
-            >
-              {toneLabel[alert.tone]}
-            </span>
-
-            {pinned && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
-                ★ Pinned
-              </span>
-            )}
-          </div>
-
-          <div className="text-[11px] leading-relaxed text-slate-700 space-y-0.5">
-            <div>
-              <span className="font-semibold">Direction:</span>{" "}
+            <div className="mt-2 text-xs font-medium text-slate-700">
               {alert.directionText}
             </div>
 
-            {alert.forecastPct != null && (
-              <div>
-                <span className="font-semibold">Target:</span>{" "}
-                {alert.forecastPct}% expected move
+            <div className="mt-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Confidence tier
               </div>
-            )}
-
-            <div className="flex items-center gap-2 pt-1">
-              <span className="font-semibold">Confidence tier:</span>
 
               <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${alert.confidenceTier.className}`}
+                className={`mt-1 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold ${alert.confidenceTier.className}`}
                 title={alert.confidenceTier.description}
               >
                 {alert.confidenceTier.tier} · {alert.confidenceTier.title}
               </span>
             </div>
+          </div>
 
-            {alert.rawHitPrice != null && (
-              <div>
-                <span className="font-semibold">Hit-bar price:</span> $
-                {alert.rawHitPrice.toFixed(2)}
-              </div>
-            )}
+          {alert.signal && (
+            <div className="rounded-2xl bg-white/60 border border-white/70 px-3 py-2 text-[11px] text-slate-600">
+              <span className="font-semibold text-slate-700">Signal:</span>{" "}
+              {alert.signal}
+            </div>
+          )}
+        </div>
 
-            {alert.signal && (
-              <div className="text-slate-500">
-                <span className="font-semibold">Signal:</span> {alert.signal}
-              </div>
-            )}
+        {/* COLUMN 2 — price / target / time */}
+        <div className="grid grid-cols-2 gap-3">
+          <MiniMetric
+            label="Target"
+            value={
+              alert.forecastPct != null
+                ? `${alert.forecastPct}% move`
+                : "—"
+            }
+            tone={
+              alert.tone === "up"
+                ? "emerald"
+                : alert.tone === "down"
+                ? "rose"
+                : "slate"
+            }
+          />
 
-            <div className="text-slate-500">
-              <span className="font-semibold">Entry time:</span>{" "}
-              {alert.entryTime || "—"}
+          <MiniMetric
+            label="Hit-bar price"
+            value={
+              alert.rawHitPrice != null
+                ? `$${alert.rawHitPrice.toFixed(2)}`
+                : "—"
+            }
+            tone="blue"
+          />
+
+          <MiniMetric
+            label="Entry time"
+            value={alert.entryTime || "—"}
+            tone="slate"
+          />
+
+          <MiniMetric
+            label="Forecast time"
+            value={alert.forecastTime || "—"}
+            tone="slate"
+          />
+
+          <MiniMetric
+            label="TP1 / TP2"
+            value={fmtPair(alert.tp1_pct, alert.tp2_pct, true)}
+            tone="emerald"
+          />
+
+          <MiniMetric
+            label="Stop"
+            value={fmt(alert.stop_pct, true)}
+            tone="amber"
+          />
+        </div>
+
+        {/* COLUMN 3 — actions / quick risk context */}
+        <div className="flex flex-col justify-between gap-4">
+          <div className="rounded-2xl bg-white/60 border border-white/70 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Quick context
             </div>
 
-            <div className="text-slate-500">
-              <span className="font-semibold">Forecast time:</span>{" "}
-              {alert.forecastTime || "—"}
+            <div className="grid grid-cols-2 gap-2">
+              <MiniMetric
+                label="Success"
+                value={fmt(alert.success7d_prob, true)}
+                tone="emerald"
+              />
+
+              <MiniMetric
+                label="Sub-4 risk"
+                value={fmt(alert.sub4_risk)}
+                tone="amber"
+              />
+
+              <MiniMetric
+                label="Edge"
+                value={fmt(alert.edge_p)}
+                tone="blue"
+              />
+
+              <MiniMetric
+                label="Flow"
+                value={fmt(alert.flow_score)}
+                tone="slate"
+              />
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <ActionButton
+              variant="primary"
+              disabled={busy}
+              onClick={() => onTake(rawAlert)}
+            >
+              {busy ? "..." : "Take"}
+            </ActionButton>
+
+            <ActionButton
+              disabled={busy}
+              onClick={() => onDismiss(rawAlert)}
+            >
+              Dismiss
+            </ActionButton>
+
+            <ActionButton
+              variant={pinned ? "warning" : "default"}
+              disabled={busy}
+              onClick={onTogglePin}
+              title="Pin this alert to the top"
+            >
+              {pinned ? "★" : "☆ Star"}
+            </ActionButton>
           </div>
         </div>
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
-          disabled={busy}
-          onClick={() => onTake(rawAlert)}
-        >
-          {busy ? "Working..." : "Take"}
-        </button>
-
-        <button
-          className="px-3 py-1.5 rounded-md border text-sm hover:bg-black/5 disabled:opacity-50"
-          disabled={busy}
-          onClick={() => onDismiss(rawAlert)}
-        >
-          Dismiss
-        </button>
-
-        <button
-          className={
-            "px-3 py-1.5 rounded-md border text-sm disabled:opacity-50 " +
-            (pinned
-              ? "bg-yellow-100 border-yellow-300 text-yellow-800"
-              : "hover:bg-black/5")
-          }
-          disabled={busy}
-          onClick={onTogglePin}
-          title="Pin this alert to the top"
-        >
-          {pinned ? "★ Pinned" : "☆ Star"}
-        </button>
-      </div>
-
       {/* Dropdown */}
-      <details className="bg-white/70 rounded-2xl px-4 py-3 text-[11px] text-slate-700">
+      <details className="mt-4 bg-white/70 rounded-2xl px-4 py-3 text-[11px] text-slate-700">
         <summary className="cursor-pointer font-semibold text-slate-800">
           View full Signal 97 breakdown
         </summary>
@@ -779,7 +838,66 @@ function AlertBubble({
     </div>
   );
 }
+function MiniMetric({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: string;
+  tone?: "emerald" | "rose" | "amber" | "blue" | "slate";
+}) {
+  const toneClass: Record<string, string> = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    rose: "bg-rose-50 text-rose-700 border-rose-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    slate: "bg-white/70 text-slate-700 border-white/80",
+  };
 
+  return (
+    <div className={`rounded-2xl border px-3 py-2 ${toneClass[tone]}`}>
+      <div className="text-[9px] font-semibold uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-bold leading-tight">{value}</div>
+    </div>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+  disabled,
+  variant = "default",
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "default" | "primary" | "warning";
+  title?: string;
+}) {
+  const variantClass: Record<string, string> = {
+    primary:
+      "bg-slate-950 text-white border-slate-950 hover:bg-slate-800",
+    warning:
+      "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200",
+    default:
+      "bg-white/80 text-slate-800 border-slate-200 hover:bg-white",
+  };
+
+  return (
+    <button
+      className={`rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-50 ${variantClass[variant]}`}
+      disabled={disabled}
+      onClick={onClick}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+}
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-3 mb-1 text-[10px] font-semibold uppercase text-slate-500">
