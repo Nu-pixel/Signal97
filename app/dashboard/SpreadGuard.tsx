@@ -190,7 +190,13 @@ function evaluateSpread(params: {
     contracts
   );
 
-  const totalSlip = buyLiq.totalSlip + sellLiq.totalSlip;
+  const entrySlip = buyLiq.entrySlip + sellLiq.entrySlip;
+  const exitSlip = buyLiq.exitSlip + sellLiq.exitSlip;
+  
+  // Debit already uses buy ask - sell bid, so entry slippage is already included.
+  // Only subtract exit slippage from profit estimates.
+  const totalSlip = entrySlip + exitSlip;
+  const profitSlip = exitSlip;
 
   const sizeCheck = contractSizeCheck(
     contracts,
@@ -211,9 +217,9 @@ function evaluateSpread(params: {
   const normalValue = Math.min(width, intrinsicAtTarget * 0.8);
   const slowValue = Math.min(width, intrinsicAtTarget * 0.65);
 
-  const fastProfit = (fastValue - debit) * 100 * contracts + thetaDaily * 2 - totalSlip;
-  const normalProfit = (normalValue - debit) * 100 * contracts + thetaDaily * 4 - totalSlip;
-  const slowProfit = (slowValue - debit) * 100 * contracts + thetaDaily * 6 - totalSlip;
+  const fastProfit = (fastValue - debit) * 100 * contracts + thetaDaily * 2 - profitSlip;
+  const normalProfit = (normalValue - debit) * 100 * contracts + thetaDaily * 4 - profitSlip;
+  const slowProfit = (slowValue - debit) * 100 * contracts + thetaDaily * 6 - profitSlip;
   const expectedProfit = fastProfit * 0.3 + normalProfit * 0.5 + slowProfit * 0.2;
 
   const rewardRisk = maxLoss > 0 ? maxProfit / maxLoss : 0;
