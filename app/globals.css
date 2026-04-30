@@ -6,8 +6,8 @@
 }
 
 .dark {
-  --background: #eef3f8;
-  --foreground: #0f172a;
+  --background: #121828; /* Dark navy for a techy/finance vibe */
+  --foreground: #e5edf7; /* Light, readable text */
 }
 
 @theme inline {
@@ -40,12 +40,6 @@ textarea {
   transition-timing-function: ease;
 }
 
-/* 
-  IMPORTANT:
-  Do NOT globally turn every bg-white card dark.
-  That caused white cards with unreadable faded text.
-*/
-
 /* Light mode body */
 body {
   background:
@@ -59,14 +53,14 @@ body {
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32%),
     radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 28%),
-    #eef3f8;
+    #121828; /* Darker background for dark mode */
 }
 
 .dark main {
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 30%),
     radial-gradient(circle at top right, rgba(16, 185, 129, 0.09), transparent 28%),
-    #eef3f8 !important;
+    #121828 !important;
 }
 
 /* Keep top app shell dark/navy */
@@ -108,44 +102,44 @@ body {
 .dark .bg-white\/80,
 .dark .bg-white\/90,
 .dark .bg-white\/95 {
-  background-color: #ffffff !important;
+  background-color: #1e2a3a !important; /* Darker background for cards */
 }
 
 /* Keep common light panels readable */
 .dark .bg-slate-50 {
-  background-color: #f8fafc !important;
+  background-color: #111c2e !important; /* Darker background for lighter components */
 }
 
 .dark .bg-slate-100 {
-  background-color: #f1f5f9 !important;
+  background-color: #1b2a41 !important; /* Slightly lighter dark panel */
 }
 
 /* Preserve normal card text */
 .dark .text-slate-950,
 .dark .text-slate-900,
 .dark .text-slate-800 {
-  color: #0f172a !important;
+  color: #e5edf7 !important; /* Lighter text color for better contrast */
 }
 
 .dark .text-slate-700,
 .dark .text-slate-600 {
-  color: #334155 !important;
+  color: #cbd5e1 !important;
 }
 
 .dark .text-slate-500 {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 .dark .text-slate-400 {
-  color: #94a3b8 !important;
+  color: #64748b !important;
 }
 
 /* Inputs stay normal and readable */
 .dark input,
 .dark select,
 .dark textarea {
-  background: #ffffff !important;
-  color: #0f172a !important;
+  background: #1e2a3a !important;
+  color: #e5edf7 !important;
   border-color: #cbd5e1 !important;
 }
 
