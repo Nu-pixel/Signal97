@@ -366,27 +366,7 @@ export default function SpreadGuard() {
     },
   });
 
-  const [spreadB, setSpreadB] = useState<SpreadInput>({
-    name: "Candidate B",
-    buyLeg: {
-      strike: "405",
-      bid: "13.40",
-      ask: "14.30",
-      volume: "0",
-      openInterest: "0",
-      iv: "0.52",
-      theta: "-0.65",
-    },
-    sellLeg: {
-      strike: "415",
-      bid: "9.65",
-      ask: "10.25",
-      volume: "386",
-      openInterest: "274",
-      iv: "0.5216",
-      theta: "0.6507",
-    },
-  });
+
   const [spreadB, setSpreadB] = useState<SpreadInput>({
     name: "Candidate B",
     buyLeg: {
