@@ -1,70 +1,186 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import SpreadGuard from "./SpreadGuard";
 import DistanceFromHitCalculator from "./DistanceFromHitCalculator";
 
 
 const Tools: React.FC = () => {
+  const spreadRef = useRef<HTMLDivElement | null>(null);
+  const riskRef = useRef<HTMLDivElement | null>(null);
+  const contractsRef = useRef<HTMLDivElement | null>(null);
+  const distanceRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
-    <div className="space-y-6">
+    <div
+      className="
+        space-y-8
+        [&_input]:text-sm
+        [&_select]:text-sm
+        [&_textarea]:text-sm
+        [&_label>span]:text-xs
+        [&_p]:text-sm
+        [&_table]:text-xs
+      "
+    >
       <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 px-6 py-5 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <div className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
               Signal97 toolkit
             </div>
-      
+
             <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
               Trading Tools
             </h1>
-      
+
             <p className="mt-1 text-sm text-slate-600 max-w-2xl">
               Practical tools for sizing, sanity-checking, and reviewing Signal97
               alerts before risking real money.
             </p>
           </div>
-      
+
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+            <ToolJumpButton onClick={() => scrollTo(spreadRef)}>
               SpreadGuard
-            </span>
-      
-            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+            </ToolJumpButton>
+
+            <ToolJumpButton onClick={() => scrollTo(riskRef)}>
               Risk tools
-            </span>
-      
-            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+            </ToolJumpButton>
+
+            <ToolJumpButton onClick={() => scrollTo(contractsRef)}>
               Contract checks
-            </span>
-      
-            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+            </ToolJumpButton>
+
+            <ToolJumpButton onClick={() => scrollTo(distanceRef)}>
               Distance calculator
-            </span>
+            </ToolJumpButton>
           </div>
         </div>
       </div>
 
-      {/* SpreadGuard should be the first calculator shown */}
-      <SpreadGuard />
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <OptionRiskCard />
-        <RiskGuard />
+      <div ref={spreadRef} id="spreadguard" className="scroll-mt-28">
+        <SpreadGuard />
       </div>
 
-      {/* New: Option Picker (contract structure checker) */}
-      <OptionPickerTool />
+      <section
+        ref={riskRef}
+        id="risk-tools"
+        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-emerald-500 via-sky-500 to-indigo-500 p-1 shadow-2xl"
+      >
+        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-emerald-50 to-sky-50 p-5 space-y-5">
+          <ToolSectionHeader
+            badge="Risk tools"
+            title="Risk + Option Sanity Checks"
+            subtitle="Use these before entering a trade to check option risk, stock risk, liquidity, and whether the setup is too aggressive."
+            status="Pre-trade review"
+          />
 
-      {/* Distance from hit price calculator */}
-      <DistanceFromHitCalculator />
+          <div className="grid xl:grid-cols-2 gap-5">
+            <OptionRiskCard />
+            <RiskGuard />
+          </div>
+        </div>
+      </section>
+
+      <section
+        ref={contractsRef}
+        id="contract-checks"
+        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-purple-500 via-indigo-500 to-sky-500 p-1 shadow-2xl"
+      >
+        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-purple-50 to-sky-50 p-5 space-y-5">
+          <ToolSectionHeader
+            badge="Contract checks"
+            title="Option Picker"
+            subtitle="Compare multiple contracts side by side and rank which contract structure is cleaner for a 4–5% Signal97-style move."
+            status="Contract ranking"
+          />
+
+          <OptionPickerTool />
+        </div>
+      </section>
+
+      <section
+        ref={distanceRef}
+        id="distance-calculator"
+        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-amber-400 via-sky-500 to-emerald-500 p-1 shadow-2xl"
+      >
+        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-amber-50 to-emerald-50 p-5 space-y-5">
+          <ToolSectionHeader
+            badge="Entry helper"
+            title="Distance From Hit Price"
+            subtitle="Check whether the current price is still close to the original Signal97 hit-bar price or whether the move has already run too far."
+            status="Entry timing"
+          />
+
+          <DistanceFromHitCalculator />
+        </div>
+      </section>
     </div>
   );
 };
 
 export default Tools;
 
+function ToolJumpButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-950 hover:text-white hover:border-slate-950 transition"
+    >
+      {children}
+    </button>
+  );
+}
 
+function ToolSectionHeader({
+  badge,
+  title,
+  subtitle,
+  status,
+}: {
+  badge: string;
+  title: string;
+  subtitle: string;
+  status: string;
+}) {
+  return (
+    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div>
+        <div className="inline-flex rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold mb-2">
+          {badge}
+        </div>
+
+        <h2 className="text-2xl md:text-3xl font-black text-slate-950 tracking-tight">
+          {title}
+        </h2>
+
+        <p className="mt-1 text-sm text-slate-600 max-w-3xl">
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm">
+        {status}
+      </div>
+    </div>
+  );
+}
 
 /* ========= Option Risk Card (converted to React, light theme) ========= */
 
