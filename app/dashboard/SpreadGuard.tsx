@@ -655,17 +655,16 @@ export default function SpreadGuard() {
               <div className="font-black text-slate-950 mb-1">
                 Step 1 — Two strike ideas to check
               </div>
-
+        
               <div className="text-sm text-slate-500">
                 These are only suggestions from price, direction, target %, and strike list.
                 They are not approved trades yet.
               </div>
-
-             
+        
               <div className="text-xs text-slate-400 mt-1">
                 Target ${candidateInfo.target} · Strict sell zone: {candidateInfo.zone}
               </div>
-              
+        
               {candidates.length > 0 && (
                 <button
                   type="button"
@@ -675,7 +674,8 @@ export default function SpreadGuard() {
                   Use these 2 spreads for Candidate A/B
                 </button>
               )}
-
+            </div>
+        
             <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1">
               <button
                 type="button"
@@ -689,7 +689,7 @@ export default function SpreadGuard() {
               >
                 Strict
               </button>
-
+        
               <button
                 type="button"
                 onClick={() => setCandidateMode("FLEXIBLE")}
