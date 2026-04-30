@@ -6,8 +6,8 @@
 }
 
 .dark {
-  --background: #0b1220;
-  --foreground: #e5edf7;
+  --background: #eef3f8;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -40,115 +40,148 @@ textarea {
   transition-timing-function: ease;
 }
 
-/* Main dashboard background */
+/* 
+  IMPORTANT:
+  Do NOT globally turn every bg-white card dark.
+  That caused white cards with unreadable faded text.
+*/
+
+/* Light mode body */
+body {
+  background:
+    radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 30%),
+    radial-gradient(circle at top right, rgba(209, 250, 229, 0.45), transparent 28%),
+    #f8fafc;
+}
+
+/* Soft dark-shell mode, not full dark-content mode */
 .dark body {
-  background: #0b1220;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 28%),
+    #eef3f8;
 }
 
 .dark main {
-  background: #0b1220 !important;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 30%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.09), transparent 28%),
+    #eef3f8 !important;
 }
 
-/* Keep app shell dark */
+/* Keep top app shell dark/navy */
 .dark header {
-  background: #111c2e !important;
-  border-color: #243247 !important;
-}
-
-.dark header + div,
-.dark .dashboard-tabs-row {
   background: #0f1a2b !important;
   border-color: #243247 !important;
 }
 
-/*
-  IMPORTANT:
-  Do NOT force every bg-white card to dark.
-  That caused the glitchy separated look.
-  Instead, keep content cards light unless a component has explicit dark classes.
-*/
-
-/* General text adjustments */
-.dark .text-slate-950,
-.dark .text-slate-900 {
-  color: #f8fafc;
+.dark .dashboard-tabs-row {
+  background: #111c2e !important;
+  border-color: #243247 !important;
 }
 
+/* Header text only */
+.dark header .text-slate-900,
+.dark header .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+.dark header .text-slate-600,
+.dark header .text-slate-500,
+.dark header .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+/* Tab row text only */
+.dark .dashboard-tabs-row .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .dashboard-tabs-row button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+/* Keep normal content cards readable */
+.dark .bg-white,
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 {
+  background-color: #ffffff !important;
+}
+
+/* Keep common light panels readable */
+.dark .bg-slate-50 {
+  background-color: #f8fafc !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Preserve normal card text */
+.dark .text-slate-950,
+.dark .text-slate-900,
 .dark .text-slate-800 {
-  color: #e2e8f0;
+  color: #0f172a !important;
 }
 
 .dark .text-slate-700,
 .dark .text-slate-600 {
-  color: #cbd5e1;
+  color: #334155 !important;
 }
 
 .dark .text-slate-500 {
-  color: #94a3b8;
+  color: #64748b !important;
 }
 
-/* Inputs should be readable in dark mode */
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Inputs stay normal and readable */
 .dark input,
 .dark select,
 .dark textarea {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: #64748b;
+  color: #64748b !important;
 }
 
-/* Better dark page cards only when explicitly marked with dark classes */
-.dark .dark-card {
-  background: #111c2e !important;
-  color: #e5edf7 !important;
-  border-color: #243247 !important;
-}
-
-/* Softer dark panels */
-.dark .dark-panel {
-  background: #0f1a2b !important;
-  color: #e5edf7 !important;
-  border-color: #243247 !important;
-}
-
-/* Softer dark buttons */
-.dark .dark-pill {
-  background: #0b1220 !important;
-  color: #e5edf7 !important;
-  border-color: #243247 !important;
-}
-
-/* Preserve alert color readability */
+/* Keep alert colors readable */
 .dark .bg-emerald-50 {
-  background-color: #ecfdf5;
+  background-color: #ecfdf5 !important;
 }
 
 .dark .bg-rose-50 {
-  background-color: #fff1f2;
+  background-color: #fff1f2 !important;
 }
 
 .dark .bg-amber-50 {
-  background-color: #fffbeb;
+  background-color: #fffbeb !important;
 }
 
 .dark .bg-blue-50,
 .dark .bg-sky-50 {
-  background-color: #eff6ff;
+  background-color: #eff6ff !important;
 }
 
-.dark .bg-slate-50 {
-  background-color: #f8fafc;
+.dark .bg-purple-50,
+.dark .bg-fuchsia-50 {
+  background-color: #faf5ff !important;
 }
 
-/* Shadows look better on dark background */
+/* Softer shadows */
 .dark .shadow-sm,
 .dark .shadow,
 .dark .shadow-lg,
 .dark .shadow-xl,
 .dark .shadow-2xl {
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12) !important;
 }
