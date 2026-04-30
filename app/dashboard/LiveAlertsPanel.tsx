@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // This matches the columns coming from forecast_scored.csv / /alerts/live
 type RawAlert = {
@@ -14,6 +14,9 @@ type RawAlert = {
   forecast_time?: string; // ISO fallback
   forecast_pct?: number | string;
   signal?: string;
+  entry_price?: number | string;
+  price?: number | string;
+  close?: number | string;
   raw_hit_price?: number | string;
   forecast_confidence?: number | string;
   rule_label?: string;
@@ -50,7 +53,33 @@ type ConfidenceTier = {
   description: string;
   className: string;
 };
+type NotifyMode = "TIER1" | "TIER1_TIER2" | "ALL";
+type ViewDensity = "compact" | "comfortable";
+type ThemeMode = "light" | "dark";
 
+type Signal97Settings = {
+  notifyMode: NotifyMode;
+
+  showTier1: boolean;
+  showTier2: boolean;
+  showTier3: boolean;
+  showStandard: boolean;
+
+  showUp: boolean;
+  showDown: boolean;
+
+  hideOlderThanDays: number;
+
+  viewDensity: ViewDensity;
+  theme: ThemeMode;
+  showAdvancedMetrics: boolean;
+};
+
+type AlertQuickFilters = {
+  direction: "ALL" | "UP" | "DOWN";
+  minPrice: string;
+  maxPrice: string;
+};
 interface AlertCardData {
   symbol: string;
   directionText: string;
@@ -133,6 +162,112 @@ function asNumber(v: unknown): number | undefined {
   if (v === null || v === undefined || v === "") return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+const SETTINGS_KEY = "signal97_user_settings_v1";
+
+const DEFAULT_ALERT_SETTINGS: Signal97Settings = {
+  notifyMode: "ALL",
+
+  showTier1: true,
+  showTier2: true,
+  showTier3: true,
+  showStandard: true,
+
+  showUp: true,
+  showDown: true,
+
+  hideOlderThanDays: 20,
+
+  viewDensity: "comfortable",
+  theme: "light",
+  showAdvancedMetrics: true,
+};
+
+function readAlertSettings(): Signal97Settings {
+  if (typeof window === "undefined") return DEFAULT_ALERT_SETTINGS;
+
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_ALERT_SETTINGS;
+
+    return {
+      ...DEFAULT_ALERT_SETTINGS,
+      ...JSON.parse(raw),
+    };
+  } catch {
+    return DEFAULT_ALERT_SETTINGS;
+  }
+}
+
+function alertTimeMs(raw: RawAlert): number {
+  const rawTime =
+    raw.forecast_time ||
+    raw.forecast_time_12h_ct ||
+    raw.entry_time_12h_ct ||
+    "";
+
+  const t = new Date(rawTime).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+function alertPrice(raw: RawAlert, card: AlertCardData): number | undefined {
+  return (
+    asNumber(raw.raw_hit_price) ??
+    asNumber(raw.entry_price) ??
+    asNumber(raw.price) ??
+    asNumber(raw.close) ??
+    card.rawHitPrice
+  );
+}
+
+function passesSettings(
+  row: { raw: RawAlert; card: AlertCardData },
+  settings: Signal97Settings
+): boolean {
+  const tier = row.card.confidenceTier.tier;
+
+  if (tier === "Tier 1" && !settings.showTier1) return false;
+  if (tier === "Tier 2" && !settings.showTier2) return false;
+  if (tier === "Tier 3" && !settings.showTier3) return false;
+  if (tier === "Standard" && !settings.showStandard) return false;
+
+  if (row.card.tone === "up" && !settings.showUp) return false;
+  if (row.card.tone === "down" && !settings.showDown) return false;
+
+  const maxAgeDays = Number(settings.hideOlderThanDays) || 20;
+  const t = alertTimeMs(row.raw);
+
+  if (t > 0 && Date.now() - t > maxAgeDays * 24 * 60 * 60 * 1000) {
+    return false;
+  }
+
+  return true;
+}
+
+function passesQuickFilters(
+  row: { raw: RawAlert; card: AlertCardData },
+  filters: AlertQuickFilters
+): boolean {
+  if (filters.direction === "UP" && row.card.tone !== "up") return false;
+  if (filters.direction === "DOWN" && row.card.tone !== "down") return false;
+
+  const minPrice = Number(filters.minPrice);
+  const maxPrice = Number(filters.maxPrice);
+  const price = alertPrice(row.raw, row.card);
+
+  if (filters.minPrice.trim() !== "") {
+    if (price === undefined || !Number.isFinite(minPrice) || price < minPrice) {
+      return false;
+    }
+  }
+
+  if (filters.maxPrice.trim() !== "") {
+    if (price === undefined || !Number.isFinite(maxPrice) || price > maxPrice) {
+      return false;
+    }
+  }
+
+  return true;
 }
 function getConfidenceTier(raw: RawAlert): ConfidenceTier {
   const directionRule = String(raw.direction_rule || "");
@@ -301,11 +436,28 @@ function mapRawToCard(raw: RawAlert): AlertCardData {
 // ---------- main component ----------
 
 export default function LiveAlertsPanel() {
-  const [alerts, setAlerts] = useState<{ raw: RawAlert; card: AlertCardData }[]>(
-    []
-  );
+  const [allAlerts, setAllAlerts] = useState<
+    { raw: RawAlert; card: AlertCardData }[]
+  >([]);
 
   const [loading, setLoading] = useState(true);
+
+  const [alertSettings, setAlertSettings] =
+    useState<Signal97Settings>(DEFAULT_ALERT_SETTINGS);
+
+  const [quickFilters, setQuickFilters] = useState<AlertQuickFilters>({
+    direction: "ALL",
+    minPrice: "",
+    maxPrice: "",
+  });
+
+  const alerts = useMemo(() => {
+    return allAlerts.filter(
+      (row) =>
+        passesSettings(row, alertSettings) &&
+        passesQuickFilters(row, quickFilters)
+    );
+  }, [allAlerts, alertSettings, quickFilters]);
 
   // key for "button busy" so users can't double-click Take/Dismiss/Star
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -370,7 +522,8 @@ export default function LiveAlertsPanel() {
           return bt - at;
         });
 
-      setAlerts(mapped);
+
+      setAllAlerts(mapped);
     } catch (err) {
       console.error("Failed to load alerts", err);
     } finally {
@@ -387,7 +540,7 @@ export default function LiveAlertsPanel() {
       await postJson("/api/take-alert", { alert: rawAlert });
 
       // Immediately remove from this page
-      setAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
+      setAllAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
     } finally {
       setBusyKey(null);
     }
@@ -405,7 +558,7 @@ export default function LiveAlertsPanel() {
       });
 
       // Immediately remove from this page
-      setAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
+      setAllAlerts((prev) => prev.filter((x) => makeKey(x.raw) !== key));
     } finally {
       setBusyKey(null);
     }
@@ -418,6 +571,26 @@ export default function LiveAlertsPanel() {
     // pinnedKeys is included so Star/Pin re-sorts alerts
   }, [pinnedKeys]);
 
+  useEffect(() => {
+    const apply = () => {
+      const next = readAlertSettings();
+      setAlertSettings(next);
+
+      document.documentElement.style.colorScheme = next.theme;
+      document.documentElement.classList.toggle("dark", next.theme === "dark");
+    };
+
+    apply();
+
+    window.addEventListener("signal97-settings-changed", apply);
+    window.addEventListener("storage", apply);
+
+    return () => {
+      window.removeEventListener("signal97-settings-changed", apply);
+      window.removeEventListener("storage", apply);
+    };
+  }, []);
+  
   if (loading) {
     return (
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
@@ -426,7 +599,7 @@ export default function LiveAlertsPanel() {
     );
   }
 
-  if (!alerts.length) {
+  if (!allAlerts.length) {
     const sample: AlertCardData = {
       symbol: "AAPL",
       tone: "up",
@@ -450,7 +623,7 @@ export default function LiveAlertsPanel() {
 
     return (
       <div className="space-y-5">
-        <AlertsPageHeader alerts={alerts} />
+        <AlertsPageHeader alerts={allAlerts} />
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-5">
           <p className="text-xs text-slate-500">
@@ -464,6 +637,8 @@ export default function LiveAlertsPanel() {
             pinned={false}
             onTake={async () => window.alert("No live alerts yet.")}
             onDismiss={async () => window.alert("No live alerts yet.")}
+            compact={alertSettings.viewDensity === "compact"}
+            showAdvancedMetrics={alertSettings.showAdvancedMetrics}
             onTogglePin={() => window.alert("No live alerts yet.")}
           />
         </div>
@@ -475,7 +650,31 @@ export default function LiveAlertsPanel() {
     <div className="space-y-5">
       <AlertsPageHeader alerts={alerts} />
 
+      <AlertFilterPanel
+        allCount={allAlerts.length}
+        filteredCount={alerts.length}
+        filters={quickFilters}
+        onChange={setQuickFilters}
+      />
+
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-4">
+        {!alerts.length && (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white px-6 py-8 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+              ⌕
+            </div>
+
+            <h2 className="text-lg font-bold text-slate-900">
+              No alerts match your filters
+            </h2>
+
+            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+              Try switching to All directions, clearing the price range, or changing
+              your alert tier settings.
+            </p>
+          </div>
+        )}
+
         {alerts.map((a, idx) => {
           const key = makeKey(a.raw);
           const busy = busyKey === key;
@@ -489,6 +688,8 @@ export default function LiveAlertsPanel() {
               pinned={pinnedKeys.has(key)}
               onTake={onTake}
               onDismiss={onDismiss}
+              compact={alertSettings.viewDensity === "compact"}
+              showAdvancedMetrics={alertSettings.showAdvancedMetrics}
               onTogglePin={() => togglePin(key)}
             />
           );
@@ -593,6 +794,8 @@ function AlertBubble({
   rawAlert,
   busy,
   pinned,
+  compact,
+  showAdvancedMetrics,
   onTake,
   onDismiss,
   onTogglePin,
@@ -601,13 +804,17 @@ function AlertBubble({
   rawAlert: RawAlert;
   busy: boolean;
   pinned: boolean;
+  compact: boolean;
+  showAdvancedMetrics: boolean;
   onTake: (a: RawAlert) => Promise<void>;
   onDismiss: (a: RawAlert) => Promise<void>;
   onTogglePin: () => void;
 }) {
   return (
     <div
-      className={`${toneBg[alert.tone]} rounded-3xl border px-5 py-5 shadow-sm`}
+      className={`${toneBg[alert.tone]} rounded-3xl border shadow-sm ${
+        compact ? "px-4 py-4" : "px-5 py-5"
+      }`}
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.45fr_0.9fr] gap-5 lg:items-stretch">
         {/* COLUMN 1 — identity / direction / tier */}
@@ -712,37 +919,39 @@ function AlertBubble({
 
         {/* COLUMN 3 — actions / quick risk context */}
         <div className="flex flex-col justify-between gap-4">
-          <div className="rounded-2xl bg-white/60 border border-white/70 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
-              Quick context
+          {showAdvancedMetrics && (
+            <div className="rounded-2xl bg-white/60 border border-white/70 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                Quick context
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <MiniMetric
+                  label="Success"
+                  value={fmt(alert.success7d_prob, true)}
+                  tone="emerald"
+                />
+
+                <MiniMetric
+                  label="Sub-4 risk"
+                  value={fmt(alert.sub4_risk)}
+                  tone="amber"
+                />
+
+                <MiniMetric
+                  label="Edge"
+                  value={fmt(alert.edge_p)}
+                  tone="blue"
+                />
+
+                <MiniMetric
+                  label="Flow"
+                  value={fmt(alert.flow_score)}
+                  tone="slate"
+                />
+              </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <MiniMetric
-                label="Success"
-                value={fmt(alert.success7d_prob, true)}
-                tone="emerald"
-              />
-
-              <MiniMetric
-                label="Sub-4 risk"
-                value={fmt(alert.sub4_risk)}
-                tone="amber"
-              />
-
-              <MiniMetric
-                label="Edge"
-                value={fmt(alert.edge_p)}
-                tone="blue"
-              />
-
-              <MiniMetric
-                label="Flow"
-                value={fmt(alert.flow_score)}
-                tone="slate"
-              />
-            </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-3 gap-2">
             <ActionButton
@@ -771,7 +980,6 @@ function AlertBubble({
           </div>
         </div>
       </div>
-
       {/* Dropdown */}
       <details className="mt-4 bg-white/70 rounded-2xl px-4 py-3 text-[11px] text-slate-700">
         <summary className="cursor-pointer font-semibold text-slate-800">
@@ -912,6 +1120,149 @@ function AlertBubble({
         </div>
       </details>
     </div>
+  );
+}
+function AlertFilterPanel({
+  allCount,
+  filteredCount,
+  filters,
+  onChange,
+}: {
+  allCount: number;
+  filteredCount: number;
+  filters: AlertQuickFilters;
+  onChange: (next: AlertQuickFilters) => void;
+}) {
+  const update = (patch: Partial<AlertQuickFilters>) => {
+    onChange({
+      ...filters,
+      ...patch,
+    });
+  };
+
+  const clear = () => {
+    onChange({
+      direction: "ALL",
+      minPrice: "",
+      maxPrice: "",
+    });
+  };
+
+  return (
+    <div className="rounded-3xl bg-white border border-slate-100 shadow-sm px-5 py-4">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <div className="text-sm font-bold text-slate-900">
+            Alert filters
+          </div>
+          <div className="text-[11px] text-slate-500 mt-0.5">
+            Showing {filteredCount} of {allCount} live alerts.
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-end gap-3">
+          <div>
+            <div className="text-[10px] font-semibold text-slate-500 mb-1">
+              Direction
+            </div>
+
+            <div className="flex rounded-2xl bg-slate-100 p-1">
+              <FilterButton
+                active={filters.direction === "ALL"}
+                onClick={() => update({ direction: "ALL" })}
+              >
+                All
+              </FilterButton>
+
+              <FilterButton
+                active={filters.direction === "UP"}
+                onClick={() => update({ direction: "UP" })}
+              >
+                UP
+              </FilterButton>
+
+              <FilterButton
+                active={filters.direction === "DOWN"}
+                onClick={() => update({ direction: "DOWN" })}
+              >
+                DOWN
+              </FilterButton>
+            </div>
+          </div>
+
+          <PriceInput
+            label="Min price"
+            value={filters.minPrice}
+            onChange={(v) => update({ minPrice: v })}
+          />
+
+          <PriceInput
+            label="Max price"
+            value={filters.maxPrice}
+            onChange={(v) => update({ maxPrice: v })}
+          />
+
+          <button
+            type="button"
+            onClick={clear}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "rounded-xl px-3 py-1.5 text-xs font-bold transition " +
+        (active
+          ? "bg-white text-slate-950 shadow-sm"
+          : "text-slate-500 hover:text-slate-800")
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function PriceInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <div className="text-[10px] font-semibold text-slate-500 mb-1">
+        {label}
+      </div>
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="ex: 10"
+        inputMode="decimal"
+        className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-sky-300"
+      />
+    </label>
   );
 }
 function MiniMetric({
