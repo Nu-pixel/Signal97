@@ -1308,54 +1308,78 @@ function MiniMetric({
   label,
   value,
   tone = "slate",
+  compact = false,
 }: {
   label: string;
   value: string;
   tone?: "emerald" | "rose" | "amber" | "blue" | "slate";
+  compact?: boolean;
 }) {
   const toneClass: Record<string, string> = {
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    rose: "bg-rose-50 text-rose-700 border-rose-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    slate: "bg-white/70 text-slate-700 border-white/80",
+    emerald:
+      "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20",
+    rose:
+      "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20",
+    amber:
+      "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20",
+    blue:
+      "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20",
+    slate:
+      "bg-white/70 text-slate-700 border-white/80 dark:bg-slate-900/70 dark:text-slate-300 dark:border-slate-700",
   };
 
   return (
-    <div className={`rounded-2xl border px-3 py-2 ${toneClass[tone]}`}>
-      <div className="text-[9px] font-semibold uppercase tracking-wide opacity-70">
+    <div
+      className={`rounded-2xl border ${compact ? "px-2.5 py-1.5" : "px-3 py-2"} ${
+        toneClass[tone]
+      }`}
+    >
+      <div
+        className={`font-semibold uppercase tracking-wide opacity-70 ${
+          compact ? "text-[8px]" : "text-[9px]"
+        }`}
+      >
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-bold leading-tight">{value}</div>
+      <div
+        className={`mt-0.5 font-bold leading-tight ${
+          compact ? "text-xs" : "text-sm"
+        }`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
-
 function ActionButton({
   children,
   onClick,
   disabled,
   variant = "default",
   title,
+  compact = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   variant?: "default" | "primary" | "warning";
   title?: string;
+  compact?: boolean;
 }) {
   const variantClass: Record<string, string> = {
     primary:
-      "bg-slate-950 text-white border-slate-950 hover:bg-slate-800",
+      "bg-slate-950 text-white border-slate-950 hover:bg-slate-800 dark:bg-sky-500 dark:border-sky-500 dark:hover:bg-sky-400",
     warning:
-      "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200",
+      "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-300 dark:border-yellow-500/30",
     default:
-      "bg-white/80 text-slate-800 border-slate-200 hover:bg-white",
+      "bg-white/80 text-slate-800 border-slate-200 hover:bg-white dark:bg-slate-900/70 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800",
   };
 
   return (
     <button
-      className={`rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-50 ${variantClass[variant]}`}
+      className={`rounded-xl border font-semibold shadow-sm transition disabled:opacity-50 ${
+        compact ? "px-2 py-1.5 text-[11px]" : "px-3 py-2 text-xs"
+      } ${variantClass[variant]}`}
       disabled={disabled}
       onClick={onClick}
       title={title}
