@@ -8,14 +8,41 @@ import DistanceFromHitCalculator from "./DistanceFromHitCalculator";
 const Tools: React.FC = () => {
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-1">
-          Trading Tools
-        </h1>
-        <p className="text-xs text-slate-500">
-          Simple helpers to make Signal 97 alerts easier to size and sanity-check.
-          Demo logic only; wire to live data later.
-        </p>
+      <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 px-6 py-5 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+              Signal97 toolkit
+            </div>
+      
+            <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
+              Trading Tools
+            </h1>
+      
+            <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+              Practical tools for sizing, sanity-checking, and reviewing Signal97
+              alerts before risking real money.
+            </p>
+          </div>
+      
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+              SpreadGuard
+            </span>
+      
+            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+              Risk tools
+            </span>
+      
+            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+              Contract checks
+            </span>
+      
+            <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+              Distance calculator
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* SpreadGuard should be the first calculator shown */}
