@@ -745,7 +745,7 @@ export default function SpreadGuard() {
           <InfoCard
             color="emerald"
             title="2. Fill both spreads"
-            text="Enter bid, ask, volume, open interest, IV, and theta for Candidate A and B."
+            text="Enter bid, ask, volume, open interest, IV, and theta for Candidates A, B, C, and D."
           />
           <InfoCard
             color="amber"
