@@ -810,45 +810,60 @@ function AlertBubble({
   onDismiss: (a: RawAlert) => Promise<void>;
   onTogglePin: () => void;
 }) {
+  const cardPadding = compact ? "px-4 py-3.5" : "px-5 py-5";
+  const mainGap = compact ? "gap-3" : "gap-5";
+  const columnGap = compact ? "gap-2.5" : "gap-4";
+  const symbolSize = compact ? "text-xl" : "text-2xl";
+  const directionTextSize = compact ? "text-[11px]" : "text-xs";
+  const badgePadding = compact ? "px-2.5 py-0.5" : "px-3 py-1";
+  const detailsPadding = compact ? "px-3 py-2" : "px-4 py-3";
+  const showSignalLine = !compact;
+
   return (
     <div
-      className={`${toneBg[alert.tone]} rounded-3xl border shadow-sm ${
-        compact ? "px-4 py-4" : "px-5 py-5"
-      }`}
+      className={`${toneBg[alert.tone]} rounded-3xl border shadow-sm dark:shadow-lg ${cardPadding}`}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.45fr_0.9fr] gap-5 lg:items-stretch">
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-[1.05fr_1.55fr_0.9fr] ${mainGap} lg:items-stretch`}
+      >
         {/* COLUMN 1 — identity / direction / tier */}
-        <div className="flex flex-col justify-between gap-4">
+        <div className={`flex flex-col justify-between ${columnGap}`}>
           <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="text-2xl font-bold tracking-tight text-slate-950">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div
+                className={`${symbolSize} font-bold tracking-tight text-slate-950 dark:text-slate-100`}
+              >
                 {alert.symbol}
               </div>
 
               <span
-                className={`px-3 py-1 rounded-full text-[10px] font-bold ${toneLabelClass[alert.tone]}`}
+                className={`${badgePadding} rounded-full text-[10px] font-bold ${toneLabelClass[alert.tone]}`}
               >
                 {toneLabel[alert.tone]}
               </span>
 
               {pinned && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-300 dark:border-yellow-500/30">
                   ★ Pinned
                 </span>
               )}
             </div>
 
-            <div className="mt-2 text-xs font-medium text-slate-700">
+            <div
+              className={`mt-2 ${directionTextSize} font-medium text-slate-700 dark:text-slate-300`}
+            >
               {alert.directionText}
             </div>
 
-            <div className="mt-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className={compact ? "mt-2" : "mt-3"}>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Confidence tier
               </div>
 
               <span
-                className={`mt-1 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold ${alert.confidenceTier.className}`}
+                className={`mt-1 inline-flex items-center rounded-full border ${
+                  compact ? "px-2.5 py-0.5 text-[10px]" : "px-3 py-1 text-[11px]"
+                } font-bold ${alert.confidenceTier.className}`}
                 title={alert.confidenceTier.description}
               >
                 {alert.confidenceTier.tier} · {alert.confidenceTier.title}
@@ -856,23 +871,21 @@ function AlertBubble({
             </div>
           </div>
 
-          {alert.signal && (
-            <div className="rounded-2xl bg-white/60 border border-white/70 px-3 py-2 text-[11px] text-slate-600">
-              <span className="font-semibold text-slate-700">Signal:</span>{" "}
+          {showSignalLine && alert.signal && (
+            <div className="rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-white/70 dark:border-slate-700 px-3 py-2 text-[11px] text-slate-600 dark:text-slate-300">
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                Signal:
+              </span>{" "}
               {alert.signal}
             </div>
           )}
         </div>
 
         {/* COLUMN 2 — price / target / time */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid grid-cols-2 ${compact ? "gap-2" : "gap-3"}`}>
           <MiniMetric
             label="Target"
-            value={
-              alert.forecastPct != null
-                ? `${alert.forecastPct}% move`
-                : "—"
-            }
+            value={alert.forecastPct != null ? `${alert.forecastPct}% move` : "—"}
             tone={
               alert.tone === "up"
                 ? "emerald"
@@ -880,75 +893,95 @@ function AlertBubble({
                 ? "rose"
                 : "slate"
             }
+            compact={compact}
           />
 
           <MiniMetric
             label="Hit-bar price"
             value={
-              alert.rawHitPrice != null
-                ? `$${alert.rawHitPrice.toFixed(2)}`
-                : "—"
+              alert.rawHitPrice != null ? `$${alert.rawHitPrice.toFixed(2)}` : "—"
             }
             tone="blue"
+            compact={compact}
           />
 
           <MiniMetric
             label="Entry time"
             value={alert.entryTime || "—"}
             tone="slate"
+            compact={compact}
           />
 
           <MiniMetric
             label="Forecast time"
             value={alert.forecastTime || "—"}
             tone="slate"
+            compact={compact}
           />
 
-          <MiniMetric
-            label="TP1 / TP2"
-            value={fmtPair(alert.tp1_pct, alert.tp2_pct, true)}
-            tone="emerald"
-          />
+          {!compact && (
+            <>
+              <MiniMetric
+                label="TP1 / TP2"
+                value={fmtPair(alert.tp1_pct, alert.tp2_pct, true)}
+                tone="emerald"
+                compact={compact}
+              />
 
-          <MiniMetric
-            label="Stop"
-            value={fmt(alert.stop_pct, true)}
-            tone="amber"
-          />
+              <MiniMetric
+                label="Stop"
+                value={fmt(alert.stop_pct, true)}
+                tone="amber"
+                compact={compact}
+              />
+            </>
+          )}
         </div>
 
         {/* COLUMN 3 — actions / quick risk context */}
-        <div className="flex flex-col justify-between gap-4">
+        <div className={`flex flex-col justify-between ${compact ? "gap-3" : "gap-4"}`}>
           {showAdvancedMetrics && (
-            <div className="rounded-2xl bg-white/60 border border-white/70 p-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <div
+              className={`rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-white/70 dark:border-slate-700 ${
+                compact ? "p-2.5" : "p-3"
+              }`}
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
                 Quick context
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid grid-cols-2 ${compact ? "gap-1.5" : "gap-2"}`}>
                 <MiniMetric
                   label="Success"
                   value={fmt(alert.success7d_prob, true)}
                   tone="emerald"
+                  compact={compact}
                 />
 
                 <MiniMetric
                   label="Sub-4 risk"
                   value={fmt(alert.sub4_risk)}
                   tone="amber"
+                  compact={compact}
                 />
 
-                <MiniMetric
-                  label="Edge"
-                  value={fmt(alert.edge_p)}
-                  tone="blue"
-                />
+                {!compact && (
+                  <>
+                    <MiniMetric
+                      label="Edge"
+                      value={fmt(alert.edge_p)}
+                      tone="blue"
+                      compact={compact}
+                    />
 
-                <MiniMetric
-                  label="Flow"
-                  value={fmt(alert.flow_score)}
-                  tone="slate"
-                />
+                    <MiniMetric
+                      label="Flow"
+                      value={fmt(alert.flow_score)}
+                      tone="slate"
+                      compact={compact}
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -958,6 +991,7 @@ function AlertBubble({
               variant="primary"
               disabled={busy}
               onClick={() => onTake(rawAlert)}
+              compact={compact}
             >
               {busy ? "..." : "Take"}
             </ActionButton>
@@ -965,6 +999,7 @@ function AlertBubble({
             <ActionButton
               disabled={busy}
               onClick={() => onDismiss(rawAlert)}
+              compact={compact}
             >
               Dismiss
             </ActionButton>
@@ -974,15 +1009,19 @@ function AlertBubble({
               disabled={busy}
               onClick={onTogglePin}
               title="Pin this alert to the top"
+              compact={compact}
             >
               {pinned ? "★" : "☆ Star"}
             </ActionButton>
           </div>
         </div>
       </div>
+
       {/* Dropdown */}
-      <details className="mt-4 bg-white/70 rounded-2xl px-4 py-3 text-[11px] text-slate-700">
-        <summary className="cursor-pointer font-semibold text-slate-800">
+      <details
+        className={`mt-4 bg-white/70 dark:bg-slate-900/70 rounded-2xl ${detailsPadding} text-[11px] text-slate-700 dark:text-slate-300`}
+      >
+        <summary className="cursor-pointer font-semibold text-slate-800 dark:text-slate-100">
           View full Signal 97 breakdown
         </summary>
 
