@@ -889,37 +889,34 @@ export default function SpreadGuard() {
                     ` · ${money(c.distanceFromZone)} away from strict zone`}
                 </div>
                 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="text-[10px] text-slate-400 mt-1">
+                  {c.label}
+                  {!c.strict &&
+                    ` · ${money(c.distanceFromZone)} away from strict zone`}
+                </div>
+
+                <div className="mt-3">
                   <button
                     type="button"
-                    onClick={() => applyCandidateToSlot("A", c)}
-                    className="rounded-xl bg-blue-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-blue-700"
+                    onClick={() =>
+                      applyCandidateToSlot(
+                        i === 0 ? "A" : i === 1 ? "B" : i === 2 ? "C" : "D",
+                        c
+                      )
+                    }
+                    className={
+                      "rounded-xl px-4 py-2 text-[10px] font-black text-white shadow-sm " +
+                      (i === 0
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : i === 1
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : i === 2
+                        ? "bg-purple-600 hover:bg-purple-700"
+                        : "bg-amber-600 hover:bg-amber-700")
+                    }
                   >
-                    Put in A
-                  </button>
-                
-                  <button
-                    type="button"
-                    onClick={() => applyCandidateToSlot("B", c)}
-                    className="rounded-xl bg-emerald-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-emerald-700"
-                  >
-                    Put in B
-                  </button>
-                
-                  <button
-                    type="button"
-                    onClick={() => applyCandidateToSlot("C", c)}
-                    className="rounded-xl bg-purple-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-purple-700"
-                  >
-                    Put in C
-                  </button>
-                
-                  <button
-                    type="button"
-                    onClick={() => applyCandidateToSlot("D", c)}
-                    className="rounded-xl bg-amber-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-amber-700"
-                  >
-                    Put in D
+                    Use as Candidate{" "}
+                    {i === 0 ? "A" : i === 1 ? "B" : i === 2 ? "C" : "D"}
                   </button>
                 </div>
               </div>
