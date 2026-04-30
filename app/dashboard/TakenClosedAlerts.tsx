@@ -106,7 +106,25 @@ export default function TakenClosedAlerts() {
       </div>
 
       {!trades.length && (
-        <div className="text-sm text-slate-500">No closed trades yet.</div>
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white px-6 py-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+            ✓
+          </div>
+      
+          <h2 className="text-lg font-bold text-slate-900">
+            No closed trades yet
+          </h2>
+      
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+            Closed trades will appear here after you take an alert, enter your trade
+            details, and close it from the Active Trades page. This becomes your
+            trading journal and feeds the P&amp;L page.
+          </p>
+      
+          <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm">
+            Close an active trade to build your journal.
+          </div>
+        </div>
       )}
 
       <div className="space-y-3">
