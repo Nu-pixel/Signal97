@@ -46,6 +46,7 @@ function DashboardInner() {
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
 
   const wideTabs = new Set<Tab>([
+    "Command Center",
     "Live Watchlist",
     "Signal 97 Alerts",
     "Active Trades",
@@ -55,7 +56,7 @@ function DashboardInner() {
     "Tools",
   ]);
 
-  const pageMaxWidth = wideTabs.has(activeTab) ? "max-w-[1500px]" : "max-w-5xl";
+  const pageMaxWidth = "max-w-[1500px]";
 
   const handleLogout = () => {
     router.push("/");
