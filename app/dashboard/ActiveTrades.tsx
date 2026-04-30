@@ -47,10 +47,17 @@ function money(v: any) {
 
 function prettySide(t: VmTrade) {
   const a = t.alert || {};
-  const raw = String(t.side || a.direction_rule_direction || a.direction || a.side || "").toUpperCase();
+  const raw = String(
+    t.side || a.direction_rule_direction || a.direction || a.side || ""
+  ).toUpperCase();
 
-  if (raw.includes("UP") || raw.includes("CALL") || raw.includes("SUNRISE")) return "Call";
-  if (raw.includes("DOWN") || raw.includes("PUT") || raw.includes("SNOWFALL")) return "Put";
+  if (raw.includes("UP") || raw.includes("CALL") || raw.includes("SUNRISE")) {
+    return "Call";
+  }
+
+  if (raw.includes("DOWN") || raw.includes("PUT") || raw.includes("SNOWFALL")) {
+    return "Put";
+  }
 
   return raw || "—";
 }
@@ -137,7 +144,9 @@ const ActiveTrades: React.FC = () => {
         symbol: symbolOf(t),
         side: prettySide(t),
         draft: d,
-        note: t.taken_at ? `Taken ${new Date(t.taken_at * 1000).toLocaleString()}` : "Active",
+        note: t.taken_at
+          ? `Taken ${new Date(t.taken_at * 1000).toLocaleString()}`
+          : "Active",
       };
     });
   }, [trades, drafts]);
@@ -252,7 +261,9 @@ const ActiveTrades: React.FC = () => {
                 <tr key={r.id} className="border-b border-slate-50 align-top">
                   <td className="py-2 font-semibold text-slate-900">
                     {r.symbol}
-                    <div className="text-[9px] text-slate-400 font-normal">{r.note}</div>
+                    <div className="text-[9px] text-slate-400 font-normal">
+                      {r.note}
+                    </div>
                   </td>
 
                   <td className="py-2">
@@ -273,7 +284,9 @@ const ActiveTrades: React.FC = () => {
                   <td className="py-2">
                     <select
                       value={String(d.instrument_type || "stock")}
-                      onChange={(e) => updateDraft(r.id, "instrument_type", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "instrument_type", e.target.value)
+                      }
                       className="w-24 rounded-md border px-2 py-1 text-xs"
                     >
                       <option value="stock">Stock</option>
@@ -284,7 +297,9 @@ const ActiveTrades: React.FC = () => {
                   <td className="py-2">
                     <input
                       value={String(d.entry_price ?? "")}
-                      onChange={(e) => updateDraft(r.id, "entry_price", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "entry_price", e.target.value)
+                      }
                       placeholder="ex: 1.25"
                       className="w-24 rounded-md border px-2 py-1 text-xs"
                     />
@@ -293,7 +308,9 @@ const ActiveTrades: React.FC = () => {
                   <td className="py-2">
                     <input
                       value={String(d.quantity ?? "")}
-                      onChange={(e) => updateDraft(r.id, "quantity", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "quantity", e.target.value)
+                      }
                       placeholder="shares"
                       className="w-24 rounded-md border px-2 py-1 text-xs"
                     />
@@ -302,7 +319,9 @@ const ActiveTrades: React.FC = () => {
                   <td className="py-2">
                     <input
                       value={String(d.contracts ?? "")}
-                      onChange={(e) => updateDraft(r.id, "contracts", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "contracts", e.target.value)
+                      }
                       placeholder="contracts"
                       className="w-24 rounded-md border px-2 py-1 text-xs"
                     />
@@ -311,20 +330,26 @@ const ActiveTrades: React.FC = () => {
                   <td className="py-2">
                     <input
                       value={String(d.exit_price ?? "")}
-                      onChange={(e) => updateDraft(r.id, "exit_price", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "exit_price", e.target.value)
+                      }
                       placeholder="when sold"
                       className="w-24 rounded-md border px-2 py-1 text-xs"
                     />
                   </td>
 
                   <td className="py-2 text-emerald-600 font-semibold">
-                    {d.pnl != null ? `${money(d.pnl)} (${d.pnl_pct ?? "—"}%)` : "—"}
+                    {d.pnl != null
+                      ? `${money(d.pnl)} (${d.pnl_pct ?? "—"}%)`
+                      : "—"}
                   </td>
 
                   <td className="py-2">
                     <input
                       value={String(d.notes ?? "")}
-                      onChange={(e) => updateDraft(r.id, "notes", e.target.value)}
+                      onChange={(e) =>
+                        updateDraft(r.id, "notes", e.target.value)
+                      }
                       placeholder="notes"
                       className="w-44 rounded-md border px-2 py-1 text-xs"
                     />
@@ -361,10 +386,32 @@ const ActiveTrades: React.FC = () => {
               );
             })}
 
-            {!rows.length && (
+            {!rows.length && !loading && (
               <tr>
-                <td className="py-4 text-xs text-slate-500" colSpan={10}>
-                  No active trades yet. Use “Take” on an alert to create one.
+                <td className="py-4" colSpan={10}>
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white px-6 py-8 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                      ↗
+                    </div>
+
+                    <h2 className="text-lg font-bold text-slate-900">
+                      No active trades yet
+                    </h2>
+
+                    <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+                      When you click{" "}
+                      <span className="font-semibold text-slate-700">
+                        Take
+                      </span>{" "}
+                      on a Signal97 alert, it appears here so you can enter your
+                      real fill price, shares/contracts, notes, exit price, and
+                      close the trade into your P&amp;L.
+                    </p>
+
+                    <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm">
+                      Go to Signal97 Alerts and take an alert to start tracking.
+                    </div>
+                  </div>
                 </td>
               </tr>
             )}
