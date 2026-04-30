@@ -689,14 +689,22 @@ export default function SpreadGuard() {
   }; 
   
   const setLeg = (
-    candidate: "A" | "B",
+    candidate: "A" | "B" | "C" | "D",
     side: "buyLeg" | "sellLeg",
     key: keyof Leg,
     value: string
   ) => {
     setHasCompared(false);
-    const setter = candidate === "A" ? setSpreadA : setSpreadB;
-
+  
+    const setter =
+      candidate === "A"
+        ? setSpreadA
+        : candidate === "B"
+        ? setSpreadB
+        : candidate === "C"
+        ? setSpreadC
+        : setSpreadD;
+  
     setter((p) => ({
       ...p,
       [side]: {
@@ -901,7 +909,7 @@ export default function SpreadGuard() {
                     ` · ${money(c.distanceFromZone)} away from strict zone`}
                 </div>
                 
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => applyCandidateToSlot("A", c)}
@@ -917,6 +925,22 @@ export default function SpreadGuard() {
                   >
                     Put in B
                   </button>
+                
+                  <button
+                    type="button"
+                    onClick={() => applyCandidateToSlot("C", c)}
+                    className="rounded-xl bg-purple-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-purple-700"
+                  >
+                    Put in C
+                  </button>
+                
+                  <button
+                    type="button"
+                    onClick={() => applyCandidateToSlot("D", c)}
+                    className="rounded-xl bg-amber-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-amber-700"
+                  >
+                    Put in D
+                  </button>
                 </div>
               </div>
             ))}
@@ -927,19 +951,37 @@ export default function SpreadGuard() {
           <SpreadEditor
             title="Candidate A"
             theme="blue"
-            subtitle="First spread choice"
+            subtitle="Conservative spread choice"
             result={resultA}
             spread={spreadA}
             onChange={(side, key, value) => setLeg("A", side, key, value)}
           />
-
+        
           <SpreadEditor
             title="Candidate B"
             theme="emerald"
-            subtitle="Second spread choice"
+            subtitle="Second conservative spread choice"
             result={resultB}
             spread={spreadB}
             onChange={(side, key, value) => setLeg("B", side, key, value)}
+          />
+        
+          <SpreadEditor
+            title="Candidate C"
+            theme="blue"
+            subtitle="Alternative spread choice"
+            result={resultC}
+            spread={spreadC}
+            onChange={(side, key, value) => setLeg("C", side, key, value)}
+          />
+        
+          <SpreadEditor
+            title="Candidate D"
+            theme="emerald"
+            subtitle="Second alternative spread choice"
+            result={resultD}
+            spread={spreadD}
+            onChange={(side, key, value) => setLeg("D", side, key, value)}
           />
         </div>
 
