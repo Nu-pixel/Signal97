@@ -451,9 +451,16 @@ export default function SpreadGuard() {
       return sorter(x, y);
     });
 
+    const fallbackUsed =
+      candidateMode === "STRICT" &&
+      strictSorted.length === 0 &&
+      flexibleSorted.length > 0;
+    
     const shown =
       candidateMode === "STRICT"
-        ? strictSorted.slice(0, 2)
+        ? strictSorted.length > 0
+          ? strictSorted.slice(0, 2)
+          : flexibleSorted.slice(0, 2)
         : flexibleSorted.slice(0, 2);
 
     return {
@@ -463,6 +470,7 @@ export default function SpreadGuard() {
       target: money(target),
       zone: `${money(low)} to ${money(high)}`,
       mode: candidateMode,
+      fallbackUsed,
     };
   }, [direction, stockPrice, targetPct, strikes, candidateMode]);
 
@@ -536,6 +544,30 @@ export default function SpreadGuard() {
     };
   }, [resultA, resultB]);
 
+  
+  const applyCandidateToSlot = (slot: "A" | "B", candidate: any) => {
+    setHasCompared(false);
+  
+    const setter = slot === "A" ? setSpreadA : setSpreadB;
+  
+    setter((p) => ({
+      ...p,
+      buyLeg: {
+        ...p.buyLeg,
+        strike: String(candidate.buy),
+      },
+      sellLeg: {
+        ...p.sellLeg,
+        strike: String(candidate.sell),
+      },
+    }));
+  };
+  
+  const loadTopTwoCandidates = () => {
+    if (candidates[0]) applyCandidateToSlot("A", candidates[0]);
+    if (candidates[1]) applyCandidateToSlot("B", candidates[1]);
+  };  
+  
   const setLeg = (
     candidate: "A" | "B",
     side: "buyLeg" | "sellLeg",
@@ -629,10 +661,20 @@ export default function SpreadGuard() {
                 They are not approved trades yet.
               </div>
 
+             
               <div className="text-xs text-slate-400 mt-1">
-                Target ${candidateInfo.target} · Strict sell zone: ${candidateInfo.zone}
+                Target ${candidateInfo.target} · Strict sell zone: {candidateInfo.zone}
               </div>
-            </div>
+              
+              {candidates.length > 0 && (
+                <button
+                  type="button"
+                  onClick={loadTopTwoCandidates}
+                  className="mt-3 rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white shadow-sm hover:bg-slate-800"
+                >
+                  Use these 2 spreads for Candidate A/B
+                </button>
+              )}
 
             <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1">
               <button
@@ -737,6 +779,24 @@ export default function SpreadGuard() {
                   {c.label}
                   {!c.strict &&
                     ` · ${money(c.distanceFromZone)} away from strict zone`}
+                </div>
+                
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyCandidateToSlot("A", c)}
+                    className="rounded-xl bg-blue-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-blue-700"
+                  >
+                    Put in A
+                  </button>
+                
+                  <button
+                    type="button"
+                    onClick={() => applyCandidateToSlot("B", c)}
+                    className="rounded-xl bg-emerald-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-emerald-700"
+                  >
+                    Put in B
+                  </button>
                 </div>
               </div>
             ))}
