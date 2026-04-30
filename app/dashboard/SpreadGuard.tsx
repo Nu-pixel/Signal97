@@ -248,9 +248,21 @@ function evaluateSpread(params: {
   }
 
   if (buyLiq.grade === "BAD" || sellLiq.grade === "BAD") {
-    decision = "SKIP";
-    score -= 35;
-    notes.push("Liquidity is too weak. Exit price may be worse than expected.");
+    const worstSpreadPct = Math.max(buyLiq.spreadPct, sellLiq.spreadPct);
+  
+    if (worstSpreadPct > 20 || expectedProfit <= 0) {
+      decision = "SKIP";
+      score -= 35;
+      notes.push(
+        "Liquidity is weak AND the bid/ask or profit estimate is bad. You may have trouble exiting at a fair price."
+      );
+    } else {
+      decision = decision === "EXECUTE" ? "WATCH / TEST SIZE ONLY" : decision;
+      score -= 20;
+      notes.push(
+        "Liquidity is weak, but not automatically impossible. Use 1 contract only, use a limit order, and only take it if the live fill is fair."
+      );
+    }
   } else if (buyLiq.grade.includes("SMALL") || sellLiq.grade.includes("SMALL")) {
     decision = decision === "EXECUTE" ? "WATCH / SMALL SIZE ONLY" : decision;
     score -= 15;
@@ -266,10 +278,15 @@ function evaluateSpread(params: {
     notes.push("Contract size is too large for current liquidity.");
   }
 
-  if (expectedProfit <= 0) {
+
+  if (expectedProfit < -10) {
     decision = "SKIP";
     score -= 25;
-    notes.push("Estimated profit after theta and slippage is weak.");
+    notes.push("Estimated profit after theta and slippage is meaningfully negative.");
+  } else if (expectedProfit <= 0) {
+    decision = decision === "EXECUTE" ? "WATCH / TEST SIZE ONLY" : decision;
+    score -= 10;
+    notes.push("Estimated profit is slightly negative, so this is not clean. Only test-size if the live fill is good.");
   }
 
   if (rewardRisk < 0.75) {
@@ -951,13 +968,18 @@ function SpreadEditor({
 
       <div className="rounded-2xl bg-white/80 border border-white p-4 text-xs space-y-1 shadow-sm">
         <div>
-          <b>Buy liquidity:</b> {result.buyLiq.grade} · spread {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume {result.buyLiq.volume}
+          <b>Buy liquidity:</b> {result.buyLiq.grade} · spread{" "}
+          {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume{" "}
+          {result.buyLiq.volume}
         </div>
         <div>
-          <b>Sell liquidity:</b> {result.sellLiq.grade} · spread {result.sellLiq.spreadPct}% · OI {result.sellLiq.openInterest} · volume {result.sellLiq.volume}
+          <b>Sell liquidity:</b> {result.sellLiq.grade} · spread{" "}
+          {result.sellLiq.spreadPct}% · OI {result.sellLiq.openInterest} · volume{" "}
+          {result.sellLiq.volume}
         </div>
         <div>
-          <b>Size safety:</b> {result.sizeCheck.status} — suggested max {result.sizeCheck.maxSuggested}
+          <b>Size safety:</b> {result.sizeCheck.status} — suggested max{" "}
+          {result.sizeCheck.maxSuggested}
         </div>
         <div>
           <b>IV:</b> {result.ivStatus} — {result.ivNote}
@@ -965,6 +987,93 @@ function SpreadEditor({
         <div>
           <b>Notes:</b> {result.notes.join(" ")}
         </div>
+      </div>
+
+      <ReasonBox result={result} />
+    </div>
+  );
+}
+
+function ReasonBox({ result }: { result: any }) {
+  const badReasons: string[] = [];
+
+  if (result.breakevenMovePct > 4.5) {
+    badReasons.push(
+      `Breakeven needs ${money(result.breakevenMovePct)}%. That may be too much if your model expects about a 4% move.`
+    );
+  }
+
+  if (result.buyLiq.grade === "BAD") {
+    badReasons.push(
+      `Buy leg liquidity is BAD. Volume ${result.buyLiq.volume}, OI ${result.buyLiq.openInterest}, bid/ask spread ${result.buyLiq.spreadPct}%. This does not mean you cannot exit, but the exit price may be worse.`
+    );
+  }
+
+  if (result.sellLiq.grade === "BAD") {
+    badReasons.push(
+      `Sell leg liquidity is BAD. Volume ${result.sellLiq.volume}, OI ${result.sellLiq.openInterest}, bid/ask spread ${result.sellLiq.spreadPct}%. One weak leg can make the whole spread harder to close cleanly.`
+    );
+  }
+
+  if (result.debit > result.width * 0.65) {
+    badReasons.push(
+      `The spread is too expensive. You are paying ${money(result.debit)} for a ${result.width}-wide spread, which leaves limited upside.`
+    );
+  }
+  
+  if (result.rewardRisk < 0.75) {
+    badReasons.push(
+      `Reward vs risk is weak. The potential profit is not large enough compared to what you are risking.`
+    );
+  }
+  
+  if (result.expectedProfit <= 0) {
+    badReasons.push(
+      "Estimated profit is negative after theta and slippage. That means the stock could move correctly, but the spread may still not pay enough."
+    );
+  }
+
+  if (result.sizeCheck.status === "TOO LARGE") {
+    badReasons.push(
+      `The contract size is too large for current liquidity. Suggested max: ${result.sizeCheck.maxSuggested}.`
+    );
+  }
+
+  if (badReasons.length === 0) {
+    badReasons.push(
+      "No major red flag found. Still use a limit order and confirm the live fill before entering."
+    );
+  }
+
+  return (
+    <div
+      className={
+        "rounded-2xl border p-4 text-xs space-y-2 " +
+        (result.decision === "SKIP"
+          ? "bg-rose-50 border-rose-200 text-rose-900"
+          : result.decision.includes("WATCH")
+          ? "bg-amber-50 border-amber-200 text-amber-900"
+          : "bg-emerald-50 border-emerald-200 text-emerald-900")
+      }
+    >
+      <div className="text-sm font-black">
+        {result.decision === "SKIP"
+          ? "Why this says SKIP"
+          : result.decision.includes("WATCH")
+          ? "Why this needs caution"
+          : "Why this passed"}
+      </div>
+
+      <ol className="list-decimal pl-4 space-y-1">
+        {badReasons.map((r, i) => (
+          <li key={i}>{r}</li>
+        ))}
+      </ol>
+
+      <div className="pt-1 text-[11px] opacity-90">
+        Plain English: low volume or low open interest does not prove there will
+        be no buyer later. It means the contract is less active, so you may need
+        to accept a worse price to close.
       </div>
     </div>
   );
