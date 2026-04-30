@@ -387,11 +387,77 @@ export default function SpreadGuard() {
       theta: "0.6507",
     },
   });
+  const [spreadB, setSpreadB] = useState<SpreadInput>({
+    name: "Candidate B",
+    buyLeg: {
+      strike: "405",
+      bid: "13.40",
+      ask: "14.30",
+      volume: "0",
+      openInterest: "0",
+      iv: "0.52",
+      theta: "-0.65",
+    },
+    sellLeg: {
+      strike: "415",
+      bid: "9.65",
+      ask: "10.25",
+      volume: "386",
+      openInterest: "274",
+      iv: "0.5216",
+      theta: "0.6507",
+    },
+  });
+
+  const [spreadC, setSpreadC] = useState<SpreadInput>({
+    name: "Candidate C",
+    buyLeg: {
+      strike: "177.5",
+      bid: "",
+      ask: "",
+      volume: "",
+      openInterest: "",
+      iv: "",
+      theta: "",
+    },
+    sellLeg: {
+      strike: "185",
+      bid: "",
+      ask: "",
+      volume: "",
+      openInterest: "",
+      iv: "",
+      theta: "",
+    },
+  });
+
+  const [spreadD, setSpreadD] = useState<SpreadInput>({
+    name: "Candidate D",
+    buyLeg: {
+      strike: "180",
+      bid: "",
+      ask: "",
+      volume: "",
+      openInterest: "",
+      iv: "",
+      theta: "",
+    },
+    sellLeg: {
+      strike: "185",
+      bid: "",
+      ask: "",
+      volume: "",
+      openInterest: "",
+      iv: "",
+      theta: "",
+    },
+  });
 
   const updateTopInput = (setter: (v: string) => void, value: string) => {
     setter(value);
     setHasCompared(false);
   };
+
 
   const candidateInfo = useMemo(() => {
     const price = n(stockPrice);
@@ -478,13 +544,13 @@ export default function SpreadGuard() {
       candidateMode === "STRICT" &&
       strictSorted.length === 0 &&
       flexibleSorted.length > 0;
-    
+
     const shown =
       candidateMode === "STRICT"
         ? strictSorted.length > 0
-          ? strictSorted.slice(0, 2)
-          : flexibleSorted.slice(0, 2)
-        : flexibleSorted.slice(0, 2);
+          ? strictSorted.slice(0, 4)
+          : flexibleSorted.slice(0, 4)
+        : flexibleSorted.slice(0, 4);
 
     return {
       candidates: shown,
@@ -526,52 +592,81 @@ export default function SpreadGuard() {
       }),
     [direction, stockPrice, targetPct, contracts, spreadB]
   );
+  const resultC = useMemo(
+    () =>
+      evaluateSpread({
+        name: "Candidate C",
+        direction,
+        stockPrice: n(stockPrice),
+        targetPct: n(targetPct),
+        contracts: n(contracts),
+        buyLeg: spreadC.buyLeg,
+        sellLeg: spreadC.sellLeg,
+      }),
+    [direction, stockPrice, targetPct, contracts, spreadC]
+  );
+
+  const resultD = useMemo(
+    () =>
+      evaluateSpread({
+        name: "Candidate D",
+        direction,
+        stockPrice: n(stockPrice),
+        targetPct: n(targetPct),
+        contracts: n(contracts),
+        buyLeg: spreadD.buyLeg,
+        sellLeg: spreadD.sellLeg,
+      }),
+    [direction, stockPrice, targetPct, contracts, spreadD]
+  );
 
   const final = useMemo(() => {
-    const validA = resultA.decision !== "SKIP";
-    const validB = resultB.decision !== "SKIP";
+    const results = [resultA, resultB, resultC, resultD];
+    const valid = results.filter((r) => r.decision !== "SKIP");
 
-    if (!validA && !validB) {
+    if (valid.length === 0) {
       return {
-        decision: "SKIP BOTH",
-        action: "Skip both spreads for now.",
+        decision: "SKIP ALL",
+        action: "Skip all four spreads for now.",
         why:
-          "Both candidates failed safety checks. The usual causes are weak liquidity, bad size, expensive debit, or weak expected profit.",
+          "All candidates failed safety checks. The usual causes are weak liquidity, bad size, expensive debit, or weak expected profit.",
         next:
           "Check nearby strikes with stronger volume/open interest and tighter bid/ask spreads.",
         winner: null as any,
       };
     }
 
-    const winner =
-      validA && validB
-        ? resultA.score >= resultB.score
-          ? resultA
-          : resultB
-        : validA
-        ? resultA
-        : resultB;
+    const winner = [...valid].sort((a, b) => b.score - a.score)[0];
 
-    const loser = winner.name === "Candidate A" ? resultB : resultA;
+    const runnerUp = [...results]
+      .filter((r) => r.name !== winner.name)
+      .sort((a, b) => b.score - a.score)[0];
 
     return {
       decision: winner.decision,
       action: `${winner.name} wins: Buy ${winner.buyStrike} ${winner.optionWord} / Sell ${winner.sellStrike} ${winner.optionWord}`,
       why:
-        `${winner.name} scored better overall. Winner score: ${winner.score}. Other score: ${loser.score}.`,
+        `${winner.name} scored best overall. Winner score: ${winner.score}. ` +
+        `Next closest: ${runnerUp.name} with score ${runnerUp.score}.`,
       next:
         winner.decision === "EXECUTE"
           ? "Use a limit order only. Do not use a market order."
           : "This is not a clean full-size trade. Use small size only or keep checking better strikes.",
       winner,
     };
-  }, [resultA, resultB]);
+  }, [resultA, resultB, resultC, resultD]);
 
-  
-  const applyCandidateToSlot = (slot: "A" | "B", candidate: any) => {
+  const applyCandidateToSlot = (slot: "A" | "B" | "C" | "D", candidate: any) => {
     setHasCompared(false);
   
-    const setter = slot === "A" ? setSpreadA : setSpreadB;
+    const setter =
+      slot === "A"
+        ? setSpreadA
+        : slot === "B"
+        ? setSpreadB
+        : slot === "C"
+        ? setSpreadC
+        : setSpreadD;
   
     setter((p) => ({
       ...p,
@@ -586,10 +681,12 @@ export default function SpreadGuard() {
     }));
   };
   
-  const loadTopTwoCandidates = () => {
+  const loadTopFourCandidates = () => {
     if (candidates[0]) applyCandidateToSlot("A", candidates[0]);
     if (candidates[1]) applyCandidateToSlot("B", candidates[1]);
-  };  
+    if (candidates[2]) applyCandidateToSlot("C", candidates[2]);
+    if (candidates[3]) applyCandidateToSlot("D", candidates[3]);
+  }; 
   
   const setLeg = (
     candidate: "A" | "B",
@@ -691,10 +788,10 @@ export default function SpreadGuard() {
               {candidates.length > 0 && (
                 <button
                   type="button"
-                  onClick={loadTopTwoCandidates}
+                  onClick={loadTopFourCandidates}
                   className="mt-3 rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white shadow-sm hover:bg-slate-800"
                 >
-                  Use these 2 spreads for Candidate A/B
+                  Use these 4 spreads for Candidate A/B/C/D
                 </button>
               )}
             </div>
