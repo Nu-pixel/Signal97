@@ -449,47 +449,33 @@ export default function LiveAlertsPanel() {
     };
 
     return (
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Signal 97 Alerts
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Only fresh, actionable alerts that pass Signal 97 + Probability
-            appear here.
+      <div className="space-y-5">
+        <AlertsPageHeader alerts={alerts} />
+
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-5">
+          <p className="text-xs text-slate-500">
+            No live alerts yet. When a new alert fires, you&apos;ll see:
           </p>
+
+          <AlertBubble
+            alert={sample}
+            rawAlert={{}}
+            busy={false}
+            pinned={false}
+            onTake={async () => window.alert("No live alerts yet.")}
+            onDismiss={async () => window.alert("No live alerts yet.")}
+            onTogglePin={() => window.alert("No live alerts yet.")}
+          />
         </div>
-
-        <p className="text-xs text-slate-500">
-          No live alerts yet. When a new alert fires, you&apos;ll see:
-        </p>
-
-        <AlertBubble
-          alert={sample}
-          rawAlert={{}}
-          busy={false}
-          pinned={false}
-          onTake={async () => window.alert("No live alerts yet.")}
-          onDismiss={async () => window.alert("No live alerts yet.")}
-          onTogglePin={() => window.alert("No live alerts yet.")}
-        />
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Signal 97 Alerts
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Only fresh, actionable alerts that pass Signal 97 + Probability rules
-          appear here.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <AlertsPageHeader alerts={alerts} />
 
-      <div className="space-y-4">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-4">
         {alerts.map((a, idx) => {
           const key = makeKey(a.raw);
           const busy = busyKey === key;
@@ -511,6 +497,96 @@ export default function LiveAlertsPanel() {
     </div>
   );
 }
+
+function AlertsPageHeader({
+  alerts,
+}: {
+  alerts: { raw: RawAlert; card: AlertCardData }[];
+}) {
+  const total = alerts.length;
+
+  const tier1 = alerts.filter((a) => a.card.confidenceTier.tier === "Tier 1").length;
+  const tier2 = alerts.filter((a) => a.card.confidenceTier.tier === "Tier 2").length;
+  const tier3 = alerts.filter((a) => a.card.confidenceTier.tier === "Tier 3").length;
+  const standard = alerts.filter((a) => a.card.confidenceTier.tier === "Standard").length;
+
+  const up = alerts.filter((a) => a.card.tone === "up").length;
+  const down = alerts.filter((a) => a.card.tone === "down").length;
+
+  const statusText =
+    total === 0
+      ? "No live alerts"
+      : `${total} live alert${total === 1 ? "" : "s"}`;
+
+  return (
+    <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-sky-50 to-emerald-50 px-6 py-5 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center rounded-full bg-slate-950 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+            Action inbox
+          </div>
+
+          <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
+            Signal97 Alerts
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+            Fresh, actionable alerts only. Taken alerts move to Active Trades,
+            dismissed alerts leave this inbox, and old alerts are archived.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
+            {statusText}
+          </span>
+
+          <span className="rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+            {up} UP
+          </span>
+
+          <span className="rounded-full bg-rose-50 border border-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700">
+            {down} DOWN
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <HeaderStat label="Tier 1" value={tier1} tone="emerald" />
+        <HeaderStat label="Tier 2" value={tier2} tone="blue" />
+        <HeaderStat label="Tier 3" value={tier3} tone="amber" />
+        <HeaderStat label="Standard" value={standard} tone="slate" />
+      </div>
+    </div>
+  );
+}
+
+function HeaderStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "emerald" | "blue" | "amber" | "slate";
+}) {
+  const toneClass: Record<string, string> = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    slate: "bg-slate-50 text-slate-700 border-slate-100",
+  };
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${toneClass[tone]}`}>
+      <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-bold">{value}</div>
+    </div>
+  );
+}
+
 
 function AlertBubble({
   alert,
