@@ -39,7 +39,7 @@ export default function HomePage() {
         onDemo={() => setModalMode("demo")}
       />
 
-      <main className="pt-24 relative z-10">
+      <main className="min-h-screen bg-[#f8fafc] dark:bg-[#eef3f8] transition-colors pt-24 relative z-10">
         <HeroSection onLaunchDemo={() => setModalMode("demo")} />
         <HowItWorks />
         <Features />
