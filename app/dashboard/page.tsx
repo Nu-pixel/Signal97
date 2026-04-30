@@ -81,9 +81,9 @@ function DashboardInner() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] dark:bg-[#07111f] transition-colors">
+    <main className="min-h-screen bg-[#f8fafc] dark:bg-[#0b1220] transition-colors">
       {/* Top bar */}
-      <header className="sticky top-0 z-50 w-full bg-white/95 dark:bg-[#08111f]/95 border-b border-slate-100 dark:border-slate-800 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full bg-white dark:bg-[#111c2e] border-b border-slate-100 dark:border-slate-800">
         <div className="w-full max-w-[1500px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-semibold shadow-sm">
@@ -126,7 +126,7 @@ function DashboardInner() {
         </div>
 
         {/* Tabs row */}
-        <div className="w-full bg-white/95 dark:bg-[#08111f]/95 border-t border-slate-100 dark:border-slate-800 border-b border-slate-200 dark:border-slate-800 shadow-sm/40">
+        <div className="dashboard-tabs-row w-full bg-white dark:bg-[#0f1a2b] border-b border-slate-200 dark:border-slate-800 shadow-sm/40">
           <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-sm">
               {TABS.map((tab) => {
