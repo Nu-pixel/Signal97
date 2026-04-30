@@ -45,6 +45,18 @@ function DashboardInner() {
 
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
 
+  const wideTabs = new Set<Tab>([
+    "Live Watchlist",
+    "Signal 97 Alerts",
+    "Active Trades",
+    "Taken / Closed Alerts",
+    "Dismissed Alerts",
+    "P&L / Performance",
+    "Tools",
+  ]);
+
+  const pageMaxWidth = wideTabs.has(activeTab) ? "max-w-[1500px]" : "max-w-5xl";
+
   const handleLogout = () => {
     router.push("/");
   };
@@ -52,8 +64,8 @@ function DashboardInner() {
   return (
     <main className="min-h-screen bg-[#f8fafc]">
       {/* Top bar */}
-      <header className="w-full bg-white border-b border-slate-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4 gap-4">
+      <header className="w-full bg-white border-b border-slate-100">       
+        <div className="w-full max-w-[1500px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-semibold">
               97
@@ -95,31 +107,38 @@ function DashboardInner() {
         </div>
       </header>
 
+
       {/* Tabs row */}
-      <div className="w-full bg-white shadow-sm/40">
-        <div className="max-w-6xl mx-auto px-6 flex gap-3 overflow-x-auto py-3 text-sm">
-          {TABS.map((tab) => {
-            const isActiveTab = tab === activeTab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={
-                  "px-4 py-2 rounded-full whitespace-nowrap transition-all " +
-                  (isActiveTab
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50")
-                }
-              >
-                {tab}
-              </button>
-            );
-          })}
+      <div className="w-full bg-white border-b border-slate-200 shadow-sm/40">
+        <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-sm">
+            {TABS.map((tab) => {
+              const isActiveTab = tab === activeTab;
+
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={
+                    "px-4 py-2 rounded-full whitespace-nowrap transition-all " +
+                    (isActiveTab
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50")
+                  }
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Tab content */}
-      <section className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+      {/* Tab content */}
+      <section
+        className={`w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6`}
+      >
         {activeTab === "Command Center" && <CommandCenter onNavigate={setActiveTab} />}
         {activeTab === "Live Watchlist" && <LiveWatchlist />}
         {activeTab === "Signal 97 Alerts" && <LiveAlertsPanel />}
