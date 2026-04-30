@@ -28,7 +28,6 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 export default function DashboardPage() {
-  // ✅ Wrap the component that uses useSearchParams in Suspense
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <DashboardInner />
@@ -40,22 +39,11 @@ function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ✅ ONLY demo when URL explicitly has ?demo=1
   const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
 
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
 
-  const wideTabs = new Set<Tab>([
-    "Command Center",
-    "Live Watchlist",
-    "Signal 97 Alerts",
-    "Active Trades",
-    "Taken / Closed Alerts",
-    "Dismissed Alerts",
-    "P&L / Performance",
-    "Tools",
-  ]);
-
+  // All dashboard pages now use the same wide layout.
   const pageMaxWidth = "max-w-[1500px]";
 
   const handleLogout = () => {
@@ -65,7 +53,7 @@ function DashboardInner() {
   return (
     <main className="min-h-screen bg-[#f8fafc]">
       {/* Top bar */}
-      <header className="w-full bg-white border-b border-slate-100">       
+      <header className="w-full bg-white border-b border-slate-100">
         <div className="w-full max-w-[1500px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-semibold">
@@ -108,7 +96,6 @@ function DashboardInner() {
         </div>
       </header>
 
-
       {/* Tabs row */}
       <div className="w-full bg-white border-b border-slate-200 shadow-sm/40">
         <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,19 +123,21 @@ function DashboardInner() {
       </div>
 
       {/* Tab content */}
-      {/* Tab content */}
       <section
         className={`w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6`}
       >
-        {activeTab === "Command Center" && <CommandCenter onNavigate={setActiveTab} />}
+        {activeTab === "Command Center" && (
+          <CommandCenter onNavigate={setActiveTab} />
+        )}
+
         {activeTab === "Live Watchlist" && <LiveWatchlist />}
         {activeTab === "Signal 97 Alerts" && <LiveAlertsPanel />}
         {activeTab === "Active Trades" && <ActiveTrades />}
+        {activeTab === "Taken / Closed Alerts" && <TakenClosedAlerts />}
+        {activeTab === "Dismissed Alerts" && <DismissedAlerts />}
         {activeTab === "P&L / Performance" && <Performance />}
         {activeTab === "Tools" && <Tools />}
         {activeTab === "Settings" && <Settings />}
-        {activeTab === "Taken / Closed Alerts" && <TakenClosedAlerts />}
-        {activeTab === "Dismissed Alerts" && <DismissedAlerts />}  
       </section>
     </main>
   );
@@ -158,7 +147,7 @@ function DashboardInner() {
 function DashboardSkeleton() {
   return (
     <main className="min-h-screen bg-[#f8fafc]">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
           <div className="h-6 w-56 bg-slate-100 rounded mb-3" />
           <div className="h-3 w-72 bg-slate-100 rounded mb-6" />
