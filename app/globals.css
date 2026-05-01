@@ -9,8 +9,8 @@
 }
 
 .dark {
-  --background: #121828; /* Darker navy for high-end look */
-  --foreground: #e5edf7;   /* Light text for contrast */
+  --background: #121828;
+  --foreground: #e5edf7;
 }
 
 @theme inline {
@@ -45,74 +45,69 @@ textarea {
 
 /* Light mode body */
 body {
-  background: radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 30%), 
-              radial-gradient(circle at top right, rgba(209, 250, 229, 0.45), transparent 28%), 
-              #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 30%),
+    radial-gradient(circle at top right, rgba(209, 250, 229, 0.45), transparent 28%),
+    #f8fafc;
 }
 
 /* Dark mode body */
 .dark body {
-  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 32%),
-              radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 28%), 
-              #121828;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 32%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 28%),
+    #121828;
 }
 
-/* Header */
-.dark header {
-  background: #0f1a2b !important;
-  color: #e5edf7;
+/*
+  IMPORTANT:
+  Do NOT globally style every header, .bg-white, .bg-slate-50, etc.
+  That is what caused the public landing page/nav bars to change after logout.
+
+  Bad global patterns removed:
+  .dark header { ... }
+  .dark .bg-white { ... }
+  .dark .bg-slate-50 { ... }
+  .dark .bg-slate-100 { ... }
+*/
+
+/* Dashboard-only tab row */
+.dark .dashboard-tabs-row {
+  background: #070b13 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Ensure good contrast in header text */
-.dark header .text-slate-900 {
-  color: #e5edf7 !important;  
-}
-
-/* Tab row text */
-.dark .dashboard-tabs-row .text-slate-600 {
+/* Dashboard tab row text */
+.dark .dashboard-tabs-row .text-slate-600,
+.dark .dashboard-tabs-row .text-slate-500,
+.dark .dashboard-tabs-row .text-slate-400 {
   color: #cbd5e1 !important;
 }
 
-/* Tab hover states */
 .dark .dashboard-tabs-row button:hover {
   background: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
 }
 
-/* Cards and sections */
-.dark .bg-white {
-  background-color: #1e2a3a !important; /* Dark background for cards */
+/* Inputs stay readable in dashboard/components that use dark mode */
+.dark input,
+.dark select,
+.dark textarea {
+  background: #111827;
+  color: #e5edf7;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.dark .bg-slate-50 {
-  background-color: #111c2e !important; /* Slightly darker card background */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
 }
 
-.dark .bg-slate-100 {
-  background-color: #1e2a3a !important; /* Dark card background for clarity */
-}
-
-/* Text */
-.dark .text-slate-950 {
-  color: #e5edf7 !important;
-}
-
-.dark .text-slate-500 {
-  color: #94a3b8 !important; /* Text for secondary sections */
-}
-
-/* Buttons */
-.dark .bg-emerald-50 {
-  background-color: rgba(6, 78, 59, 0.22) !important;
-}
-
-.dark .bg-rose-50 {
-  background-color: rgba(127, 29, 29, 0.22) !important;
-}
-
-/* Button hover state to improve interaction */
+/* Softer dark shadows */
 .dark .shadow-sm,
 .dark .shadow,
-.dark .shadow-lg {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;  /* Softer shadow for buttons */
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
 }
