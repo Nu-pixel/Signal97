@@ -106,6 +106,10 @@ function DashboardInner() {
     router.push("/");
   };
 
+  const goToAbout = () => {
+    router.push("/#how");
+  };
+
   return (
     <main
       className="
@@ -182,47 +186,24 @@ function DashboardInner() {
             </div>
           </div>
 
-          {/* RIGHT: desktop utility cluster + mobile menu */}
+          {/* RIGHT: clean app CTA + mobile menu */}
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2">
-              <div
-                className="
-                  inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-sm
-                  border-slate-200 bg-white/80 text-slate-600
-                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300
-                "
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
-                <span className="text-slate-400 dark:text-slate-500">Page</span>
-                <span className="text-slate-800 dark:text-white">{activeTitle}</span>
-              </div>
-
               <button
                 type="button"
-                onClick={() => goToTab("Settings")}
+                onClick={goToAbout}
                 className="
-                  inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-xs font-bold shadow-sm transition
-                  border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
+                  group inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-xs font-bold shadow-sm transition
+                  border-slate-200 bg-white/80 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700
+                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-blue-300/30 dark:hover:bg-blue-400/10 dark:hover:text-blue-100
                 "
-                aria-label="Open settings"
+                aria-label="Learn about Signal97"
               >
-                <Icon name="settings" className="h-4 w-4" />
-                Settings
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="
-                  inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-xs font-bold shadow-sm transition
-                  border-slate-200 bg-white text-slate-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600
-                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-rose-300/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-200
-                "
-                aria-label="Log out"
-              >
-                <Icon name="logout" className="h-4 w-4" />
-                Log out
+                About Signal97
+                <Icon
+                  name="chevron"
+                  className="h-4 w-4 opacity-60 transition-transform group-hover:translate-x-0.5"
+                />
               </button>
             </div>
 
