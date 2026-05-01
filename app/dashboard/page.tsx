@@ -126,7 +126,7 @@ function DashboardInner() {
       {/* STICKY TOP BAR + STICKY TABS */}
       <header
         className="
-          sticky top-0 z-[100] w-full border-b backdrop-blur-2xl transition-colors
+          fixed top-0 left-0 right-0 z-[100] w-full border-b backdrop-blur-2xl transition-colors
           bg-white/92 border-slate-200 shadow-sm
           dark:bg-[#070b13]/92 dark:border-white/10 dark:shadow-[0_18px_70px_rgba(0,0,0,0.40)]
         "
@@ -211,7 +211,7 @@ function DashboardInner() {
 
       {/* Tab content */}
       <section
-        className={`relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6`}
+        className={`relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 pt-40 pb-8 space-y-6`}
       >
         {activeTab === "Command Center" && (
           <CommandCenter onNavigate={setActiveTab} />
