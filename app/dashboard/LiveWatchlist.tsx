@@ -948,7 +948,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-slate-900 truncate dark:text-slate-100">{displaySectorName(sector)}</div>
-                        <div cclassName="text-xs text-slate-600 mt-1 dark:text-slate-400">{syms.length} tickers</div>
+                        <div className="text-xs text-slate-600 mt-1 dark:text-slate-400">{syms.length} tickers</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => copyToClipboard(syms.join(", "))} className={actionBtn}>
