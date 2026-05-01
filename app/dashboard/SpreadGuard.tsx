@@ -32,12 +32,12 @@ function ivGrade(iv: number) {
 
 function badgeStyle(text: string) {
   if (text.includes("EXECUTE") || text.includes("SIZE OK") || text.includes("GOOD")) {
-    return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    return "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-300/15 dark:text-emerald-100 dark:border-emerald-200/25";
   }
   if (text.includes("WATCH") || text.includes("SMALL") || text.includes("TEST")) {
-    return "bg-amber-100 text-amber-800 border-amber-200";
+    return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-300/15 dark:text-amber-100 dark:border-amber-200/25";
   }
-  return "bg-rose-100 text-rose-800 border-rose-200";
+  return "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-100 dark:border-rose-300/25";
 }
 
 function liquidityGrade(volume: number, openInterest: number, bid: number, ask: number, contracts: number) {
@@ -695,17 +695,17 @@ export default function SpreadGuard() {
   };
 
   return (
-    <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 via-sky-500 to-emerald-400 p-1 shadow-2xl">
-      <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 space-y-5">
+    <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 via-sky-500 to-emerald-400 p-1 shadow-2xl dark:shadow-[0_22px_70px_rgba(0,0,0,0.35)]">
+      <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 space-y-5 transition-colors dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_30%),linear-gradient(135deg,#101827_0%,#162335_55%,#0b111c_100%)] dark:text-white">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
           <div>
-            <div className="inline-flex rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold mb-2">
+            <div className="inline-flex rounded-full border border-indigo-200 bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold mb-2 dark:border-indigo-300/20 dark:bg-indigo-300/10 dark:text-indigo-100">
               Signal 97 Options Tool
             </div>
-            <div className="text-3xl font-black text-slate-950 tracking-tight">
+            <div className="text-3xl font-black text-slate-950 tracking-tight dark:text-white">
               SpreadGuard
             </div>
-            <p className="text-sm text-slate-600 max-w-2xl mt-1">
+            <p className="text-sm text-slate-600 max-w-2xl mt-1 dark:text-slate-300">
               Compare two debit spreads before risking real money. Fill both candidates,
               then press <b>Compare Spreads</b>.
             </p>
@@ -734,8 +734,8 @@ export default function SpreadGuard() {
           />
         </div>
 
-        <div className="rounded-3xl bg-white/90 border border-sky-100 p-4 shadow-sm">
-          <div className="text-sm font-bold text-slate-900 mb-3">Alert inputs</div>
+        <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-[#0b1423]/85 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="text-sm font-bold text-slate-900 dark:text-white mb-3 dark:text-white">Alert inputs</div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <Input label="Ticker" value={ticker} onChange={(v) => updateTopInput(setTicker, v)} />
             <Select label="Direction" value={direction} onChange={(v) => updateTopInput((x) => setDirection(x as Direction), v)} />
@@ -746,30 +746,30 @@ export default function SpreadGuard() {
           </div>
         </div>
 
-        <label className="block text-sm rounded-3xl bg-white/90 border border-sky-100 p-4 shadow-sm">
-          <span className="font-bold text-slate-900">
+        <label className="block text-sm rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-[#0b1423]/85 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <span className="font-bold text-slate-900 dark:text-white">
             Visible strikes, comma separated
           </span>
           <textarea
             value={strikes}
             onChange={(e) => updateTopInput(setStrikes, e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-sky-300 shadow-sm"
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:ring-2 focus:ring-sky-300 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </label>
 
-        <div className="rounded-3xl bg-white/90 border border-sky-100 p-4 shadow-sm">
+        <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-[#0b1423]/85 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
             <div>
-              <div className="font-black text-slate-950 mb-1">
+              <div className="font-black text-slate-950 mb-1 dark:text-white">
                 Step 1 — Two strike ideas to check
               </div>
         
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-slate-500 dark:text-slate-400">
                 These are only suggestions from price, direction, target %, and strike list.
                 They are not approved trades yet.
               </div>
         
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                 Target ${candidateInfo.target} · Strict sell zone: {candidateInfo.zone}
               </div>
         
@@ -784,15 +784,15 @@ export default function SpreadGuard() {
               )}
             </div>
         
-            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1">
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-white/[0.05]">
               <button
                 type="button"
                 onClick={() => setCandidateMode("STRICT")}
                 className={
                   "px-3 py-1.5 rounded-xl text-xs font-black transition " +
                   (candidateMode === "STRICT"
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800")
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-cyan-300/15 dark:text-white"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white")
                 }
               >
                 Strict
@@ -804,8 +804,8 @@ export default function SpreadGuard() {
                 className={
                   "px-3 py-1.5 rounded-xl text-xs font-black transition " +
                   (candidateMode === "FLEXIBLE"
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800")
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-cyan-300/15 dark:text-white"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white")
                 }
               >
                 Flexible
@@ -814,7 +814,7 @@ export default function SpreadGuard() {
           </div>
 
           {candidateMode === "STRICT" && candidateInfo.strictCount === 0 && (
-            <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-300/25 dark:bg-amber-300/10 dark:text-amber-100">
               <div className="font-black">No strict candidates found.</div>
               <div className="mt-1 text-xs leading-relaxed">
                 Your sell strikes are outside the current target zone. Try adding strikes near{" "}
@@ -826,7 +826,7 @@ export default function SpreadGuard() {
           {candidateMode === "FLEXIBLE" &&
             candidateInfo.strictCount === 0 &&
             candidateInfo.flexibleCount > 0 && (
-              <div className="mb-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              <div className="mb-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-300/25 dark:bg-sky-300/10 dark:text-sky-100">
                 <div className="font-black">Flexible mode is showing aggressive ideas.</div>
                 <div className="mt-1 text-xs leading-relaxed">
                   These candidates may be outside the strict target zone, so they may need a larger
@@ -836,7 +836,7 @@ export default function SpreadGuard() {
             )}
 
           {candidateInfo.flexibleCount === 0 && (
-            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-300/25 dark:bg-rose-500/10 dark:text-rose-100">
               <div className="font-black">No candidates found from this strike list.</div>
               <div className="mt-1 text-xs leading-relaxed">
                 Add more strikes around the current price and the target price, then try again.
@@ -850,12 +850,12 @@ export default function SpreadGuard() {
                 key={i}
                 className={`rounded-2xl border p-4 shadow-sm ${
                   i === 0
-                    ? "bg-gradient-to-br from-blue-50 to-white border-blue-100"
-                    : "bg-gradient-to-br from-emerald-50 to-white border-emerald-100"
+                    ? "bg-gradient-to-br from-blue-50 to-white border-blue-100 dark:from-[#0f1d33] dark:to-[#0b1423] dark:border-blue-300/20 dark:from-[#0f1d33] dark:to-[#0b1423] dark:border-blue-300/20"
+                    : "bg-gradient-to-br from-emerald-50 to-white border-emerald-100 dark:from-[#0d2421] dark:to-[#0b1423] dark:border-emerald-300/20 dark:from-[#0d2421] dark:to-[#0b1423] dark:border-emerald-300/20"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">
+                  <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     Suggested Candidate {i + 1}
                   </div>
 
@@ -863,33 +863,33 @@ export default function SpreadGuard() {
                     className={
                       "rounded-full px-2 py-0.5 text-[9px] font-black border " +
                       (c.strict
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        : "bg-amber-50 text-amber-700 border-amber-100")
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-300/10 dark:text-emerald-100 dark:border-emerald-200/20"
+                        : "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-300/10 dark:text-amber-100 dark:border-amber-200/20")
                     }
                   >
                     {c.strict ? "STRICT" : "FLEXIBLE"}
                   </div>
                 </div>
 
-                <div className="text-xl font-black text-slate-950 mt-1">
+                <div className="text-xl font-black text-slate-950 dark:text-white mt-1 dark:text-white">
                   Buy {c.buy} / Sell {c.sell}
                 </div>
 
-                <div className="text-sm text-slate-600 mt-1">
+                <div className="text-sm text-slate-600 mt-1 dark:text-slate-300">
                   Width {c.width} · Target ${c.target}
                 </div>
 
-                <div className="text-xs text-slate-500 mt-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 dark:text-slate-400">
                   Sell zone: {c.zone}
                 </div>
 
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">
                   {c.label}
                   {!c.strict &&
                     ` · ${money(c.distanceFromZone)} away from strict zone`}
                 </div>
                 
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">
                   {c.label}
                   {!c.strict &&
                     ` · ${money(c.distanceFromZone)} away from strict zone`}
@@ -963,11 +963,11 @@ export default function SpreadGuard() {
         </div>
 
         {!hasCompared ? (
-          <div className="rounded-3xl border-2 border-dashed border-indigo-200 bg-white/90 p-7 text-center shadow-sm">
-            <div className="text-2xl font-black text-slate-950">
+          <div className="rounded-3xl border-2 border-dashed border-indigo-200 bg-white/90 p-7 text-center shadow-sm dark:border-indigo-300/25 dark:bg-[#0b1423]/85">
+            <div className="text-2xl font-black text-slate-950 dark:text-white">
               Ready to compare both spreads?
             </div>
-            <p className="mt-2 text-sm text-slate-500 max-w-2xl mx-auto">
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
               I will compare breakeven, liquidity, bid/ask width, theta, estimated
               slippage, expected profit, and whether your contract size is safe.
             </p>
@@ -993,7 +993,7 @@ export default function SpreadGuard() {
           </div>
         )}
 
-        <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 text-sm text-yellow-900 space-y-2">
+        <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4 text-sm text-yellow-900 space-y-2 dark:border-yellow-300/25 dark:bg-yellow-300/10 dark:text-yellow-100">
           <div className="font-black">Beginner liquidity reminder</div>
           <div>
             <b>Volume</b> is today’s activity. <b>Open interest</b> is currently open contracts.
@@ -1015,10 +1015,10 @@ export default function SpreadGuard() {
 function InfoCard({ title, text, color }: { title: string; text: string; color: "blue" | "emerald" | "amber" }) {
   const cls =
     color === "blue"
-      ? "bg-blue-50 border-blue-100 text-blue-900"
+      ? "bg-blue-50 border-blue-100 text-blue-900 dark:bg-blue-300/10 dark:border-blue-300/25 dark:text-blue-100"
       : color === "emerald"
-      ? "bg-emerald-50 border-emerald-100 text-emerald-900"
-      : "bg-amber-50 border-amber-100 text-amber-900";
+      ? "bg-emerald-50 border-emerald-100 text-emerald-900 dark:bg-emerald-300/10 dark:border-emerald-300/25 dark:text-emerald-100"
+      : "bg-amber-50 border-amber-100 text-amber-900 dark:bg-amber-300/10 dark:border-amber-300/25 dark:text-amber-100";
 
   return (
     <div className={`rounded-2xl border p-4 text-sm shadow-sm ${cls}`}>
@@ -1045,16 +1045,16 @@ function SpreadEditor({
 }) {
   const cardTheme =
     theme === "blue"
-      ? "from-blue-50 to-white border-blue-100"
-      : "from-emerald-50 to-white border-emerald-100";
+      ? "from-blue-50 to-white border-blue-100 dark:from-[#0f1d33] dark:to-[#0b1423] dark:border-blue-300/20"
+      : "from-emerald-50 to-white border-emerald-100 dark:from-[#0d2421] dark:to-[#0b1423] dark:border-emerald-300/20";
 
   return (
     <div className={`rounded-3xl bg-gradient-to-br ${cardTheme} border p-5 shadow-sm space-y-5`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xl font-black text-slate-950">{title}</div>
-          <div className="text-xs text-slate-500">{subtitle}</div>
-          <div className="text-sm font-bold text-slate-700 mt-1">
+          <div className="text-xl font-black text-slate-950 dark:text-white">{title}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</div>
+          <div className="text-sm font-bold text-slate-700 mt-1 dark:text-slate-200">
             Buy {result.buyStrike} / Sell {result.sellStrike}
           </div>
         </div>
@@ -1088,7 +1088,7 @@ function SpreadEditor({
         <Stat label="Slow profit" value={`$${money(result.slowProfit)}`} help="If target takes longer." />
       </div>
 
-      <div className="rounded-2xl bg-white/80 border border-white p-4 text-xs space-y-1 shadow-sm">
+      <div className="rounded-2xl border border-white bg-white/80 p-4 text-xs space-y-1 shadow-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
         <div>
           <b>Buy liquidity:</b> {result.buyLiq.grade} · spread{" "}
           {result.buyLiq.spreadPct}% · OI {result.buyLiq.openInterest} · volume{" "}
@@ -1172,10 +1172,10 @@ function ReasonBox({ result }: { result: any }) {
       className={
         "rounded-2xl border p-4 text-xs space-y-2 " +
         (result.decision === "SKIP"
-          ? "bg-rose-50 border-rose-200 text-rose-900"
+          ? "bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-500/10 dark:border-rose-300/25 dark:text-rose-100"
           : result.decision.includes("WATCH")
-          ? "bg-amber-50 border-amber-200 text-amber-900"
-          : "bg-emerald-50 border-emerald-200 text-emerald-900")
+          ? "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-300/10 dark:border-amber-300/25 dark:text-amber-100"
+          : "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-300/10 dark:border-emerald-300/25 dark:text-emerald-100")
       }
     >
       <div className="text-sm font-black">
@@ -1213,8 +1213,8 @@ function LegBox({
   const keys = Object.keys(leg) as (keyof Leg)[];
 
   return (
-    <div className="rounded-2xl bg-white/80 border border-white p-3 shadow-sm">
-      <div className="text-xs font-black text-slate-700 mb-2">{title}</div>
+    <div className="rounded-2xl border border-white bg-white/80 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="text-xs font-black text-slate-700 mb-2 dark:text-slate-200">{title}</div>
       <div className="grid grid-cols-2 gap-2">
         {keys.map((k) => (
           <Input key={k} label={k} value={leg[k]} onChange={(v) => onChange(k, v)} />
@@ -1235,11 +1235,11 @@ function Input({
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="text-[10px] font-bold text-slate-500">{label}</span>
+      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-sky-300 shadow-sm"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none shadow-sm focus:ring-2 focus:ring-sky-300 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100 dark:placeholder:text-slate-500"
       />
     </label>
   );
@@ -1256,11 +1256,11 @@ function Select({
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="text-[10px] font-bold text-slate-500">{label}</span>
+      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-sky-300 shadow-sm"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none shadow-sm focus:ring-2 focus:ring-sky-300 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100 dark:placeholder:text-slate-500"
       >
         <option value="UP">UP</option>
         <option value="DOWN">DOWN</option>
@@ -1271,10 +1271,10 @@ function Select({
 
 function Stat({ label, value, help }: { label: string; value: string; help: string }) {
   return (
-    <div className="rounded-2xl bg-white/80 border border-white p-3 shadow-sm">
-      <div className="text-[10px] font-bold text-slate-500">{label}</div>
-      <div className="text-sm font-black text-slate-950">{value}</div>
-      <div className="text-[10px] text-slate-400 mt-0.5">{help}</div>
+    <div className="rounded-2xl border border-white bg-white/80 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</div>
+      <div className="text-sm font-black text-slate-950 dark:text-white">{value}</div>
+      <div className="text-[10px] text-slate-400 mt-0.5 dark:text-slate-500">{help}</div>
     </div>
   );
 }
