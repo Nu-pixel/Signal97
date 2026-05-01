@@ -27,20 +27,41 @@ const Tools: React.FC = () => {
         [&_label>span]:text-xs
         [&_p]:text-sm
         [&_table]:text-xs
+        dark:[&_.bg-white]:!bg-[#0b1423]
+        dark:[&_.bg-slate-50]:!bg-[#111827]
+        dark:[&_.bg-slate-100]:!bg-[#1e2a3a]
+        dark:[&_.border-slate-100]:!border-white/15
+        dark:[&_.border-slate-200]:!border-white/15
+        dark:[&_.text-slate-950]:!text-white
+        dark:[&_.text-slate-900]:!text-white
+        dark:[&_.text-slate-800]:!text-slate-100
+        dark:[&_.text-slate-700]:!text-slate-200
+        dark:[&_.text-slate-600]:!text-slate-300
+        dark:[&_.text-slate-500]:!text-slate-400
+        dark:[&_.from-white]:!from-[#101827]
+        dark:[&_.via-indigo-50]:!via-[#162335]
+        dark:[&_.via-emerald-50]:!via-[#162335]
+        dark:[&_.via-amber-50]:!via-[#162335]
+        dark:[&_.to-sky-50]:!to-[#0b111c]
+        dark:[&_.to-emerald-50]:!to-[#0b111c]
+        dark:[&_.bg-indigo-100]:!bg-indigo-300/10
+        dark:[&_.bg-emerald-50]:!bg-emerald-300/10
+        dark:[&_.bg-amber-50]:!bg-amber-300/10
+        dark:[&_.bg-rose-50]:!bg-rose-500/10
       "
     >
-      <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 px-6 py-5 shadow-sm">
+      <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 px-6 py-5 shadow-sm dark:border-white/15 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_30%),linear-gradient(135deg,#101827_0%,#162335_55%,#0b111c_100%)] dark:text-white dark:shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <div className="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+            <div className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700 dark:border-indigo-300/20 dark:bg-indigo-300/10 dark:text-indigo-100">
               Signal97 toolkit
             </div>
 
-            <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
+            <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
               Trading Tools
             </h1>
 
-            <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+            <p className="mt-1 text-sm text-slate-600 max-w-2xl dark:text-slate-300">
               Practical tools for sizing, sanity-checking, and reviewing Signal97
               alerts before risking real money.
             </p>
@@ -69,9 +90,9 @@ const Tools: React.FC = () => {
       <section
         ref={riskRef}
         id="risk-tools"
-        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-emerald-500 via-sky-500 to-indigo-500 p-1 shadow-2xl"
+        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-emerald-500 via-sky-500 to-indigo-500 p-1 shadow-2xl dark:shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
       >
-        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-emerald-50 to-sky-50 p-5 space-y-5">
+        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-emerald-50 to-sky-50 p-5 space-y-5 dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_30%),linear-gradient(135deg,#101827_0%,#162335_55%,#0b111c_100%)] dark:text-white">
           <ToolSectionHeader
             badge="Risk tools"
             title="Risk + Option Sanity Checks"
@@ -91,9 +112,9 @@ const Tools: React.FC = () => {
       <section
         ref={distanceRef}
         id="distance-calculator"
-        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-amber-400 via-sky-500 to-emerald-500 p-1 shadow-2xl"
+        className="scroll-mt-28 rounded-[2rem] bg-gradient-to-br from-amber-400 via-sky-500 to-emerald-500 p-1 shadow-2xl dark:shadow-[0_22px_70px_rgba(0,0,0,0.35)]"
       >
-        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-amber-50 to-emerald-50 p-5 space-y-5">
+        <div className="rounded-[1.8rem] bg-gradient-to-br from-white via-amber-50 to-emerald-50 p-5 space-y-5 dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.11),transparent_34%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,#101827_0%,#162335_55%,#0b111c_100%)] dark:text-white">
           <ToolSectionHeader
             badge="Entry helper"
             title="Distance From Hit Price"
@@ -121,7 +142,7 @@ function ToolJumpButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-950 hover:text-white hover:border-slate-950 transition"
+      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-950 hover:bg-slate-950 hover:text-white dark:border-white/15 dark:bg-white/[0.05] dark:text-slate-200 dark:hover:border-cyan-300/35 dark:hover:bg-cyan-300/10 dark:hover:text-white"
     >
       {children}
     </button>
@@ -142,20 +163,20 @@ function ToolSectionHeader({
   return (
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
       <div>
-        <div className="inline-flex rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold mb-2">
+        <div className="inline-flex rounded-full border border-indigo-200 bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-bold mb-2 dark:border-indigo-300/20 dark:bg-indigo-300/10 dark:text-indigo-100">
           {badge}
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-black text-slate-950 tracking-tight">
+        <h2 className="text-2xl md:text-3xl font-black text-slate-950 tracking-tight dark:text-white">
           {title}
         </h2>
 
-        <p className="mt-1 text-sm text-slate-600 max-w-3xl">
+        <p className="mt-1 text-sm text-slate-600 max-w-3xl dark:text-slate-300">
           {subtitle}
         </p>
       </div>
 
-      <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm">
+      <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm dark:border-white/15 dark:bg-white/[0.05] dark:text-slate-200">
         {status}
       </div>
     </div>
@@ -195,17 +216,17 @@ const OptionRiskCard: React.FC = () => {
   } = computeOptionRisk(state);
 
   return (
-    <div className="rounded-3xl bg-white shadow-sm border border-slate-100 p-5 space-y-3">
+    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm space-y-3 dark:border-white/15 dark:bg-[#0b1423]/85 dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-900">
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">
             Signal 97 Option Risk
           </div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-slate-500 dark:text-slate-400">
             Rate a contract: safer / okay / risky / lotto / skip.
           </div>
         </div>
-        <div className="text-[10px] text-slate-500">
+        <div className="text-[10px] text-slate-500 dark:text-slate-400">
           Example: VERI $5.55 → $7.5C
         </div>
       </div>
@@ -281,12 +302,12 @@ const OptionRiskCard: React.FC = () => {
 
       <div className={pillClass}>
         <span>{tier}</span>
-        <span className="text-[9px] text-slate-800/80">
+        <span className="text-[9px] text-slate-800/80 dark:text-slate-200/80">
           Score {score} / 100
         </span>
       </div>
 
-      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-white/10">
         <div
           className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500"
           style={{ width: `${barWidth}%` }}
@@ -476,13 +497,13 @@ const Field = ({
   onChange: (v: string) => void;
 }) => (
   <label className="flex flex-col gap-1">
-    <span className="text-[9px] text-slate-500">{label}</span>
+    <span className="text-[9px] text-slate-500 dark:text-slate-400">{label}</span>
     <input
       type="number"
       step="any"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400"
+      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100 dark:placeholder:text-slate-500"
     />
   </label>
 );
@@ -499,11 +520,11 @@ const SelectField = ({
   children: React.ReactNode;
 }) => (
   <label className="flex flex-col gap-1">
-    <span className="text-[9px] text-slate-500">{label}</span>
+    <span className="text-[9px] text-slate-500 dark:text-slate-400">{label}</span>
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100"
     >
       {children}
     </select>
@@ -727,10 +748,10 @@ const RiskGuard: React.FC = () => {
   };
 
   return (
-    <div className="rounded-3xl bg-white shadow-sm border border-slate-100 p-5 space-y-3">
+    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm space-y-3 dark:border-white/15 dark:bg-[#0b1423]/85 dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-900">
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">
             Signal 97 · Risk Guard
           </div>
           <p className="text-[10px] text-slate-500">
@@ -769,7 +790,7 @@ const RiskGuard: React.FC = () => {
 
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <div className="text-[9px] uppercase text-slate-500">
+          <div className="text-[9px] uppercase text-slate-500 dark:text-slate-400">
             Risk verdict
           </div>
           <div
@@ -782,7 +803,7 @@ const RiskGuard: React.FC = () => {
             </span>
           </div>
         </div>
-        <div className="text-[9px] text-slate-500 text-right">
+        <div className="text-[9px] text-slate-500 text-right dark:text-slate-400">
           Mode: <span className="font-semibold">{mode}</span>
           <br />
           Liquidity ratio: {liqRatio.toFixed(2)}x
@@ -790,7 +811,7 @@ const RiskGuard: React.FC = () => {
       </div>
 
       {redFlags.length > 0 && (
-        <div className="bg-rose-50 border border-rose-100 rounded-xl p-2 text-[9px] text-rose-700 space-y-1">
+        <div className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-[9px] text-rose-700 space-y-1 dark:border-rose-300/20 dark:bg-rose-500/10 dark:text-rose-200">
           <div className="font-semibold">Hard blocks:</div>
           {redFlags.map((r, i) => (
             <div key={i}>
@@ -814,7 +835,7 @@ const RiskGuard: React.FC = () => {
       )}
 
       {notes.length > 0 && (
-        <div className="bg-slate-50 rounded-xl p-2 text-[9px] text-slate-700 space-y-1">
+        <div className="rounded-xl bg-slate-50 p-2 text-[9px] text-slate-700 space-y-1 dark:bg-white/[0.04] dark:text-slate-300">
           <div className="font-semibold text-[9px]">
             Notes (tap to expand):
           </div>
@@ -830,7 +851,7 @@ const RiskGuard: React.FC = () => {
                 {n}
               </button>
               {notesOpen[i] && NOTE_EXPLANATIONS[n] && (
-                <div className="mt-0.5 text-slate-600">
+                <div className="mt-0.5 text-slate-600 dark:text-slate-400">
                   {NOTE_EXPLANATIONS[n]}
                 </div>
               )}
@@ -839,7 +860,7 @@ const RiskGuard: React.FC = () => {
         </div>
       )}
 
-      <div className="text-[9px] text-slate-500 bg-slate-50 rounded-xl p-2">
+      <div className="text-[9px] text-slate-500 bg-slate-50 rounded-xl p-2 dark:bg-white/[0.04] dark:text-slate-400">
         Use Risk Guard as a pre-filter next to Signal 97 alerts. It does not
         replace your own judgment or guarantee outcomes.
       </div>
@@ -863,7 +884,7 @@ const MiniField = ({
     <input
       value={v}
       onChange={(e) => onCh(e.target.value)}
-      className="rounded-lg border border-slate-200 px-2 py-1 text-[9px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400"
+      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400 dark:border-white/15 dark:bg-[#111827] dark:text-slate-100 dark:placeholder:text-slate-500"
     />
   </label>
 );
@@ -907,9 +928,9 @@ const Signal97ProfitCalculator: React.FC = () => {
       : "--";
 
   return (
-    <div className="mt-3 bg-slate-50 rounded-2xl p-3 text-[9px] text-slate-700 space-y-2">
+    <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-[9px] text-slate-700 space-y-2 dark:bg-white/[0.04] dark:text-slate-300">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-semibold text-[10px]">
+        <div className="font-semibold text-[10px] dark:text-white">
           Max Gain Calculator
         </div>
         <div className="flex gap-1">
@@ -960,11 +981,11 @@ const Signal97ProfitCalculator: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <div className="text-slate-500">Model target</div>
-          <div className="font-semibold text-slate-900">
+          <div className="text-slate-500 dark:text-slate-400">Model target</div>
+          <div className="font-semibold text-slate-900 dark:text-white">
             ${fmt(target)}
           </div>
-          <div className="mt-1 text-slate-500">
+          <div className="mt-1 text-slate-500 dark:text-slate-400">
             Edge from hit:{" "}
             <span className="font-semibold text-emerald-600">
               {fmt(edgeFromHit)}%
@@ -972,7 +993,7 @@ const Signal97ProfitCalculator: React.FC = () => {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-slate-500">Potential from entry</div>
+          <div className="text-slate-500 dark:text-slate-400">Potential from entry</div>
           <div
             className={
               "font-semibold " +
@@ -983,7 +1004,7 @@ const Signal97ProfitCalculator: React.FC = () => {
           >
             {fmt(edgeFromEntry)}%
           </div>
-          <div className="mt-1 text-slate-500">
+          <div className="mt-1 text-slate-500 dark:text-slate-400">
             Chase/dip vs hit:{" "}
             <span
               className={
@@ -999,11 +1020,10 @@ const Signal97ProfitCalculator: React.FC = () => {
         </div>
       </div>
 
-      <div className="text-[8px] text-slate-500">
+      <div className="text-[8px] text-slate-500 dark:text-slate-400">
         If potential from entry is tiny, risk/reward is poor. If it&apos;s
         still meaningful (e.g. 4–6%+), the move hasn&apos;t fully run away.
       </div>
     </div>
   );
 };
-
