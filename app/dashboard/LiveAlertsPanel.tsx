@@ -121,9 +121,20 @@ interface AlertCardData {
 }
 
 const toneBg: Record<DirectionTone, string> = {
-  up: "bg-emerald-50 border border-emerald-100",
-  down: "bg-rose-50 border border-rose-100",
-  flat: "bg-slate-50 border border-slate-100",
+  up:
+    "bg-emerald-50 border border-emerald-100 text-slate-900 " +
+    "dark:bg-[linear-gradient(135deg,rgba(13,57,52,0.96)_0%,rgba(14,35,45,0.96)_55%,rgba(7,13,22,0.98)_100%)] " +
+    "dark:border-emerald-300/30 dark:text-slate-100",
+
+  down:
+    "bg-rose-50 border border-rose-100 text-slate-900 " +
+    "dark:bg-[linear-gradient(135deg,rgba(61,30,45,0.96)_0%,rgba(45,29,47,0.96)_55%,rgba(9,12,21,0.98)_100%)] " +
+    "dark:border-rose-300/30 dark:text-slate-100",
+
+  flat:
+    "bg-slate-50 border border-slate-100 text-slate-900 " +
+    "dark:bg-[linear-gradient(135deg,rgba(18,31,48,0.96)_0%,rgba(13,23,38,0.98)_60%,rgba(7,11,19,1)_100%)] " +
+    "dark:border-white/15 dark:text-slate-100",
 };
 
 const toneLabel: Record<DirectionTone, string> = {
@@ -295,7 +306,9 @@ function getConfidenceTier(raw: RawAlert): ConfidenceTier {
       tier: "Tier 1",
       title: "Top Confidence",
       description: "Top Signal97 confidence tier based on probability rule marker.",
-      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      className:
+        "bg-emerald-50 text-emerald-700 border-emerald-200 " +
+        "dark:bg-emerald-300/10 dark:text-emerald-200 dark:border-emerald-300/30",
     };
   }
 
@@ -305,7 +318,9 @@ function getConfidenceTier(raw: RawAlert): ConfidenceTier {
       tier: "Tier 2",
       title: "Strong Confidence",
       description: "Strong Signal97 confidence tier based on probability rule marker.",
-      className: "bg-blue-50 text-blue-700 border-blue-200",
+      className:
+        "bg-blue-50 text-blue-700 border-blue-200 " +
+        "dark:bg-sky-300/10 dark:text-sky-200 dark:border-sky-300/30",
     };
   }
 
@@ -315,7 +330,9 @@ function getConfidenceTier(raw: RawAlert): ConfidenceTier {
       tier: "Tier 3",
       title: "Speculative",
       description: "Riskier Signal97 confidence tier. Use more caution.",
-      className: "bg-amber-50 text-amber-700 border-amber-200",
+      className:
+        "bg-amber-50 text-amber-700 border-amber-200 " +
+        "dark:bg-amber-300/10 dark:text-amber-200 dark:border-amber-300/30",
     };
   }
 
@@ -323,7 +340,9 @@ function getConfidenceTier(raw: RawAlert): ConfidenceTier {
     tier: "Standard",
     title: "Standard Alert",
     description: "No Signal97 tier marker detected.",
-    className: "bg-slate-50 text-slate-700 border-slate-200",
+    className:
+      "bg-slate-50 text-slate-700 border-slate-200 " +
+      "dark:bg-white/5 dark:text-slate-200 dark:border-white/15",
   };
 }
 function deduceTone(
@@ -593,8 +612,10 @@ export default function LiveAlertsPanel() {
   
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-        <div className="text-sm text-slate-500">Loading live alerts…</div>
+      <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm dark:border-white/15 dark:bg-[#111827]">
+        <div className="text-sm text-slate-500 dark:text-slate-300">
+          Loading live alerts…
+        </div>
       </div>
     );
   }
@@ -625,8 +646,8 @@ export default function LiveAlertsPanel() {
       <div className="space-y-5">
         <AlertsPageHeader alerts={allAlerts} />
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-5">
-          <p className="text-xs text-slate-500">
+        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-5 dark:border-white/15 dark:bg-[linear-gradient(135deg,#111827_0%,#162235_55%,#080d16_100%)]">
+          <p className="text-xs text-slate-500 dark:text-slate-300">
             No live alerts yet. When a new alert fires, you&apos;ll see:
           </p>
 
@@ -657,7 +678,7 @@ export default function LiveAlertsPanel() {
         onChange={setQuickFilters}
       />
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-4">
+      <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4 dark:border-white/15 dark:bg-[linear-gradient(135deg,#111827_0%,#162235_55%,#080d16_100%)]">
         {!alerts.length && (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white px-6 py-8 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-700">
@@ -720,33 +741,33 @@ function AlertsPageHeader({
       : `${total} live alert${total === 1 ? "" : "s"}`;
 
   return (
-    <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-sky-50 to-emerald-50 px-6 py-5 shadow-sm">
+    <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-sky-50 to-emerald-50 px-6 py-5 shadow-sm dark:border-white/15 dark:bg-[linear-gradient(135deg,#111827_0%,#162235_55%,#08111f_100%)] dark:shadow-[0_22px_70px_rgba(0,0,0,0.30)]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <div className="inline-flex items-center rounded-full bg-slate-950 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
             Action inbox
           </div>
 
-          <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
+          <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
             Signal97 Alerts
           </h1>
 
-          <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+          <p className="mt-1 text-sm text-slate-600 max-w-2xl dark:text-slate-300">
             Fresh, actionable alerts only. Taken alerts move to Active Trades,
             dismissed alerts leave this inbox, and old alerts are archived.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
+          <span className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm dark:border-white/15 dark:bg-[#070b13] dark:text-white">
             {statusText}
           </span>
 
-          <span className="rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+          <span className="rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-300/10 dark:text-emerald-200">
             {up} UP
           </span>
 
-          <span className="rounded-full bg-rose-50 border border-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700">
+          <span className="rounded-full bg-rose-50 border border-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-300/25 dark:bg-rose-300/10 dark:text-rose-200">
             {down} DOWN
           </span>
         </div>
@@ -771,11 +792,20 @@ function HeaderStat({
   value: number;
   tone: "emerald" | "blue" | "amber" | "slate";
 }) {
+
   const toneClass: Record<string, string> = {
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-    slate: "bg-slate-50 text-slate-700 border-slate-100",
+    emerald:
+      "bg-emerald-50 text-emerald-700 border-emerald-100 " +
+      "dark:bg-emerald-300/10 dark:text-emerald-200 dark:border-emerald-300/25",
+    blue:
+      "bg-blue-50 text-blue-700 border-blue-100 " +
+      "dark:bg-sky-300/10 dark:text-sky-200 dark:border-sky-300/25",
+    amber:
+      "bg-amber-50 text-amber-700 border-amber-100 " +
+      "dark:bg-amber-300/10 dark:text-amber-200 dark:border-amber-300/25",
+    slate:
+      "bg-slate-50 text-slate-700 border-slate-100 " +
+      "dark:bg-white/5 dark:text-slate-200 dark:border-white/15",
   };
 
   return (
@@ -1188,24 +1218,24 @@ function AlertFilterPanel({
   };
 
   return (
-    <div className="rounded-3xl bg-white border border-slate-100 shadow-sm px-5 py-4">
+    <div className="rounded-3xl border border-slate-100 bg-white px-5 py-4 shadow-sm dark:border-white/15 dark:bg-[linear-gradient(135deg,#101827_0%,#162235_55%,#080d16_100%)]">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-slate-900">
+          <div className="text-sm font-bold text-slate-900 dark:text-white">
             Alert filters
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5 dark:text-slate-400">
             Showing {filteredCount} of {allCount} live alerts.
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end gap-3">
           <div>
-            <div className="text-[10px] font-semibold text-slate-500 mb-1">
+            <div className="text-[10px] font-semibold text-slate-500 mb-1 dark:text-slate-400">
               Direction
             </div>
 
-            <div className="flex rounded-2xl bg-slate-100 p-1">
+            <div className="flex rounded-2xl bg-slate-100 p-1 dark:bg-[#070b13]">
               <FilterButton
                 active={filters.direction === "ALL"}
                 onClick={() => update({ direction: "ALL" })}
@@ -1244,7 +1274,7 @@ function AlertFilterPanel({
           <button
             type="button"
             onClick={clear}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-white/10"
           >
             Clear
           </button>
@@ -1270,8 +1300,8 @@ function FilterButton({
       className={
         "rounded-xl px-3 py-1.5 text-xs font-bold transition " +
         (active
-          ? "bg-white text-slate-950 shadow-sm"
-          : "text-slate-500 hover:text-slate-800")
+          ? "bg-white text-slate-950 shadow-sm dark:bg-white/12 dark:text-white dark:ring-1 dark:ring-white/15"
+          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white")
       }
     >
       {children}
@@ -1290,7 +1320,7 @@ function PriceInput({
 }) {
   return (
     <label className="block">
-      <div className="text-[10px] font-semibold text-slate-500 mb-1">
+      <div className="text-[10px] font-semibold text-slate-500 mb-1 dark:text-slate-400">
         {label}
       </div>
 
@@ -1299,7 +1329,7 @@ function PriceInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder="ex: 10"
         inputMode="decimal"
-        className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-sky-300"
+        className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-sky-300 dark:border-white/15 dark:bg-[#070b13] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-400/30"
       />
     </label>
   );
@@ -1315,17 +1345,23 @@ function MiniMetric({
   tone?: "emerald" | "rose" | "amber" | "blue" | "slate";
   compact?: boolean;
 }) {
+
   const toneClass: Record<string, string> = {
     emerald:
-      "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20",
+      "bg-emerald-50 text-emerald-700 border-emerald-100 " +
+      "dark:bg-emerald-300/10 dark:text-emerald-200 dark:border-emerald-300/25",
     rose:
-      "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20",
+      "bg-rose-50 text-rose-700 border-rose-100 " +
+      "dark:bg-rose-300/10 dark:text-rose-200 dark:border-rose-300/25",
     amber:
-      "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20",
+      "bg-amber-50 text-amber-700 border-amber-100 " +
+      "dark:bg-amber-300/10 dark:text-amber-200 dark:border-amber-300/25",
     blue:
-      "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20",
+      "bg-blue-50 text-blue-700 border-blue-100 " +
+      "dark:bg-sky-300/10 dark:text-sky-200 dark:border-sky-300/25",
     slate:
-      "bg-white/70 text-slate-700 border-white/80 dark:bg-slate-900/70 dark:text-slate-300 dark:border-slate-700",
+      "bg-white/70 text-slate-700 border-white/80 " +
+      "dark:bg-[#0b1423]/80 dark:text-slate-200 dark:border-white/12",
   };
 
   return (
@@ -1390,7 +1426,7 @@ function ActionButton({
 }
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 mb-1 text-[10px] font-semibold uppercase text-slate-500">
+    <div className="mt-3 mb-1 text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">
       {children}
     </div>
   );
@@ -1407,9 +1443,9 @@ function InfoRow({
 }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold text-slate-800">{label}</div>
-      <div className="text-[10px] text-slate-500">{explain}</div>
-      <div className="text-[11px] text-slate-800 mt-0.5">
+      <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{label}</div>
+      <div className="text-[10px] text-slate-500 dark:text-slate-400">{explain}</div>
+      <div className="text-[11px] text-slate-800 mt-0.5 dark:text-slate-200">
         {value !== undefined && value !== "" ? value : "—"}
       </div>
     </div>
