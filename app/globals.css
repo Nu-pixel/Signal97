@@ -60,9 +60,9 @@ body {
   color: #e5edf7;
 }
 
-/* Header text only */
+/* Ensure good contrast in header text */
 .dark header .text-slate-900 {
-  color: #e5edf7 !important;  /* Ensuring good contrast in header text */
+  color: #e5edf7 !important;  
 }
 
 /* Tab row text */
@@ -70,6 +70,7 @@ body {
   color: #cbd5e1 !important;
 }
 
+/* Tab hover states */
 .dark .dashboard-tabs-row button:hover {
   background: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
@@ -77,15 +78,15 @@ body {
 
 /* Cards and sections */
 .dark .bg-white {
-  background-color: #1e2a3a !important;
+  background-color: #1e2a3a !important; /* Dark background for cards */
 }
 
 .dark .bg-slate-50 {
-  background-color: #111c2e !important;
+  background-color: #111c2e !important; /* Slightly darker card background */
 }
 
 .dark .bg-slate-100 {
-  background-color: #1e2a3a !important;
+  background-color: #1e2a3a !important; /* Dark card background for clarity */
 }
 
 /* Text */
@@ -94,7 +95,7 @@ body {
 }
 
 .dark .text-slate-500 {
-  color: #94a3b8 !important;
+  color: #94a3b8 !important; /* Text for secondary sections */
 }
 
 /* Buttons */
@@ -106,8 +107,9 @@ body {
   background-color: rgba(127, 29, 29, 0.22) !important;
 }
 
+/* Button hover state to improve interaction */
 .dark .shadow-sm,
 .dark .shadow,
 .dark .shadow-lg {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;  /* Softer shadow for buttons */
 }
