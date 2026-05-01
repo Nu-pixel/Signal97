@@ -254,7 +254,7 @@ const ActiveTrades: React.FC = () => {
             Enter your real fill price, shares/contracts, notes, and exit price before closing.
           </p>
         </div>
-
+        <div className="mt-6 mb-5 h-px w-full bg-slate-200 dark:bg-white/10" />
         <div className="mt-7 overflow-x-auto">
           <table className="w-full text-sm min-w-[1100px]">
             <thead className="text-[11px] text-slate-500 border-b border-slate-100 dark:text-slate-300 dark:border-white/25">
