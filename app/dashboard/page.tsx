@@ -76,6 +76,7 @@ function DashboardInner() {
   const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const pageMaxWidth = "max-w-[1500px]";
 
@@ -149,7 +150,7 @@ function DashboardInner() {
         "
       />
 
-      {/* COMPACT TOP BAR — DESKTOP + MOBILE */}
+      {/* TOP BAR */}
       <header
         className="
           fixed top-0 left-0 right-0 z-[100] w-full border-b backdrop-blur-2xl transition-colors
@@ -159,6 +160,21 @@ function DashboardInner() {
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
+            {/* Desktop collapse button */}
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              className="
+                hidden md:inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
+                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
+                dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
+              "
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <Icon name="menu" className="h-5 w-5" />
+            </button>
+
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-sm font-black text-white shadow-sm dark:shadow-[0_0_24px_rgba(37,99,235,0.55)]">
               97
             </div>
@@ -187,34 +203,14 @@ function DashboardInner() {
             </div>
           </div>
 
+          {/* Desktop top-right: status only, not settings/logout */}
           <div className="hidden md:flex items-center gap-3 text-xs text-slate-500 dark:text-slate-300">
-            <span>demo@signal97.com</span>
-
-            <button
-              onClick={() => goToTab("Settings")}
-              className="
-                inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-semibold transition
-                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-                dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10
-              "
-            >
-              <Icon name="settings" className="h-3.5 w-3.5" />
-              Settings
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="
-                inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-semibold transition
-                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-                dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10
-              "
-            >
-              <Icon name="logout" className="h-3.5 w-3.5" />
-              Log out
-            </button>
+            <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-semibold text-slate-600 dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-300">
+              demo@signal97.com
+            </span>
           </div>
 
+          {/* Mobile drawer button */}
           <button
             onClick={() => setDrawerOpen(true)}
             className="
@@ -231,89 +227,93 @@ function DashboardInner() {
 
       {/* DESKTOP LEFT SIDEBAR */}
       <aside
-        className="
-          hidden md:flex fixed left-0 top-[65px] bottom-0 z-[90] w-[280px] flex-col border-r backdrop-blur-2xl transition-colors
+        className={
+          `
+          hidden md:flex fixed left-0 top-[65px] bottom-0 z-[90] flex-col border-r backdrop-blur-2xl transition-all duration-300
           border-slate-200 bg-white/72 shadow-sm
           dark:border-white/10 dark:bg-[#070b13]/72
-        "
+          ` + (sidebarCollapsed ? " w-[84px]" : " w-[280px]")
+        }
       >
         <div className="flex-1 overflow-y-auto px-3 py-5">
-          <MenuSectionLabel>Workspace</MenuSectionLabel>
+          {!sidebarCollapsed && <MenuSectionLabel>Workspace</MenuSectionLabel>}
           <SidebarItem
             icon="dashboard"
             label="Command Center"
             active={activeTab === "Command Center"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Command Center")}
           />
           <SidebarItem
             icon="bell"
             label="Signal 97 Alerts"
             active={activeTab === "Signal 97 Alerts"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Signal 97 Alerts")}
           />
           <SidebarItem
             icon="wallet"
             label="Active Trades"
             active={activeTab === "Active Trades"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Active Trades")}
           />
           <SidebarItem
             icon="eye"
             label="Live Watchlist"
             active={activeTab === "Live Watchlist"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Live Watchlist")}
           />
 
-          <MenuSectionLabel>History</MenuSectionLabel>
+          {!sidebarCollapsed && <MenuSectionLabel>History</MenuSectionLabel>}
           <SidebarItem
             icon="trend"
             label="P&L / Performance"
             active={activeTab === "P&L / Performance"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("P&L / Performance")}
           />
           <SidebarItem
             icon="archive"
             label="Taken / Closed Alerts"
             active={activeTab === "Taken / Closed Alerts"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Taken / Closed Alerts")}
           />
           <SidebarItem
             icon="inbox"
             label="Dismissed Alerts"
             active={activeTab === "Dismissed Alerts"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Dismissed Alerts")}
           />
 
-          <MenuSectionLabel>Utilities</MenuSectionLabel>
+          {!sidebarCollapsed && <MenuSectionLabel>Utilities</MenuSectionLabel>}
           <SidebarItem
             icon="tool"
             label="Tools"
             active={activeTab === "Tools"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Tools")}
           />
           <SidebarItem
             icon="settings"
             label="Settings"
             active={activeTab === "Settings"}
+            collapsed={sidebarCollapsed}
             onClick={() => goToTab("Settings")}
           />
         </div>
 
         <div className="border-t border-slate-200 px-3 py-4 dark:border-white/10">
-          <button
-            type="button"
+          <SidebarItem
+            icon="logout"
+            label="Log out"
+            danger
+            collapsed={sidebarCollapsed}
             onClick={handleLogout}
-            className="
-              flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-rose-600 transition
-              hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10
-            "
-          >
-            <span className="flex items-center gap-3">
-              <Icon name="logout" className="h-4 w-4" />
-              <span className="text-sm font-semibold">Log out</span>
-            </span>
-            <Icon name="chevron" className="h-4 w-4 opacity-60" />
-          </button>
+          />
         </div>
       </aside>
 
@@ -481,7 +481,10 @@ function DashboardInner() {
 
       {/* PAGE CONTENT */}
       <section
-        className={`relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 pb-28 md:pb-8 md:pl-[304px] space-y-6`}
+        className={
+          `relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 pb-28 md:pb-8 space-y-6 transition-[padding] duration-300 ` +
+          (sidebarCollapsed ? "md:pl-[108px]" : "md:pl-[304px]")
+        }
       >
         {activeTab === "Command Center" && (
           <CommandCenter onNavigate={(tab) => setActiveTab(tab)} />
@@ -541,20 +544,25 @@ function SidebarItem({
   label,
   active,
   danger,
+  collapsed = false,
   onClick,
 }: {
   icon: IconName;
   label: string;
   active?: boolean;
   danger?: boolean;
+  collapsed?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={collapsed ? label : undefined}
       className={
-        "flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition " +
+        "flex w-full items-center rounded-2xl px-3 py-3 text-left transition " +
+        (collapsed ? "justify-center" : "justify-between") +
+        " " +
         (danger
           ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
           : active
@@ -562,7 +570,7 @@ function SidebarItem({
           : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5")
       }
     >
-      <span className="flex items-center gap-3">
+      <span className={collapsed ? "flex items-center" : "flex items-center gap-3"}>
         <span
           className={
             active
@@ -572,10 +580,11 @@ function SidebarItem({
         >
           <Icon name={icon} className="h-4 w-4" />
         </span>
-        <span className="text-sm font-semibold">{label}</span>
+
+        {!collapsed && <span className="text-sm font-semibold">{label}</span>}
       </span>
 
-      <Icon name="chevron" className="h-4 w-4 opacity-60" />
+      {!collapsed && <Icon name="chevron" className="h-4 w-4 opacity-60" />}
     </button>
   );
 }
