@@ -130,8 +130,7 @@ export default function TakenClosedAlerts() {
         {/* Separator */}
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-            Closed trade history
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">            
           </span>
           <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
         </div>
