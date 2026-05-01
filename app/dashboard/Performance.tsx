@@ -305,21 +305,21 @@ function PerfCard({
   > = {
     blue: {
       card:
-        "border-sky-200 bg-sky-50 dark:border-blue-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_34%),#0f1d33]",
+        "border-sky-200 [background:#eef8ff] dark:border-blue-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),#121f33]",
       title: "text-sky-700 dark:text-sky-200",
       value: "text-slate-950 dark:text-white",
       accentLine: "border-sky-200/80 dark:border-white/10",
     },
     purple: {
       card:
-        "border-fuchsia-200 bg-fuchsia-50 dark:border-violet-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),#18152a]",
+        "border-fuchsia-200 [background:#fff1ff] dark:border-violet-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_34%),#19172f]",
       title: "text-fuchsia-700 dark:text-violet-200",
       value: "text-slate-950 dark:text-white",
       accentLine: "border-fuchsia-200/80 dark:border-white/10",
     },
     green: {
       card:
-        "border-emerald-300 bg-emerald-50 dark:border-emerald-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_34%),#0d2421]",
+        "border-emerald-300 [background:#ecfdf5] dark:border-emerald-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%),#0d2421]",
       title: "text-emerald-700 dark:text-emerald-200",
       value: "text-emerald-700 dark:text-emerald-300",
       accentLine: "border-emerald-200/80 dark:border-white/10",
@@ -330,7 +330,7 @@ function PerfCard({
     <div
       className={`
         rounded-3xl border px-6 py-5 flex min-h-[160px] flex-col justify-between shadow-sm transition-colors
-        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_45px_rgba(0,0,0,0.24)]
         ${styles[tone].card}
       `}
     >
@@ -370,14 +370,14 @@ function CompareCard({
     tone === "indigo"
       ? {
           card:
-            "border-indigo-200 bg-indigo-50 dark:border-indigo-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_34%),#0f1d33]",
-          title: "text-indigo-700 dark:text-slate-400",
+            "border-indigo-200 [background:#eef2ff] dark:border-indigo-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(99,102,241,0.16),transparent_34%),#0f1d33]",
+          title: "text-indigo-700 dark:text-indigo-200",
           value: "text-indigo-700 dark:text-indigo-200",
         }
       : {
           card:
-            "border-emerald-300 bg-emerald-50 dark:border-emerald-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_34%),#0d2421]",
-          title: "text-emerald-700 dark:text-slate-400",
+            "border-emerald-300 [background:#ecfdf5] dark:border-emerald-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%),#0d2421]",
+          title: "text-emerald-700 dark:text-emerald-200",
           value: "text-emerald-700 dark:text-emerald-300",
         };
 
@@ -385,7 +385,7 @@ function CompareCard({
     <div
       className={`
         rounded-3xl border px-5 py-5 flex min-h-[120px] flex-col justify-between shadow-sm transition-colors
-        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_45px_rgba(0,0,0,0.24)]
         ${styles.card}
       `}
     >
