@@ -83,7 +83,7 @@ function DashboardInner() {
   return (
     <main
       className="
-        relative min-h-screen overflow-hidden transition-colors
+        relative min-h-screen overflow-x-hidden transition-colors
         bg-[radial-gradient(circle_at_top_left,rgba(219,234,254,0.60),transparent_32%),radial-gradient(circle_at_top_right,rgba(209,250,229,0.48),transparent_30%),linear-gradient(135deg,#f8fafc_0%,#eef4fb_48%,#e8f1f8_100%)]
         text-slate-900
         dark:bg-[#05070c]
@@ -123,12 +123,12 @@ function DashboardInner() {
         "
       />
 
-      {/* Top bar */}
+      {/* STICKY TOP BAR + STICKY TABS */}
       <header
         className="
-          sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-colors
+          sticky top-0 z-[100] w-full border-b backdrop-blur-2xl transition-colors
           bg-white/92 border-slate-200 shadow-sm
-          dark:bg-[#070b13]/88 dark:border-white/10 dark:shadow-[0_18px_70px_rgba(0,0,0,0.40)]
+          dark:bg-[#070b13]/92 dark:border-white/10 dark:shadow-[0_18px_70px_rgba(0,0,0,0.40)]
         "
       >
         <div className="w-full max-w-[1500px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 gap-4">
@@ -181,7 +181,7 @@ function DashboardInner() {
           className="
             dashboard-tabs-row w-full border-t border-b backdrop-blur-2xl transition-colors
             bg-white/90 border-slate-200 shadow-sm/40
-            dark:bg-[#09111f]/92 dark:border-white/10
+            dark:bg-[#09111f]/95 dark:border-white/10
           "
         >
           <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -234,7 +234,7 @@ function DashboardSkeleton() {
   return (
     <main
       className="
-        relative min-h-screen overflow-hidden transition-colors
+        relative min-h-screen overflow-x-hidden transition-colors
         bg-[radial-gradient(circle_at_top_left,rgba(219,234,254,0.60),transparent_32%),radial-gradient(circle_at_top_right,rgba(209,250,229,0.48),transparent_30%),linear-gradient(135deg,#f8fafc_0%,#eef4fb_48%,#e8f1f8_100%)]
         dark:bg-[#05070c]
       "
