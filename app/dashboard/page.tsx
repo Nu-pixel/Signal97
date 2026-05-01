@@ -76,7 +76,9 @@ function DashboardInner() {
   const isDemo = useMemo(() => searchParams.get("demo") === "1", [searchParams]);
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // ✅ FIX: sidebar starts collapsed by default
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const pageMaxWidth = "max-w-[1500px]";
 
@@ -159,22 +161,8 @@ function DashboardInner() {
         "
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+          {/* LEFT: clean brand area */}
           <div className="flex min-w-0 items-center gap-3">
-            {/* Desktop collapse button */}
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed((v) => !v)}
-              className="
-                hidden md:inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
-                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-                dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
-              "
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <Icon name="menu" className="h-5 w-5" />
-            </button>
-
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-sm font-black text-white shadow-sm dark:shadow-[0_0_24px_rgba(37,99,235,0.55)]">
               97
             </div>
@@ -203,25 +191,36 @@ function DashboardInner() {
             </div>
           </div>
 
-          {/* Desktop top-right: status only, not settings/logout */}
-          <div className="hidden md:flex items-center gap-3 text-xs text-slate-500 dark:text-slate-300">
-            <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-semibold text-slate-600 dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-300">
-              demo@signal97.com
-            </span>
-          </div>
+          {/* RIGHT: menu controls */}
+          <div className="flex items-center gap-2">
+            {/* Desktop collapse button */}
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              className="
+                hidden md:inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
+                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
+                dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
+              "
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <Icon name="menu" className="h-5 w-5" />
+            </button>
 
-          {/* Mobile drawer button */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="
-              inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition md:hidden
-              border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-              dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
-            "
-            aria-label="Open menu"
-          >
-            <Icon name="menu" className="h-5 w-5" />
-          </button>
+            {/* Mobile drawer button */}
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="
+                inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition md:hidden
+                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
+                dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
+              "
+              aria-label="Open menu"
+            >
+              <Icon name="menu" className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -339,10 +338,10 @@ function DashboardInner() {
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 dark:border-white/10">
             <div>
               <div className="text-lg font-black text-slate-950 dark:text-white">
-                Workspace Menu
+                Signal97 Menu
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                demo@signal97.com
+                {activeTitle}
               </div>
             </div>
 
