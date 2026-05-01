@@ -300,25 +300,29 @@ function PerfCard({
       card: string;
       title: string;
       value: string;
+      accentLine: string;
     }
   > = {
     blue: {
       card:
-        "border-sky-200 bg-sky-50 dark:border-sky-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_34%),#0b1423]",
+        "bg-white border-slate-200 dark:border-blue-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_34%),#0f1d33]",
       title: "text-sky-700 dark:text-sky-200",
       value: "text-slate-950 dark:text-white",
+      accentLine: "border-sky-200/80 dark:border-white/10",
     },
     purple: {
       card:
-        "border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(217,70,239,0.14),transparent_34%),#120f22]",
-      title: "text-fuchsia-700 dark:text-fuchsia-200",
+        "bg-white border-slate-200 dark:border-violet-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),#18152a]",
+      title: "text-violet-700 dark:text-violet-200",
       value: "text-slate-950 dark:text-white",
+      accentLine: "border-violet-200/80 dark:border-white/10",
     },
     green: {
       card:
-        "border-emerald-200 bg-emerald-50 dark:border-emerald-300/30 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_34%),#09201d]",
+        "bg-white border-slate-200 dark:border-emerald-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_34%),#0d2421]",
       title: "text-emerald-700 dark:text-emerald-200",
       value: "text-emerald-700 dark:text-emerald-300",
+      accentLine: "border-emerald-200/80 dark:border-white/10",
     },
   };
 
@@ -326,12 +330,12 @@ function PerfCard({
     <div
       className={`
         rounded-3xl border px-6 py-5 flex min-h-[160px] flex-col justify-between shadow-sm transition-colors
-        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]
+        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
         ${styles[tone].card}
       `}
     >
       <div>
-        <div className={`text-[11px] mb-1 font-bold uppercase tracking-wide ${styles[tone].title}`}>
+        <div className={`text-[11px] mb-2 font-bold uppercase tracking-wide ${styles[tone].title}`}>
           {title}
         </div>
 
@@ -339,12 +343,12 @@ function PerfCard({
           {value}
         </div>
 
-        <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-300">
+        <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-300">
           {detail}
         </div>
       </div>
 
-      <div className="mt-4 border-t border-slate-200 pt-3 text-[10px] font-bold text-slate-700 dark:border-white/10 dark:text-slate-300">
+      <div className={`mt-4 border-t pt-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 ${styles[tone].accentLine}`}>
         Win rate <span className="ml-1 text-slate-950 dark:text-white">{winRate}</span>
       </div>
     </div>
@@ -366,12 +370,14 @@ function CompareCard({
     tone === "indigo"
       ? {
           card:
-            "border-indigo-200 bg-indigo-50 dark:border-indigo-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_34%),#0b1423]",
-          value: "text-indigo-900 dark:text-indigo-200",
+            "bg-white border-slate-200 dark:border-indigo-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_34%),#0f1d33]",
+          title: "text-indigo-700 dark:text-slate-400",
+          value: "text-indigo-700 dark:text-indigo-200",
         }
       : {
           card:
-            "border-emerald-200 bg-emerald-50 dark:border-emerald-300/30 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_34%),#09201d]",
+            "bg-white border-slate-200 dark:border-emerald-300/20 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_34%),#0d2421]",
+          title: "text-emerald-700 dark:text-slate-400",
           value: "text-emerald-700 dark:text-emerald-300",
         };
 
@@ -379,11 +385,11 @@ function CompareCard({
     <div
       className={`
         rounded-3xl border px-5 py-5 flex min-h-[120px] flex-col justify-between shadow-sm transition-colors
-        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]
+        dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
         ${styles.card}
       `}
     >
-      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <div className={`text-[10px] font-bold uppercase tracking-wide ${styles.title}`}>
         {title}
       </div>
 
