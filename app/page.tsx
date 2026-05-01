@@ -28,7 +28,14 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-blue-50 via-white to-pink-50 text-slate-900">
+    <div
+      className="
+        relative min-h-screen overflow-hidden text-slate-900
+        bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.22),transparent_30%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_28%),linear-gradient(135deg,#e6eef8_0%,#dbe7f3_45%,#d2e2ef_100%)]
+        dark:text-slate-100
+        dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),transparent_32%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,#05070c_0%,#08111f_48%,#0b1828_100%)]
+      "
+    >
       {/* Ambient animated background */}
       <SignalHeroAnimation />
 
@@ -39,7 +46,7 @@ export default function HomePage() {
         onDemo={() => setModalMode("demo")}
       />
 
-      <main className="min-h-screen bg-[#f8fafc] dark:bg-[#eef3f8] transition-colors pt-24 relative z-10">
+      <main className="relative z-10 min-h-screen pt-24">
         <HeroSection onLaunchDemo={() => setModalMode("demo")} />
         <HowItWorks />
         <Features />
