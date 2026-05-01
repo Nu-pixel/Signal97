@@ -77,10 +77,11 @@ function DashboardInner() {
   const [activeTab, setActiveTab] = useState<Tab>("Command Center");
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // ✅ FIX: sidebar starts collapsed by default
+  // collapsed by default
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const pageMaxWidth = "max-w-[1500px]";
+  const activeTitle = activeTab === "Command Center" ? "Command Center" : activeTab;
 
   useEffect(() => {
     applyDashboardTheme();
@@ -106,8 +107,6 @@ function DashboardInner() {
     document.documentElement.style.colorScheme = "light";
     router.push("/");
   };
-
-  const activeTitle = activeTab === "Command Center" ? "Command Center" : activeTab;
 
   return (
     <main
@@ -160,59 +159,37 @@ function DashboardInner() {
           dark:bg-[#070b13]/94 dark:border-white/10 dark:shadow-[0_18px_70px_rgba(0,0,0,0.40)]
         "
       >
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-          {/* LEFT: clean brand area */}
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+          {/* LEFT: refined brand */}
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-sm font-black text-white shadow-sm dark:shadow-[0_0_24px_rgba(37,99,235,0.55)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-sm font-extrabold text-white shadow-sm dark:shadow-[0_0_24px_rgba(37,99,235,0.55)]">
               97
             </div>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="truncate text-lg font-black tracking-tight text-slate-950 dark:text-white">
-                  Signal97
-                </div>
-
-                <span
-                  className={
-                    "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide " +
-                    (isDemo
-                      ? "border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-300/25 dark:bg-orange-400/15 dark:text-orange-200"
-                      : "border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/15 dark:text-emerald-200")
-                  }
-                >
-                  {isDemo ? "Demo" : "Live"}
-                </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="truncate text-[26px] leading-none font-bold tracking-[-0.03em] text-slate-950 dark:text-white">
+                Signal97
               </div>
 
-              <div className="truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                {activeTitle}
-              </div>
+              <span
+                className={
+                  "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] " +
+                  (isDemo
+                    ? "border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-300/25 dark:bg-orange-400/15 dark:text-orange-200"
+                    : "border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/15 dark:text-emerald-200")
+                }
+              >
+                {isDemo ? "Demo" : "Live"}
+              </span>
             </div>
           </div>
 
-          {/* RIGHT: menu controls */}
+          {/* RIGHT: mobile menu only */}
           <div className="flex items-center gap-2">
-            {/* Desktop collapse button */}
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed((v) => !v)}
-              className="
-                hidden md:inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
-                border-slate-200 bg-white text-slate-700 hover:bg-slate-50
-                dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
-              "
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <Icon name="menu" className="h-5 w-5" />
-            </button>
-
-            {/* Mobile drawer button */}
             <button
               onClick={() => setDrawerOpen(true)}
               className="
-                inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition md:hidden
+                inline-flex md:hidden h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
                 border-slate-200 bg-white text-slate-700 hover:bg-slate-50
                 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
               "
@@ -228,12 +205,40 @@ function DashboardInner() {
       <aside
         className={
           `
-          hidden md:flex fixed left-0 top-[65px] bottom-0 z-[90] flex-col border-r backdrop-blur-2xl transition-all duration-300
+          hidden md:flex fixed left-0 top-[73px] bottom-0 z-[90] flex-col border-r backdrop-blur-2xl transition-all duration-300
           border-slate-200 bg-white/72 shadow-sm
           dark:border-white/10 dark:bg-[#070b13]/72
           ` + (sidebarCollapsed ? " w-[84px]" : " w-[280px]")
         }
       >
+        {/* TOP SIDEBAR CONTROL */}
+        <div
+          className={
+            "border-b border-slate-200 px-3 py-4 dark:border-white/10 " +
+            (sidebarCollapsed ? "flex justify-center" : "flex items-center justify-between")
+          }
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            className="
+              inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition
+              border-slate-200 bg-white text-slate-700 hover:bg-slate-50
+              dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/10
+            "
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <Icon name="menu" className="h-5 w-5" />
+          </button>
+
+          {!sidebarCollapsed && (
+            <div className="pr-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              Navigation
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 overflow-y-auto px-3 py-5">
           {!sidebarCollapsed && <MenuSectionLabel>Workspace</MenuSectionLabel>}
           <SidebarItem
@@ -337,10 +342,10 @@ function DashboardInner() {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 dark:border-white/10">
             <div>
-              <div className="text-lg font-black text-slate-950 dark:text-white">
-                Signal97 Menu
+              <div className="text-lg font-bold tracking-tight text-slate-950 dark:text-white">
+                Signal97
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {activeTitle}
               </div>
             </div>
@@ -481,7 +486,7 @@ function DashboardInner() {
       {/* PAGE CONTENT */}
       <section
         className={
-          `relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 pb-28 md:pb-8 space-y-6 transition-[padding] duration-300 ` +
+          `relative z-10 w-full ${pageMaxWidth} mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-28 pb-28 md:pb-8 space-y-6 transition-[padding] duration-300 ` +
           (sidebarCollapsed ? "md:pl-[108px]" : "md:pl-[304px]")
         }
       >
@@ -595,15 +600,15 @@ function Icon({
   name: IconName;
   className?: string;
 }) {
-  const common = {
+  const common: React.SVGProps<SVGSVGElement> = {
     className,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
     strokeWidth: 2,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    ariaHidden: true,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
   };
 
   switch (name) {
