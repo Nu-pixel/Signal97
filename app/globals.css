@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f8fafc; /* Lighter base for a modern feel */
+  --foreground: #0f172a; /* Deep slate for text contrast */
 }
 
 .dark {
@@ -42,7 +42,7 @@ textarea {
 
 /* Light mode body */
 body {
-  background: radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 30%), 
+  background: radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 30%),
               radial-gradient(circle at top right, rgba(209, 250, 229, 0.45), transparent 28%), 
               #f8fafc;
 }
@@ -81,15 +81,15 @@ body {
 
 /* Cards and sections */
 .dark .bg-white {
-  background-color: #1e2a3a !important;
+  background-color: #1e2a3a !important; /* Darker card background */
 }
 
 .dark .bg-slate-50 {
-  background-color: #111c2e !important;
+  background-color: #111c2e !important; /* Darker background for sections */
 }
 
 .dark .bg-slate-100 {
-  background-color: #1e2a3a !important;
+  background-color: #1e2a3a !important; /* Slightly lighter dark background for cards */
 }
 
 /* Text */
@@ -103,15 +103,16 @@ body {
 
 /* Buttons */
 .dark .bg-emerald-50 {
-  background-color: rgba(6, 78, 59, 0.22) !important;
+  background-color: rgba(6, 78, 59, 0.22) !important; /* Subtle green for success buttons */
 }
 
 .dark .bg-rose-50 {
-  background-color: rgba(127, 29, 29, 0.22) !important;
+  background-color: rgba(127, 29, 29, 0.22) !important; /* Subtle red for danger buttons */
 }
 
+/* Softer shadows */
 .dark .shadow-sm,
 .dark .shadow,
 .dark .shadow-lg {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; /* Softer shadow for elements */
 }
