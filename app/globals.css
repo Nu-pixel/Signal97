@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* This makes Tailwind dark: classes follow the .dark class we add from Settings */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
