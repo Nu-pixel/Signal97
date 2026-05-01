@@ -106,10 +106,6 @@ function DashboardInner() {
     router.push("/");
   };
 
-  const goToAbout = () => {
-    router.push("/#how");
-  };
-
   return (
     <main
       className="
@@ -186,23 +182,23 @@ function DashboardInner() {
             </div>
           </div>
 
-          {/* RIGHT: clean app CTA + mobile menu */}
+          {/* RIGHT: utility controls + mobile menu */}
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2">
               <button
                 type="button"
-                onClick={goToAbout}
+                onClick={() => goToTab("Settings")}
                 className="
-                  group inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-xs font-bold shadow-sm transition
-                  border-slate-200 bg-white/80 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700
-                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-blue-300/30 dark:hover:bg-blue-400/10 dark:hover:text-blue-100
+                  group inline-flex h-10 w-10 items-center justify-center rounded-2xl border shadow-sm transition
+                  border-slate-200 bg-white/80 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700
+                  dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-blue-300/30 dark:hover:bg-blue-400/10 dark:hover:text-blue-100
                 "
-                aria-label="Learn about Signal97"
+                aria-label="Open settings"
+                title="Settings"
               >
-                About Signal97
                 <Icon
-                  name="chevron"
-                  className="h-4 w-4 opacity-60 transition-transform group-hover:translate-x-0.5"
+                  name="settings"
+                  className="h-[18px] w-[18px] transition-transform group-hover:rotate-45"
                 />
               </button>
             </div>
