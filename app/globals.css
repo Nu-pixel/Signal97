@@ -60,14 +60,9 @@ body {
   color: #e5edf7;
 }
 
-.dark .dashboard-tabs-row {
-  background: #111c2e !important;
-  border-color: #243247 !important;
-}
-
 /* Header text only */
 .dark header .text-slate-900 {
-  color: #f8fafc !important;
+  color: #e5edf7 !important;  /* Ensuring good contrast in header text */
 }
 
 /* Tab row text */
