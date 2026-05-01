@@ -259,7 +259,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
         text: "Quiet / No Strong Edge",
         detail: "0 alerts in the last 24h",
         cardClass:
-          "bg-slate-50 border-slate-200 text-slate-900 dark:bg-[#111827] dark:border-white/10 dark:text-slate-100",
+          "border-slate-200 [background:#f8fafc] text-slate-900 dark:border-white/10 dark:[background:#111827] dark:text-slate-100",
         iconClass: "text-slate-500 dark:text-slate-300",
         badgeClass:
           "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-white/10 dark:text-slate-200 dark:border-white/10",
@@ -275,7 +275,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
         text: "Mixed Alert Conditions",
         detail: `${last24hAlerts.length} alerts · direction unclear`,
         cardClass:
-          "bg-blue-50 border-blue-200 text-slate-900 dark:bg-[#122033] dark:border-blue-400/25 dark:text-slate-100",
+          "border-blue-200 [background:#eff6ff] text-slate-900 dark:border-blue-400/25 dark:[background:#122033] dark:text-slate-100",
         iconClass: "text-blue-600 dark:text-blue-300",
         badgeClass:
           "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-400/15 dark:text-blue-200 dark:border-blue-300/20",
@@ -292,7 +292,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
         text: "Bullish Alert Bias",
         detail: `${upCount} UP · ${downCount} DOWN in the last 24h`,
         cardClass:
-          "bg-emerald-50 border-emerald-200 text-slate-900 dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%),#102323] dark:border-emerald-300/35 dark:text-slate-100",
+          "border-emerald-200 [background:#ecfdf5] text-slate-900 dark:border-emerald-300/35 dark:[background:radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%),#102323] dark:text-slate-100",
         iconClass: "text-emerald-600 dark:text-emerald-300",
         badgeClass:
           "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-300/15 dark:text-emerald-100 dark:border-emerald-200/25",
@@ -306,7 +306,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
         text: "Bearish Alert Bias",
         detail: `${upCount} UP · ${downCount} DOWN in the last 24h`,
         cardClass:
-          "bg-orange-50 border-orange-200 text-slate-900 dark:bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.16),transparent_34%),#271c16] dark:border-orange-300/35 dark:text-slate-100",
+          "border-orange-200 [background:#fff7ed] text-slate-900 dark:border-orange-300/35 dark:[background:radial-gradient(circle_at_top_right,rgba(249,115,22,0.16),transparent_34%),#271c16] dark:text-slate-100",
         iconClass: "text-orange-600 dark:text-orange-300",
         badgeClass:
           "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-300/15 dark:text-orange-100 dark:border-orange-200/25",
@@ -319,7 +319,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
       text: "Mixed Alert Conditions",
       detail: `${upCount} UP · ${downCount} DOWN in the last 24h`,
       cardClass:
-        "bg-blue-50 border-blue-200 text-slate-900 dark:bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),#122033] dark:border-blue-300/30 dark:text-slate-100",
+        "border-blue-200 [background:#eff6ff] text-slate-900 dark:border-blue-300/30 dark:[background:radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),#122033] dark:text-slate-100",
       iconClass: "text-blue-600 dark:text-blue-300",
       badgeClass:
         "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-300/15 dark:text-blue-100 dark:border-blue-200/25",
@@ -474,7 +474,7 @@ export default function CommandCenter({ onNavigate }: CommandCenterProps) {
               accent="blue"
             />
 
-            <div className="flex min-h-[170px] flex-col justify-between rounded-3xl border border-orange-200 bg-orange-50 px-5 py-5 text-slate-900 shadow-sm dark:border-orange-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.13),transparent_34%),#151f2e] dark:text-slate-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="flex min-h-[170px] flex-col justify-between rounded-3xl border border-orange-200 [background:#fff7ed] px-5 py-5 text-slate-900 shadow-sm dark:border-orange-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(251,146,60,0.14),transparent_34%),#151f2e] dark:text-slate-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-orange-600 text-xs font-semibold dark:text-orange-300">
                   <Bell className="h-4 w-4" />
@@ -637,12 +637,12 @@ function MetricCard({
     accent === "blue"
       ? {
           card:
-            "border-blue-200 bg-blue-50 dark:border-blue-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),#121f33]",
+            "border-blue-200 [background:#eff6ff] dark:border-blue-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_34%),#121f33]",
           icon: "text-blue-600 dark:text-blue-300",
         }
       : {
           card:
-            "border-violet-200 bg-violet-50 dark:border-violet-300/25 dark:bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_34%),#19172f]",
+            "border-violet-200 [background:#faf5ff] dark:border-violet-300/25 dark:[background:radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_34%),#19172f]",
           icon: "text-violet-600 dark:text-violet-300",
         };
 
