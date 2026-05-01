@@ -565,7 +565,7 @@ function Icon({
     strokeWidth: 2,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
-    "aria-hidden": "true",
+    ariaHidden: true,
   };
 
   switch (name) {
