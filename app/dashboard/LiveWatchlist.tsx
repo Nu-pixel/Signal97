@@ -360,6 +360,28 @@ const GROUPS: SectorGroups = {
 
 export default function LiveWatchlist() {
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const isDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+
+  const [dashboardTheme, setDashboardTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const apply = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      setDashboardTheme(isDark ? "dark" : "light");
+    };
+
+    apply();
+
+    window.addEventListener("signal97-settings-changed", apply);
+    window.addEventListener("storage", apply);
+
+    return () => {
+      window.removeEventListener("signal97-settings-changed", apply);
+      window.removeEventListener("storage", apply);
+    };
+  }, []);
+
+  const isDark = dashboardTheme === "dark" || isDarkMode;
 
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"bubbles" | "list">("bubbles");
@@ -595,28 +617,32 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
     setZoom(next);
   }
 
-  const mapBg =
-    "radial-gradient(circle at 18% 18%, rgba(99,102,241,0.08), transparent 52%)," +
-    "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 54%)," +
-    "radial-gradient(circle at 55% 85%, rgba(244,63,94,0.06), transparent 56%)," +
-    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 45%, rgba(248,250,252,1) 100%)";
+  const mapBg = isDark
+    ? "radial-gradient(circle at 18% 18%, rgba(59,130,246,0.22), transparent 48%)," +
+      "radial-gradient(circle at 80% 18%, rgba(20,184,166,0.16), transparent 48%)," +
+      "radial-gradient(circle at 50% 88%, rgba(99,102,241,0.14), transparent 50%)," +
+      "linear-gradient(180deg, rgba(5,8,22,1) 0%, rgba(8,17,31,1) 48%, rgba(5,7,12,1) 100%)"
+    : "radial-gradient(circle at 18% 18%, rgba(99,102,241,0.08), transparent 52%)," +
+      "radial-gradient(circle at 78% 22%, rgba(16,185,129,0.07), transparent 54%)," +
+      "radial-gradient(circle at 55% 85%, rgba(244,63,94,0.06), transparent 56%)," +
+      "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 45%, rgba(248,250,252,1) 100%)";
 
   const actionBtn =
-    "text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-900 text-white hover:bg-slate-800 transition";
-
+    "text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-900 text-white hover:bg-slate-800 transition dark:border-white/15 dark:bg-[#050816] dark:text-slate-100 dark:hover:bg-[#111827]";
+  
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-      <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden dark:border-white/15 dark:bg-[#08111f] dark:shadow-[0_22px_70px_rgba(0,0,0,0.42)]">
+      <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.12),transparent_32%),linear-gradient(135deg,#050816_0%,#08111f_52%,#0b1828_100%)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight dark:text-slate-100">
               Live Watchlist — Sector Balloons
             </h1>
-            <p className="text-xs text-slate-600 mt-1">
-              <span className="font-semibold text-slate-800">{totals.shown}</span> / {totals.total} tickers
-              <span className="mx-2 text-slate-300">•</span>
-              <span className="font-semibold text-slate-800">{totals.sectorsShown}</span> / {totals.sectors} sectors
-              <span className="mx-2 text-slate-300">•</span>
+            <p className="text-xs text-slate-600 mt-1 dark:text-slate-400">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{totals.shown}</span> / {totals.total} tickers
+              <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{totals.sectorsShown}</span> / {totals.sectors} sectors
+              <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
               pastel • no overlap • pan/zoom friendly
             </p>
           </div>
@@ -627,13 +653,13 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search ticker or sector…"
-                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-slate-200/70"
+                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-slate-200/70 dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-blue-500/20"
               />
 
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setView((v) => (v === "bubbles" ? "list" : "bubbles"))}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-[#111827]"
                 >
                   {view === "bubbles" ? "List view" : "Balloon view"}
                 </button>
@@ -644,7 +670,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                     setActiveSector(null);
                     resetView();
                   }}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-[#111827]"
                 >
                   Reset
                 </button>
@@ -654,7 +680,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                     <button
                       type="button"
                       onClick={() => setZoom((z) => clamp(z - 0.15, ZOOM_MIN, ZOOM_MAX))}
-                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition"
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-[#111827]"
                       aria-label="Zoom out"
                     >
                       −
@@ -662,7 +688,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                     <button
                       type="button"
                       onClick={() => setZoom((z) => clamp(z + 0.15, ZOOM_MIN, ZOOM_MAX))}
-                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition"
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 transition dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-[#111827]"
                       aria-label="Zoom in"
                     >
                       +
@@ -680,11 +706,11 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
             </div>
 
             {activeSector ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm dark:border-white/15 dark:bg-[#0b1220]">  
                 <div className="truncate">
-                  <span className="font-semibold text-slate-900">{displaySectorName(activeSector)}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{displaySectorName(activeSector)}</span>
                   <span className="mx-2 text-slate-300">•</span>
-                  <span className="text-slate-600">{activeSymbols.length} tickers</span>
+                  <span className="text-slate-600 dark:text-slate-400">{activeSymbols.length} tickers</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
@@ -696,7 +722,9 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-500">Tip: drag to pan • pinch/scroll to zoom • tap a balloon</div>
+              <div className="text-xs text-slate-500 dark:text-slate-500">
+                Tip: drag to pan • pinch/scroll to zoom • tap a balloon
+              </div>
             )}
           </div>
         </div>
@@ -713,7 +741,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
           <>
             <div
               ref={wrapRef}
-              className="relative w-full rounded-[28px] overflow-hidden border border-slate-200"
+              className="relative w-full rounded-[28px] overflow-hidden border border-slate-200 dark:border-white/15 dark:shadow-[inset_0_0_80px_rgba(59,130,246,0.08)]"
               style={{ height: "min(78vh, 860px)", background: mapBg }}
             >
               <svg
@@ -847,9 +875,9 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
               </svg>
 
               {hoverSector && (
-                <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm">
-                  <div className="text-sm font-semibold text-slate-900">{displaySectorName(hoverSector)}</div>
-                  <div className="text-xs text-slate-600 mt-0.5">
+                <div className="absolute top-4 left-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur px-4 py-3 shadow-sm dark:border-white/15 dark:bg-[#0b1220]/90 dark:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{displaySectorName(hoverSector)}</div>
+                  <div className="text-xs text-slate-600 mt-0.5 dark:text-slate-400">
                     {(filteredGroups[hoverSector] || groups[hoverSector] || []).length} tickers
                   </div>
                 </div>
@@ -858,11 +886,11 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
 
             {/* ✅ THIS IS THE FIX: show the tickers list BELOW the bubble map (not as an overlay). */}
             {activeSector && (
-              <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/15 dark:bg-[#08111f] dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-base font-semibold text-slate-900 truncate">{displaySectorName(activeSector)}</div>
-                    <div className="text-xs text-slate-600 mt-1">{activeSymbols.length} tickers</div>
+                    <div className="text-base font-semibold text-slate-900 truncate dark:text-slate-100">{displaySectorName(activeSector)}</div>
+                    <div className="text-xs text-slate-600 mt-1 dark:text-slate-400">{activeSymbols.length} tickers</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => copyToClipboard(activeSymbols.join(", "))} className={actionBtn}>
@@ -909,13 +937,18 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                 return (
                   <div
                     key={displaySectorName(sector)}
-                    className="rounded-[28px] border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
-                    style={{ backgroundColor: `hsla(${t.hue}, 45%, 97%, 1)` }}
+                    className="rounded-[28px] border border-slate-200 p-5 shadow-sm hover:shadow-md transition dark:border-white/15 dark:shadow-[0_18px_50px_rgba(0,0,0,0.28)]"
+                    
+                    style={{
+                      backgroundColor: isDark
+                        ? `hsla(${t.hue}, 35%, 12%, 0.96)`
+                        : `hsla(${t.hue}, 45%, 97%, 1)`,
+                    }}                    
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-900 truncate">{displaySectorName(sector)}</div>
-                        <div className="text-xs text-slate-600 mt-1">{syms.length} tickers</div>
+                        <div className="text-sm font-semibold text-slate-900 truncate dark:text-slate-100">{displaySectorName(sector)}</div>
+                        <div cclassName="text-xs text-slate-600 mt-1 dark:text-slate-400">{syms.length} tickers</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => copyToClipboard(syms.join(", "))} className={actionBtn}>
@@ -923,7 +956,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                         </button>
                         <button
                           onClick={() => setActiveSector((cur) => (cur === sector ? null : sector))}
-                          className="text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 transition"
+                          className="text-xs px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 transition dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-200 dark:hover:bg-[#111827]"
                         >
                           {open ? "Hide" : "Show"}
                         </button>
@@ -937,7 +970,7 @@ function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
                             key={`${displaySectorName(sector)}:${sym}`}
                             type="button"
                             onClick={() => copyToClipboard(sym)}
-                            className="rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-800 text-sm font-semibold px-3 py-2 transition hover:-translate-y-[1px]"
+                            className="rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-800 text-sm font-semibold px-3 py-2 transition hover:-translate-y-[1px] dark:border-white/15 dark:bg-[#0b1220] dark:text-slate-100 dark:hover:bg-[#111827]"
                             title="Click to copy"
                           >
                             {sym}
