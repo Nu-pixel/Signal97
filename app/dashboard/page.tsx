@@ -81,9 +81,15 @@ function DashboardInner() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] dark:bg-[#0b1220] transition-colors">
+    <main
+      className="
+        min-h-screen transition-colors
+        bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_32%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.11),transparent_30%),linear-gradient(135deg,#dbe7f3_0%,#d3e2ef_45%,#c9dbe9_100%)]
+        dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),transparent_34%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.13),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.10),transparent_34%),linear-gradient(135deg,#05070c_0%,#08111f_48%,#0b1828_100%)]
+      "
+    >
       {/* Top bar */}
-      <header className="sticky top-0 z-50 w-full bg-white dark:bg-[#111c2e] border-b border-slate-100 dark:border-slate-800">
+      <header className="sticky top-0 z-50 w-full bg-[#111c2e]/95 dark:bg-[#080d16]/95 border-b border-slate-700/50 dark:border-white/10 backdrop-blur-xl shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
         <div className="w-full max-w-[1500px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-semibold shadow-sm">
@@ -91,21 +97,21 @@ function DashboardInner() {
             </div>
 
             <div>
-              <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="font-semibold text-slate-100 flex items-center gap-2">
                 Signal 97 · Workspace
                 <span
                   className={
                     "px-2 py-0.5 rounded-full text-[10px] font-semibold " +
                     (isDemo
-                      ? "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300")
+                      ? "bg-orange-400/15 text-orange-200 border border-orange-300/20"
+                      : "bg-emerald-400/15 text-emerald-200 border border-emerald-300/20")
                   }
                 >
                   {isDemo ? "DEMO" : "LIVE"}
                 </span>
               </div>
 
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+              <div className="text-[10px] text-slate-400 font-medium">
                 {isDemo
                   ? "Showing sample UI data (demo mode)."
                   : "Showing live-connected pages (when wired)."}
@@ -113,12 +119,12 @@ function DashboardInner() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-slate-300">
             <span>demo@signal97.com</span>
 
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="px-3 py-1.5 rounded-full border border-white/20 text-slate-200 hover:bg-white/10 transition"
             >
               Log out
             </button>
@@ -126,7 +132,7 @@ function DashboardInner() {
         </div>
 
         {/* Tabs row */}
-        <div className="dashboard-tabs-row w-full bg-white dark:bg-[#0f1a2b] border-b border-slate-200 dark:border-slate-800 shadow-sm/40">
+        <div className="dashboard-tabs-row w-full bg-[#0d1626]/95 dark:bg-[#070b13]/95 border-b border-white/10 shadow-sm/40">
           <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-sm">
               {TABS.map((tab) => {
@@ -139,8 +145,8 @@ function DashboardInner() {
                     className={
                       "px-4 py-2 rounded-full whitespace-nowrap transition-all " +
                       (isActiveTab
-                        ? "bg-slate-900 text-white dark:bg-sky-500 dark:text-white shadow-sm"
-                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800")
+                        ? "bg-[#050816] text-white ring-1 ring-white/30 shadow-[0_0_22px_rgba(59,130,246,0.18)]"
+                        : "text-slate-300 hover:text-white hover:bg-white/10")
                     }
                   >
                     {tab}
@@ -175,16 +181,22 @@ function DashboardInner() {
 
 function DashboardSkeleton() {
   return (
-    <main className="min-h-screen bg-[#f8fafc] dark:bg-[#07111f]">
+    <main
+      className="
+        min-h-screen
+        bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_32%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.11),transparent_30%),linear-gradient(135deg,#dbe7f3_0%,#d3e2ef_45%,#c9dbe9_100%)]
+        dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),transparent_34%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.13),transparent_30%),linear-gradient(135deg,#05070c_0%,#08111f_48%,#0b1828_100%)]
+      "
+    >
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-          <div className="h-6 w-56 bg-slate-100 dark:bg-slate-800 rounded mb-3" />
-          <div className="h-3 w-72 bg-slate-100 dark:bg-slate-800 rounded mb-6" />
+        <div className="bg-[#111c2e] border border-white/10 rounded-3xl p-6 shadow-sm">
+          <div className="h-6 w-56 bg-slate-800 rounded mb-3" />
+          <div className="h-3 w-72 bg-slate-800 rounded mb-6" />
           <div className="grid md:grid-cols-4 gap-4">
-            <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-            <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-            <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-            <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+            <div className="h-24 bg-slate-800 rounded-2xl" />
+            <div className="h-24 bg-slate-800 rounded-2xl" />
+            <div className="h-24 bg-slate-800 rounded-2xl" />
+            <div className="h-24 bg-slate-800 rounded-2xl" />
           </div>
         </div>
       </div>
